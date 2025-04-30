@@ -57,6 +57,8 @@ export const getPlaylist = async (playlistId, token) => {
 // Play a track using Spotify Web Playback SDK
 export const playTrack = async (deviceId, trackUri, token) => {
   try {
+    console.log(`Playing track ${trackUri} on device ${deviceId}`);
+    
     await axios.put(
       `${SPOTIFY_API}/me/player/play?device_id=${deviceId}`,
       { uris: [trackUri] },
@@ -67,8 +69,48 @@ export const playTrack = async (deviceId, trackUri, token) => {
         }
       }
     );
+    
+    console.log('Play request successful');
+    return true;
   } catch (error) {
-    console.error('Error playing track:', error);
+    console.error('Error playing track:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Pause playback
+export const pausePlayback = async (token) => {
+  try {
+    await axios.put(
+      `${SPOTIFY_API}/me/player/pause`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error('Error pausing playback:', error);
+    throw error;
+  }
+};
+
+// Get playback state
+export const getPlaybackState = async (token) => {
+  try {
+    const response = await axios.get(
+      `${SPOTIFY_API}/me/player`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting playback state:', error);
     throw error;
   }
 };
