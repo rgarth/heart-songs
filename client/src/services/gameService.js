@@ -59,8 +59,7 @@ export const toggleReady = async (gameId, userId, token) => {
 
 // Submit song selection
 export const submitSong = async (gameId, userId, songData, token) => {
-  console.log('Subrqitting song:', songData);
-  console.log('API_URL:', API_URL);
+  console.log('Submitting song for gameId:', gameId);
   try {
     const response = await axios.post(
       `${API_URL}/game/submit`, 
@@ -76,7 +75,7 @@ export const submitSong = async (gameId, userId, songData, token) => {
     );
     return response.data;
   } catch (error) {
-    console.error('Error submitting song:', error);
+    console.error('Error submitting song:', error.response?.data || error.message);
     throw error;
   }
 };

@@ -1,6 +1,7 @@
 // server/routes/game.js
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Game = require('../models/Game');
 const User = require('../models/User');
 const Question = require('../models/Question');
@@ -11,17 +12,25 @@ function generateGameCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// Get random uestion
+// Get random question
 async function getRandomQuestion() {
   const count = await Question.countDocuments();
   const random = Math.floor(Math.random() * count);
   return Question.findOne().skip(random);
 }
 
+// Debug middleware to log all routes
+router.use((req, res, next) => {
+  console.log(`Game Route: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Create a new game
 router.post('/create', async (req, res) => {
   try {
     const { userId } = req.body;
+    console.log('Creating game for userId:', userId);
+    
     const host = await User.findById(userId);
     
     if (!host) {
@@ -47,6 +56,8 @@ router.post('/create', async (req, res) => {
     
     await game.save();
     
+    console.log('Game created:', game._id, 'with code:', game.code);
+    
     res.json({
       gameId: game._id,
       gameCode: game.code,
@@ -65,6 +76,7 @@ router.post('/create', async (req, res) => {
 router.post('/join', async (req, res) => {
   try {
     const { gameCode, userId } = req.body;
+    console.log('Joining game with code:', gameCode, 'for userId:', userId);
     
     const game = await Game.findOne({ code: gameCode });
     if (!game) {
@@ -112,8 +124,18 @@ router.post('/join', async (req, res) => {
 router.post('/ready', async (req, res) => {
   try {
     const { gameId, userId } = req.body;
+    console.log('Toggling ready status for gameId:', gameId, 'userId:', userId);
     
-    const game = await Game.findById(gameId);
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
@@ -175,17 +197,60 @@ router.post('/submit', async (req, res) => {
   try {
     const { gameId, userId, songId, songName, artist, albumCover } = req.body;
     
-    const game = await Game.findById(gameId);
-    if (!game) {
-      return res.status(404).json({ error: 'Game not found' });
+    // Log detailed information for debugging
+    console.log('Submit song request:', { 
+      gameId, 
+      userId, 
+      songId, 
+      songName 
+    });
+    console.log('gameId type:', typeof gameId);
+    
+    // Validate required parameters
+    if (!gameId || !userId || !songId) {
+      return res.status(400).json({ 
+        error: 'Missing required parameters',
+        received: { gameId, userId, songId }
+      });
     }
+    
+    // Find game by _id or code
+    let game = null;
+    
+    // First try to find by _id if it looks like a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      console.log('Looking up game by _id:', gameId);
+      game = await Game.findById(gameId);
+    }
+    
+    // If not found, try by code
+    if (!game) {
+      console.log('Looking up game by code:', gameId);
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    // If still not found, return debugging info
+    if (!game) {
+      // Get a list of all games for debugging
+      const allGames = await Game.find({}, '_id code').limit(5);
+      console.log('Available games:', allGames);
+      
+      return res.status(404).json({ 
+        error: 'Game not found', 
+        gameId,
+        tip: 'Make sure you\'re using the correct game ID (either MongoDB _id or game code)' 
+      });
+    }
+    
+    console.log('Game found:', game._id, 'with code:', game.code);
     
     if (game.status !== 'selecting') {
       return res.status(400).json({ error: 'Game is not in selecting phase' });
     }
     
     // Check if user already submitted
-    const existingSubmission = game.submissions.find(s => s.player.toString() === userId);
+    const existingSubmission = game.submissions.find(s => s.player && s.player.toString() === userId);
+    
     if (existingSubmission) {
       // Update existing submission
       existingSubmission.songId = songId;
@@ -205,15 +270,22 @@ router.post('/submit', async (req, res) => {
     }
     
     // Add track to playlist
-    const host = await User.findById(game.host);
-    await addTrackToPlaylist(host.accessToken, game.playlistId, songId);
+    try {
+      const host = await User.findById(game.host);
+      await addTrackToPlaylist(host.accessToken, game.playlistId, songId);
+    } catch (playlistError) {
+      console.error('Error adding track to playlist:', playlistError);
+      // Continue even if there's an error with the playlist
+    }
     
     await game.save();
+    console.log('Song submitted successfully, submissions count:', game.submissions.length);
     
     // Check if all players have submitted
     const allSubmitted = game.players.length === game.submissions.length;
     
     if (allSubmitted) {
+      console.log('All players have submitted, changing game status to voting');
       game.status = 'voting';
       await game.save();
     }
@@ -225,7 +297,7 @@ router.post('/submit', async (req, res) => {
     });
   } catch (error) {
     console.error('Error submitting song:', error);
-    res.status(500).json({ error: 'Failed to submit song' });
+    res.status(500).json({ error: 'Failed to submit song', details: error.message });
   }
 });
 
@@ -233,8 +305,18 @@ router.post('/submit', async (req, res) => {
 router.post('/vote', async (req, res) => {
   try {
     const { gameId, userId, submissionId } = req.body;
+    console.log('Vote request:', { gameId, userId, submissionId });
     
-    const game = await Game.findById(gameId);
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
@@ -314,8 +396,18 @@ router.post('/vote', async (req, res) => {
 router.post('/next-round', async (req, res) => {
   try {
     const { gameId } = req.body;
+    console.log('Starting new round for gameId:', gameId);
     
-    const game = await Game.findById(gameId);
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
@@ -368,18 +460,29 @@ router.post('/next-round', async (req, res) => {
 router.get('/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
+    console.log('Getting game state for:', gameId);
     
-    const game = await Game.findById(gameId)
-      .populate('host', 'displayName profileImage')
-      .populate('players.user', 'displayName profileImage')
-      .populate('submissions.player', 'displayName profileImage')
-      .populate('submissions.votes', 'displayName profileImage');
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
     
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
     
+    await game.populate('host', 'displayName profileImage');
+    await game.populate('players.user', 'displayName profileImage');
+    await game.populate('submissions.player', 'displayName profileImage');
+    await game.populate('submissions.votes', 'displayName profileImage');
+    
     res.json({
+      _id: game._id,
       gameId: game._id,
       gameCode: game.code,
       status: game.status,
@@ -392,6 +495,20 @@ router.get('/:gameId', async (req, res) => {
   } catch (error) {
     console.error('Error getting game state:', error);
     res.status(500).json({ error: 'Failed to get game state' });
+  }
+});
+
+// Debug endpoint to list all games
+router.get('/debug/all', async (req, res) => {
+  try {
+    const games = await Game.find({})
+      .select('_id code status host players.length submissions.length')
+      .limit(10);
+    
+    res.json({ games });
+  } catch (error) {
+    console.error('Error listing games:', error);
+    res.status(500).json({ error: 'Failed to list games' });
   }
 });
 
