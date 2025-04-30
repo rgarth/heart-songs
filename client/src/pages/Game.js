@@ -1,0 +1,183 @@
+// client/src/pages/Game.js
+import React, { useContext, useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import { getGameState, toggleReady, startNewRound } from '../services/gameService';
+import LobbyScreen from '../components/game/LobbyScreen';
+import SelectionScreen from '../components/game/SelectionScreen';
+import VotingScreen from '../components/game/VotingScreen';
+import ResultsScreen from '../components/game/ResultsScreen';
+
+// Polling interval in milliseconds
+const POLLING_INTERVAL = 2000;
+
+const Game = () => {
+  const { gameId } = useParams();
+  const navigate = useNavigate();
+  const { user, accessToken } = useContext(AuthContext);
+  
+  const [game, setGame] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Fetch game state (initial and polling)
+  useEffect(() => {
+    let isMounted = true;
+    let intervalId;
+
+    const fetchGameState = async () => {
+      try {
+        const gameData = await getGameState(gameId, accessToken);
+        if (isMounted) {
+          setGame(gameData);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching game state:', error);
+        if (isMounted) {
+          setError('Failed to fetch game state');
+          setLoading(false);
+        }
+      }
+    };
+
+    // Initial fetch
+    fetchGameState();
+    
+    // Setup polling
+    intervalId = setInterval(fetchGameState, POLLING_INTERVAL);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [gameId, accessToken]);
+  
+  // Handle ready toggle
+  const handleToggleReady = async () => {
+    try {
+      await toggleReady(gameId, user.id, accessToken);
+    } catch (error) {
+      console.error('Error toggling ready status:', error);
+      setError('Failed to update ready status');
+    }
+  };
+  
+  // Handle starting a new round
+  const handleNextRound = async () => {
+    try {
+      await startNewRound(gameId, accessToken);
+    } catch (error) {
+      console.error('Error starting new round:', error);
+      setError('Failed to start new round');
+    }
+  };
+  
+  // Go back to home
+  const handleLeaveGame = () => {
+    navigate('/');
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-white mt-4">Loading game...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
+          <p className="text-white mb-6">{error}</p>
+          <button
+            onClick={handleLeaveGame}
+            className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Game not found
+  if (!game) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
+          <h2 className="text-2xl font-bold text-white mb-4">Game Not Found</h2>
+          <p className="text-gray-300 mb-6">The game you're looking for doesn't exist or has ended.</p>
+          <button
+            onClick={handleLeaveGame}
+            className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render appropriate game screen based on game status
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-6">
+        <header className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Heart Songs</h1>
+            <p className="text-sm text-gray-400">Game Code: {game.gameCode}</p>
+          </div>
+          <button
+            onClick={handleLeaveGame}
+            className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Leave Game
+          </button>
+        </header>
+
+        {game.status === 'waiting' && (
+          <LobbyScreen 
+            game={game} 
+            currentUser={user} 
+            onToggleReady={handleToggleReady} 
+          />
+        )}
+        
+        {game.status === 'selecting' && (
+          <SelectionScreen 
+            game={game}
+            currentUser={user}
+            accessToken={accessToken}
+          />
+        )}
+        
+        {game.status === 'voting' && (
+          <VotingScreen 
+            game={game}
+            currentUser={user}
+            accessToken={accessToken}
+          />
+        )}
+        
+        {game.status === 'results' && (
+          <ResultsScreen 
+            game={game}
+            currentUser={user}
+            accessToken={accessToken}
+            onNextRound={handleNextRound}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Game;

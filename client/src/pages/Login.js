@@ -1,0 +1,38 @@
+// client/src/pages/Login.js
+import React from 'react';
+import { getLoginUrl } from '../services/AuthService';
+import SpotifyLogo from '../assets/spotify-logo.png';
+
+const Login = () => {
+  const handleLogin = () => {
+    window.location.href = getLoginUrl();
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+        <h1 className="text-3xl font-bold text-white mb-6">Heart Songs</h1>
+        <p className="text-gray-300 mb-8">
+          A fun multiplayer game where you pick songs to match different questions
+          and vote for your favorites!
+        </p>
+        <button 
+          onClick={handleLogin}
+          className="flex items-center justify-center w-full py-3 px-4 bg-green-500 text-white font-medium rounded-full hover:bg-green-600 transition-colors"
+        >
+          <img 
+            src={SpotifyLogo} 
+            alt="Spotify" 
+            className="w-6 h-6 mr-2" 
+          />
+          Login with Spotify
+        </button>
+        <p className="text-gray-400 mt-4 text-sm">
+          You'll need a Spotify account to play.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
