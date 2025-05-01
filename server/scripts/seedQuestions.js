@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Question = require('../models/Question');
+const { text } = require('express');
 
 // Load environment variables
 dotenv.config();
@@ -356,7 +357,66 @@ const questions = [
     text: "What folk song tells the best story?",
     category: "genre"
   },
-  
+  {
+    text: "What song has the greated guitar solo?",
+  },
+  {
+    text: "What is your favourite Beatles song?",
+    category: "genre"
+  },
+  {
+    text: "What is your favourite Taylor Swift song?",
+    category: "genre"
+  },
+  { 
+    text: "What is your favourite Elvis song?", 
+    category: "genre"
+  },
+  {
+    text: "What is your favourite Michael Jackson song?",
+    category: "genre"
+  },
+  {
+    text: "What is your favourite Madonna song?",
+    category: "genre"
+  },
+  {
+    text: "What song is most unlike the artists usual other songs?",
+    category: "genre"
+  },
+  {
+    text: "What song has the best lyrics?",
+    category: "genre"
+  },
+  {
+    text: "What song has the best music video?",
+    category: "genre"
+  },
+  {
+    text: "What song has the best album cover?",
+    category: "genre"
+  },
+  {
+    text: "What song has the best live performance?",
+    category: "genre"
+  },
+  {
+    text: "What song has the best remix?",
+
+  },
+  {
+    text: "What is your favourite cover verision of a song?",
+    category: "genre"
+  },
+  {
+    text: "What is your favourite song from a movie?",
+    category: "genre"
+  },
+  { 
+    text: "What is your favourite song from a musical?",
+    category: "genre"
+  },
+
   // Weather/Season questions
   {
     text: "What song feels like a warm spring day?",
