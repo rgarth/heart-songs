@@ -9,7 +9,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
   // Check if all players are ready
   const allPlayersReady = game.players.every(p => p.isReady);
   
-  // NEW FEATURE: Check if there are at least 2 players
+  // Check if there are at least 2 players
   const hasEnoughPlayers = game.players.length >= 2;
   
   return (
@@ -59,10 +59,13 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
           {currentPlayer && (
             <button
               onClick={onToggleReady}
+              disabled={!hasEnoughPlayers && !currentPlayer.isReady}
               className={`py-3 px-6 rounded-lg font-medium ${
                 currentPlayer.isReady 
                   ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-green-600 hover:bg-green-700'
+                  : hasEnoughPlayers
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-gray-600 cursor-not-allowed opacity-50'
               }`}
             >
               {currentPlayer.isReady ? 'Cancel Ready' : 'Ready Up'}
@@ -73,7 +76,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
         <div className="mt-6 text-center text-gray-400">
           {!hasEnoughPlayers ? (
             <div className="text-yellow-500 font-medium mb-2">
-              At least 2 players are required to start the game.
+              At least 2 players are required to start the game. Waiting for more players to join...
             </div>
           ) : allPlayersReady ? (
             "All players are ready! The game will start in a moment..." 

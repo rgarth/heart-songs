@@ -155,18 +155,15 @@ router.post('/ready', async (req, res) => {
     
     // If all players are ready, start the game
     if (allReady && game.status === 'waiting') {
-      // NEW FEATURE: Check if there are at least 2 players before starting the game
+      // Check if there are at least 2 players before starting the game
       if (game.players.length < 2) {
-        // If less than 2 players, don't start the game yet
-        return res.status(400).json({ 
-          error: 'At least 2 players are required to start the game',
-          gameId: game._id,
-          status: game.status,
-          players: game.players
-        });
-      }
-      
-      // Create playlist
+        // If less than 2 players, don't start the game yet but don't return an error
+        // The frontend will handle disabling the ready button, but we still 
+        // want to save the player's ready status
+        console.log('Not enough players to start the game (minimum 2 required)');
+      } else {
+        // Enough players, proceed with starting the game
+        // Create playlist
       const host = await User.findById(game.host);
       const playlist = await createPlaylist(
         host.accessToken,
@@ -185,6 +182,7 @@ router.post('/ready', async (req, res) => {
       
       game.status = 'selecting';
       await game.save();
+    }
     }
     
     // Populate game data
