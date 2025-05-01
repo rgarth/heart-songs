@@ -402,7 +402,7 @@ const questions = [
   },
   {
     text: "What song has the best remix?",
-
+    category: "genre"
   },
   {
     text: "What is your favourite cover verision of a song?",
