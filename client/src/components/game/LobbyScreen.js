@@ -21,7 +21,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
         <div className="mb-6 text-center">
           <p className="text-sm text-gray-400 mb-1">Game Code:</p>
           <p className="text-3xl font-bold tracking-wider bg-gray-700 inline-block px-4 py-2 rounded-lg text-yellow-400">
-            {game.code}
+            {game.gameCode}
           </p>
           <p className="text-xs text-gray-400 mt-2">Share this code with friends to let them join</p>
         </div>
