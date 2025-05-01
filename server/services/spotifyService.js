@@ -97,9 +97,34 @@ async function getTrack(accessToken, trackId) {
   }
 }
 
+// Delete a playlist
+async function deletePlaylist(accessToken, playlistId) {
+  try {
+    // Spotify doesn't actually provide a direct "delete" endpoint
+    // The closest we can get is to "unfollow" the playlist which effectively removes it for that user
+    const response = await axios.delete(
+      `https://api.spotify.com/v1/playlists/${playlistId}/followers`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    // Success response is 200 OK with no content
+    return true;
+  } catch (error) {
+    console.error('Error deleting playlist:', error.response?.data || error.message);
+    throw new Error('Failed to delete playlist');
+  }
+}
+
+// Update the module.exports at the bottom of the file:
 module.exports = {
   createPlaylist,
   addTrackToPlaylist,
+  deletePlaylist,
   searchTracks,
   getTrack
 };

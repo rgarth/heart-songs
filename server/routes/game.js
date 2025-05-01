@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const Game = require('../models/Game');
 const User = require('../models/User');
 const Question = require('../models/Question');
-const { createPlaylist, addTrackToPlaylist } = require('../services/spotifyService');
+const { createPlaylist, addTrackToPlaylist, deletePlaylist } = require('../services/spotifyService');
 
 // Generate a random game code
 function generateGameCode() {
@@ -382,6 +382,20 @@ router.post('/vote', async (req, res) => {
       });
       
       await game.save();
+
+      // Clean up the playlist once voting is complete
+      if (game.playlistId) {
+        try {
+          console.log(`Cleaning up playlist ${game.playlistId} after voting is complete`);
+          const host = await User.findById(game.host);
+          const { deletePlaylist } = require('../services/spotifyService');
+          await deletePlaylist(host.accessToken, game.playlistId);
+          console.log('Playlist successfully deleted after voting');
+        } catch (error) {
+          console.error('Error deleting playlist after voting:', error);
+          // Continue even if there's an error with playlist deletion
+        }
+      }
       
       // Update user scores in the database
       for (const player of game.players) {
