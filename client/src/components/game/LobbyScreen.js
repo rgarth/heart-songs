@@ -15,7 +15,16 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Waiting for Players</h2>
+        <h2 className="text-2xl font-bold mb-2 text-center">Waiting for Players</h2>
+        
+        {/* Game code display - enlarged and highlighted */}
+        <div className="mb-6 text-center">
+          <p className="text-sm text-gray-400 mb-1">Game Code:</p>
+          <p className="text-3xl font-bold tracking-wider bg-gray-700 inline-block px-4 py-2 rounded-lg text-yellow-400">
+            {game.code}
+          </p>
+          <p className="text-xs text-gray-400 mt-2">Share this code with friends to let them join</p>
+        </div>
         
         <div className="mb-8">
           <h3 className="text-lg font-medium mb-3">Players ({game.players.length})</h3>
