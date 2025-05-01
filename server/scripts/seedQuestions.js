@@ -290,11 +290,11 @@ const questions = [
     category: "personal"
   },
   {
-    text: "What song reminds you of you mother?",
+    text: "What song reminds you of your mother?",
     category: "personal"
   },
   {
-    text: "What song reminds you of you father?",
+    text: "What song reminds you of your father?",
     category: "personal"
   },
   
