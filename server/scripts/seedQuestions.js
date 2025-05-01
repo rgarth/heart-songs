@@ -359,6 +359,7 @@ const questions = [
   },
   {
     text: "What song has the greated guitar solo?",
+    category: "genre"
   },
   {
     text: "What is your favourite Beatles song?",
