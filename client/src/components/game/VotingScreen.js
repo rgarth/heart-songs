@@ -1,6 +1,6 @@
 // client/src/components/game/VotingScreen.js
 import React, { useState, useEffect } from 'react';
-import { getPlaylist, playTrack } from '../../services/spotifyService';
+import { getPlaylist, playTrack, pausePlayback } from '../../services/spotifyService';
 import { voteForSong } from '../../services/gameService';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
@@ -146,14 +146,22 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
     
     try {
-      console.log('Playing track with device ID:', deviceId);
-      const trackUri = `spotify:track:${trackId}`;
-      await playTrack(deviceId, trackUri, accessToken);
-      setCurrentlyPlaying(trackId);
+      // If this track is already playing, pause it
+      if (currentlyPlaying === trackId) {
+        console.log('Pausing current track');
+        await pausePlayback(accessToken);
+        setCurrentlyPlaying(null);
+      } else {
+        // Play the new track
+        console.log('Playing track with device ID:', deviceId);
+        const trackUri = `spotify:track:${trackId}`;
+        await playTrack(deviceId, trackUri, accessToken);
+        setCurrentlyPlaying(trackId);
+      }
       setPlayerError(null);
     } catch (error) {
-      console.error('Error playing track:', error);
-      setPlayerError(`Failed to play track: ${error.message}`);
+      console.error('Error controlling playback:', error);
+      setPlayerError(`Failed to control playback: ${error.message}`);
     }
   };
   
@@ -270,19 +278,34 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       <p className="text-sm text-gray-400">{submission.artist}</p>
                     </div>
                     
-                    {/* Play button - always visible for all tracks */}
+                    {/* Play/Pause button - always visible for all tracks */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handlePlay(submission.songId);
                       }}
-                      className={`py-2 px-4 rounded transition-colors ${
+                      className={`py-2 px-4 rounded transition-colors flex items-center ${
                         currentlyPlaying === submission.songId
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-600 text-white hover:bg-gray-500'
                       }`}
                     >
-                      {currentlyPlaying === submission.songId ? 'Playing' : 'Play'}
+                      {currentlyPlaying === submission.songId ? (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" />
+                          </svg>
+                          Pause
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Play
+                        </>
+                      )}
                     </button>
                     
                     {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
