@@ -9,6 +9,9 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
   // Check if all players are ready
   const allPlayersReady = game.players.every(p => p.isReady);
   
+  // NEW FEATURE: Check if there are at least 2 players
+  const hasEnoughPlayers = game.players.length >= 2;
+  
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -68,9 +71,21 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
         </div>
         
         <div className="mt-6 text-center text-gray-400">
-          {allPlayersReady 
-            ? "All players are ready! The game will start in a moment..." 
-            : "Waiting for all players to be ready..."}
+          {!hasEnoughPlayers ? (
+            <div className="text-yellow-500 font-medium mb-2">
+              At least 2 players are required to start the game.
+            </div>
+          ) : allPlayersReady ? (
+            "All players are ready! The game will start in a moment..." 
+          ) : (
+            "Waiting for all players to be ready..."
+          )}
+          
+          {game.players.length < 3 && hasEnoughPlayers && (
+            <div className="mt-2 text-blue-400">
+              Note: In games with fewer than 3 players, you can vote for your own submission.
+            </div>
+          )}
         </div>
         
         <div className="mt-8 p-4 bg-gray-700 rounded-lg">
@@ -79,7 +94,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
             <li>Once everyone is ready, you'll see a random question</li>
             <li>Select a song from Spotify that answers the question</li>
             <li>After everyone has chosen, all songs are revealed</li>
-            <li>Vote for your favorite answer (except your own)</li>
+            <li>Vote for your favorite answer {game.players.length < 3 ? "(you can vote for your own)" : "(except your own)"}</li>
             <li>Points are awarded based on votes</li>
             <li>Play multiple rounds to determine the winner!</li>
           </ol>

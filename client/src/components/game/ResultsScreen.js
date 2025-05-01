@@ -10,6 +10,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
   
+  // NEW FEATURE: Check if this was a small game (less than 3 players)
+  const wasSmallGame = game.players.length < 3;
+  
   // Get player by ID
   const getPlayerById = (playerId) => {
     return game.players.find(p => p.user._id === playerId);
@@ -23,6 +26,12 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
         <div className="text-center mb-6">
           <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
         </div>
+        
+        {wasSmallGame && (
+          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> In games with fewer than 3 players, players can vote for their own submission.</p>
+          </div>
+        )}
         
         <div className="mb-8">
           <h3 className="text-lg font-medium mb-4">Songs & Votes</h3>
@@ -82,6 +91,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
                           <span key={voter._id} className="font-medium">
                             {voter.displayName}
                             {voter._id === currentUser.id && <span className="text-blue-400"> (You)</span>}
+                            {voter._id === player._id && <span className="text-yellow-400"> (Self-vote)</span>}
                             {', '}
                           </span>
                         ))}

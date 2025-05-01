@@ -16,6 +16,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [playerReady, setPlayerReady] = useState(false);
   const [playerError, setPlayerError] = useState(null);
   
+  // NEW FEATURE: Check if this is a small game (less than 3 players)
+  const isSmallGame = game.players.length < 3;
+  
   // Check if user has already voted
   useEffect(() => {
     const userVoted = game.submissions.some(s => 
@@ -189,7 +192,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         
         <div className="mb-4 flex justify-between items-center">
           <p className="text-sm">
-            Vote for your favorite answer (not your own)
+            Vote for your favorite answer {isSmallGame ? "" : "(not your own)"}
           </p>
           <p className="text-sm text-gray-400">
             {votedCount} of {totalPlayers} voted
@@ -201,6 +204,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
             <p><strong>Playback issue:</strong> {playerError}</p>
             <p className="mt-1">Try opening Spotify in another tab first, then try again.</p>
+          </div>
+        )}
+        
+        {isSmallGame && (
+          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> In games with fewer than 3 players, you can vote for your own submission.</p>
           </div>
         )}
         
@@ -237,7 +246,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   <div 
                     key={submission._id}
                     className={`flex items-center p-4 rounded-lg ${
-                      !hasVoted && !isOwnSubmission ? 'cursor-pointer hover:bg-gray-700' : ''
+                      !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
                     } transition-colors ${
                       selectedSubmission === submission._id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
                     } ${
@@ -276,8 +285,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       {currentlyPlaying === submission.songId ? 'Playing' : 'Play'}
                     </button>
                     
-                    {/* Vote button - only for other submissions when not voted yet */}
-                    {!isOwnSubmission && !hasVoted && (
+                    {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
+                    {!hasVoted && (isSmallGame || !isOwnSubmission) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -307,7 +316,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   {isVoting ? 'Submitting Vote...' : 'Submit Vote'}
                 </button>
                 <p className="text-sm text-gray-400 mt-2">
-                  Select your favorite song from another player, then submit your vote
+                  Select your favorite song{isSmallGame ? "" : " from another player"}, then submit your vote
                 </p>
               </div>
             )}

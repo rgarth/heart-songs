@@ -155,6 +155,17 @@ router.post('/ready', async (req, res) => {
     
     // If all players are ready, start the game
     if (allReady && game.status === 'waiting') {
+      // NEW FEATURE: Check if there are at least 2 players before starting the game
+      if (game.players.length < 2) {
+        // If less than 2 players, don't start the game yet
+        return res.status(400).json({ 
+          error: 'At least 2 players are required to start the game',
+          gameId: game._id,
+          status: game.status,
+          players: game.players
+        });
+      }
+      
       // Create playlist
       const host = await User.findById(game.host);
       const playlist = await createPlaylist(
@@ -331,9 +342,12 @@ router.post('/vote', async (req, res) => {
       return res.status(404).json({ error: 'Submission not found' });
     }
     
+    // NEW FEATURE: Check player count to determine if players can vote for their own submissions
+    const canVoteForSelf = game.players.length < 3;
+    
     // Check if player is voting for their own submission
-    if (submission.player.toString() === userId) {
-      return res.status(400).json({ error: 'Cannot vote for your own submission' });
+    if (submission.player.toString() === userId && !canVoteForSelf) {
+      return res.status(400).json({ error: 'Cannot vote for your own submission in games with 3 or more players' });
     }
     
     // Check if player already voted
