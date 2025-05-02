@@ -11,6 +11,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const [duplicateError, setDuplicateError] = useState(null);
   
   // Check if user has already submitted
   useEffect(() => {
@@ -29,6 +30,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     try {
       setSearchLoading(true);
       setSearchError(null);
+      setDuplicateError(null);
       
       const results = await searchTracks(searchQuery, accessToken);
       setSearchResults(results);
@@ -41,14 +43,37 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     }
   };
   
+  // Check if song is already selected by another player
+  const isSongAlreadySelected = (trackId) => {
+    return game.submissions.some(submission => 
+      submission.songId === trackId && submission.player._id !== currentUser.id
+    );
+  };
+  
   // Handle track selection
   const handleSelectTrack = (track) => {
+    setDuplicateError(null);
+    
+    // Check if this song is already selected by another player
+    if (isSongAlreadySelected(track.id)) {
+      setDuplicateError(`"${track.name}" has already been selected by another player. Please choose a different song.`);
+      // Don't set the track as selected
+      return;
+    }
+    
     setSelectedSong(track);
   };
   
   // Handle song submission
   const handleSubmit = async () => {
     if (!selectedSong) return;
+    
+    // Double-check for duplicate before submitting
+    if (isSongAlreadySelected(selectedSong.id)) {
+      setDuplicateError(`"${selectedSong.name}" has already been selected by another player. Please choose a different song.`);
+      setSelectedSong(null);
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -122,6 +147,12 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               </div>
             )}
             
+            {duplicateError && (
+              <div className="bg-yellow-600 text-white p-3 rounded mb-4">
+                {duplicateError}
+              </div>
+            )}
+            
             {selectedSong && (
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3">Selected Song</h3>
@@ -157,29 +188,41 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               <div>
                 <h3 className="text-lg font-medium mb-3">Search Results</h3>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                  {searchResults.map(track => (
-                    <div 
-                      key={track.id}
-                      onClick={() => handleSelectTrack(track)}
-                      className={`flex items-center p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors ${
-                        selectedSong?.id === track.id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
-                      }`}
-                    >
-                      {track.album.images[0] && (
-                        <img 
-                          src={track.album.images[0].url} 
-                          alt={track.name} 
-                          className="w-12 h-12 rounded mr-3" 
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium">{track.name}</p>
-                        <p className="text-sm text-gray-400">
-                          {track.artists.map(artist => artist.name).join(', ')}
-                        </p>
+                  {searchResults.map(track => {
+                    const isAlreadySelected = isSongAlreadySelected(track.id);
+                    return (
+                      <div 
+                        key={track.id}
+                        onClick={() => !isAlreadySelected && handleSelectTrack(track)}
+                        className={`flex items-center p-3 rounded-lg transition-colors ${
+                          isAlreadySelected 
+                            ? 'bg-gray-700 opacity-60 cursor-not-allowed'
+                            : selectedSong?.id === track.id 
+                              ? 'bg-gray-700 border border-blue-500 cursor-pointer hover:bg-gray-700'
+                              : 'bg-gray-750 cursor-pointer hover:bg-gray-700'
+                        }`}
+                      >
+                        {track.album.images[0] && (
+                          <img 
+                            src={track.album.images[0].url} 
+                            alt={track.name} 
+                            className="w-12 h-12 rounded mr-3" 
+                          />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium">{track.name}</p>
+                          <p className="text-sm text-gray-400">
+                            {track.artists.map(artist => artist.name).join(', ')}
+                          </p>
+                          {isAlreadySelected && (
+                            <p className="text-xs text-yellow-500 mt-1">
+                              Already selected by another player
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
