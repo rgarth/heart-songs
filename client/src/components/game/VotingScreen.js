@@ -211,7 +211,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         {playerError && (
           <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
             <p><strong>Playback issue:</strong> {playerError}</p>
-            <p className="mt-1">Try opening Spotify in another tab first, then try again.</p>
           </div>
         )}
         
