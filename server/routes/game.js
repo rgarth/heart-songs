@@ -19,12 +19,6 @@ async function getRandomQuestion() {
   return Question.findOne().skip(random);
 }
 
-// Debug middleware to log all routes
-router.use((req, res, next) => {
-  console.log(`Game Route: ${req.method} ${req.originalUrl}`);
-  next();
-});
-
 // Create a new game
 router.post('/create', async (req, res) => {
   try {
@@ -486,7 +480,6 @@ router.post('/next-round', async (req, res) => {
 router.get('/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
-    console.log('Getting game state for:', gameId);
     
     // Find game by _id or code
     let game = null;
