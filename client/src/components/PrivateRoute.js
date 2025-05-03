@@ -1,5 +1,5 @@
 // client/src/components/PrivateRoute.js
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -19,9 +19,14 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  // If not authenticated, redirect to login with the current path as redirect parameter
+  // If not authenticated, store the current location path and redirect to login
   if (!user) {
-    // Create the redirect URL with the current path encoded in the state
+    // Store the path in localStorage for routes that need direct access via URL
+    if (location.pathname.startsWith('/join/')) {
+      localStorage.setItem('redirectAfterAuth', location.pathname);
+    }
+    
+    // Also pass the path in location state for normal redirects
     return <Navigate 
       to="/login" 
       state={{ from: location.pathname + location.search }}
