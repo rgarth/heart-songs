@@ -66,7 +66,6 @@ router.post('/create', async (req, res) => {
   }
 });
 
-// Join a game
 router.post('/join', async (req, res) => {
   try {
     const { gameCode, userId } = req.body;
@@ -95,6 +94,9 @@ router.post('/join', async (req, res) => {
         score: 0
       });
       await game.save();
+      console.log(`Player ${userId} added to game ${gameCode}`);
+    } else {
+      console.log(`Player ${userId} is already in game ${gameCode}, not adding again`);
     }
     
     // Populate players

@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Game from './pages/Game';
 import Callback from './pages/Callback';
+import JoinGame from './pages/JoinGame'; // New import for JoinGame component
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -29,6 +30,15 @@ function App() {
               element={
                 <PrivateRoute>
                   <Game />
+                </PrivateRoute>
+              } 
+            />
+            {/* New route for joining games with a code */}
+            <Route 
+              path="/join/:gameCode" 
+              element={
+                <PrivateRoute>
+                  <JoinGame />
                 </PrivateRoute>
               } 
             />
