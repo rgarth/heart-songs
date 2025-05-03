@@ -58,11 +58,16 @@ export const toggleReady = async (gameId, userId, token) => {
 };
 
 // Force start game (host only)
-export const startGame = async (gameId, userId, token) => {
+export const startGame = async (gameId, userId, token, questionData = null) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/start`,
-      { gameId, userId },
+      { 
+        gameId, 
+        userId,
+        questionText: questionData?.text,
+        questionCategory: questionData?.category
+      },
       createHeaders(token)
     );
     return response.data;
@@ -110,7 +115,7 @@ export const voteForSong = async (gameId, userId, submissionId, token) => {
   }
 };
 
-// NEW FEATURE: Get random question preview
+// Get random question preview
 export const getRandomQuestion = async (gameId, token) => {
   try {
     const response = await axios.get(
@@ -124,7 +129,7 @@ export const getRandomQuestion = async (gameId, token) => {
   }
 };
 
-// NEW FEATURE: Submit custom question
+// Submit custom question
 export const submitCustomQuestion = async (gameId, questionText, token) => {
   try {
     const response = await axios.post(

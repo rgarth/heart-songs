@@ -35,11 +35,11 @@ const Game = () => {
         
         // Check if important properties changed before updating
         const hasStatusChanged = prevGame.status !== gameData.status;
-        const hasSubmissionsCountChanged = prevGame.submissions.length !== gameData.submissions.length;
+        const hasSubmissionsCountChanged = prevGame.submissions?.length !== gameData.submissions?.length;
         
         // Compare votes by stringifying arrays of vote counts
-        const prevVotesCounts = JSON.stringify(prevGame.submissions.map(s => s.votes.length));
-        const newVotesCounts = JSON.stringify(gameData.submissions.map(s => s.votes.length));
+        const prevVotesCounts = JSON.stringify(prevGame.submissions?.map(s => s.votes?.length) || []);
+        const newVotesCounts = JSON.stringify(gameData.submissions?.map(s => s.votes?.length) || []);
         const hasVotesChanged = prevVotesCounts !== newVotesCounts;
         
         // Compare players ready status
@@ -108,9 +108,9 @@ const Game = () => {
   };
   
   // Handle force start game (host only)
-  const handleStartGame = async () => {
+  const handleStartGame = async (questionData = null) => {
     try {
-      await startGame(gameId, user.id, accessToken);
+      await startGame(gameId, user.id, accessToken, questionData);
     } catch (error) {
       console.error('Error starting game:', error);
       setError('Failed to start game');

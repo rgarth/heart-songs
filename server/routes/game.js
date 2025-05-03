@@ -633,7 +633,7 @@ router.post('/:gameId/custom-question', async (req, res) => {
 // Force start game (host only)
 router.post('/start', async (req, res) => {
   try {
-    const { gameId, userId } = req.body;
+    const { gameId, userId, questionText, questionCategory } = req.body;
     console.log('Force starting game for gameId:', gameId, 'by host:', userId);
     
     // Find game by _id or code
@@ -675,12 +675,27 @@ router.post('/start', async (req, res) => {
     
     game.playlistId = playlist.id;
     
-    // Get random question
-    const question = await getRandomQuestion();
-    game.currentQuestion = {
-      text: question.text,
-      category: question.category
-    };
+    // Set question - either use provided question or get a random one
+    if (questionText && questionCategory) {
+      // Use the provided question
+      game.currentQuestion = {
+        text: questionText,
+        category: questionCategory
+      };
+    } else {
+      // Get random question
+      const question = await getRandomQuestion();
+      game.currentQuestion = {
+        text: question.text,
+        category: question.category
+      };
+    }
+
+    // Auto-ready the host if they're not already ready
+    const hostPlayerIndex = game.players.findIndex(p => p.user.toString() === userId);
+    if (hostPlayerIndex !== -1 && !game.players[hostPlayerIndex].isReady) {
+      game.players[hostPlayerIndex].isReady = true;
+    }
     
     // Store the count of ready players for validation in other phases
     // Filter to get only ready players
