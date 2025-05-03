@@ -8,6 +8,7 @@ const Callback = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [processingState, setProcessingState] = useState('Authenticating with Spotify...');
   
   useEffect(() => {
     const processCallback = async () => {
@@ -21,14 +22,28 @@ const Callback = () => {
           return;
         }
         
+        setProcessingState('Verifying your account...');
+        
         // Exchange code for tokens
         const data = await handleCallback(code);
         
         // Save auth data to context
         login(data.user, data.accessToken, data.refreshToken);
         
-        // Redirect to home
-        navigate('/');
+        setProcessingState('Login successful! Redirecting...');
+        
+        // Check if there's a stored redirect path (for join game links)
+        const redirectPath = localStorage.getItem('redirectAfterAuth');
+        
+        if (redirectPath) {
+          // Clear the stored path
+          localStorage.removeItem('redirectAfterAuth');
+          // Redirect to the stored path
+          navigate(redirectPath, { replace: true });
+        } else {
+          // Default redirect to home
+          navigate('/', { replace: true });
+        }
       } catch (error) {
         console.error('Error processing callback:', error);
         setError('Authentication failed. Please try again.');
@@ -47,7 +62,7 @@ const Callback = () => {
             <div className="flex justify-center">
               <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <p className="text-gray-300 mt-4">Authenticating with Spotify...</p>
+            <p className="text-gray-300 mt-4">{processingState}</p>
           </>
         )}
       </div>

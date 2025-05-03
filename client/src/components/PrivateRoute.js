@@ -1,10 +1,11 @@
 // client/src/components/PrivateRoute.js
 import React, { useContext } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
+  const location = useLocation();
 
   // If still loading auth state, show loading indicator
   if (loading) {
@@ -18,9 +19,14 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login with the current path as redirect parameter
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Create the redirect URL with the current path encoded in the state
+    return <Navigate 
+      to="/login" 
+      state={{ from: location.pathname + location.search }}
+      replace 
+    />;
   }
 
   // If authenticated, render the protected component
