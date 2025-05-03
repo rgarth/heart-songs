@@ -63,10 +63,10 @@ const Game = () => {
     }
   };
   
-  // Handle starting a new round
-  const handleNextRound = async () => {
+  // Handle starting a new round with selected or custom question
+  const handleNextRound = async (questionData) => {
     try {
-      await startNewRound(gameId, accessToken);
+      await startNewRound(gameId, questionData, accessToken);
     } catch (error) {
       console.error('Error starting new round:', error);
       setError('Failed to start new round');

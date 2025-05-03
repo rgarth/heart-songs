@@ -415,7 +415,7 @@ router.post('/vote', async (req, res) => {
 // Start a new round
 router.post('/next-round', async (req, res) => {
   try {
-    const { gameId } = req.body;
+    const { gameId, questionText, questionCategory } = req.body;
     console.log('Starting new round for gameId:', gameId);
     
     // Find game by _id or code
@@ -444,12 +444,21 @@ router.post('/next-round', async (req, res) => {
       player.isReady = false;
     });
     
-    // Get new question
-    const question = await getRandomQuestion();
-    game.currentQuestion = {
-      text: question.text,
-      category: question.category
-    };
+    // Set question - either use provided question or get a random one
+    if (questionText && questionCategory) {
+      // Use the provided question
+      game.currentQuestion = {
+        text: questionText,
+        category: questionCategory
+      };
+    } else {
+      // Get new random question
+      const question = await getRandomQuestion();
+      game.currentQuestion = {
+        text: question.text,
+        category: question.category
+      };
+    }
     
     // Create new playlist
     const host = await User.findById(game.host);
@@ -516,6 +525,82 @@ router.get('/:gameId', async (req, res) => {
     res.status(500).json({ error: 'Failed to get game state' });
   }
 });
+
+router.get('/:gameId/question-preview', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    console.log('Getting question preview for game:', gameId);
+    
+    // Find game to validate it exists
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Get random question (but don't save it to the game yet)
+    const question = await getRandomQuestion();
+    
+    res.json({
+      question: {
+        text: question.text,
+        category: question.category
+      }
+    });
+  } catch (error) {
+    console.error('Error getting question preview:', error);
+    res.status(500).json({ error: 'Failed to get question preview' });
+  }
+});
+
+// Submit a custom question for the next round
+router.post('/:gameId/custom-question', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const { questionText } = req.body;
+    
+    console.log('Submitting custom question for game:', gameId);
+    
+    if (!questionText || questionText.trim() === '') {
+      return res.status(400).json({ error: 'Question text is required' });
+    }
+    
+    // Find game to validate it exists
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Create a custom question (in memory, not saved to the database)
+    const customQuestion = {
+      text: questionText,
+      category: 'custom'
+    };
+    
+    res.json({
+      question: customQuestion
+    });
+  } catch (error) {
+    console.error('Error submitting custom question:', error);
+    res.status(500).json({ error: 'Failed to submit custom question' });
+  }
+});
+
 
 // Debug endpoint to list all games
 router.get('/debug/all', async (req, res) => {

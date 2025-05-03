@@ -1,5 +1,6 @@
 // client/src/components/game/ResultsScreen.js
-import React from 'react';
+import React, { useState } from 'react';
+import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 
 const ResultsScreen = ({ game, currentUser, onNextRound }) => {
   // Sort submissions by votes (most votes first)
@@ -12,6 +13,82 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
   
   // NEW FEATURE: Check if this was a small game (less than 3 players)
   const wasSmallGame = game.players.length < 3;
+  
+  // NEW FEATURE: Question preview states
+  const [nextQuestion, setNextQuestion] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showQuestionPreview, setShowQuestionPreview] = useState(false);
+  const [customQuestionMode, setCustomQuestionMode] = useState(false);
+  const [customQuestion, setCustomQuestion] = useState('');
+  const [error, setError] = useState(null);
+  
+  // NEW FEATURE: Function to fetch next question preview
+  const handleShowNextQuestion = async () => {
+    if (!isHost) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
+      setNextQuestion(questionData.question);
+      setShowQuestionPreview(true);
+    } catch (error) {
+      console.error('Error fetching next question:', error);
+      setError('Failed to fetch next question. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // NEW FEATURE: Function to skip to another question
+  const handleSkipQuestion = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
+      setNextQuestion(questionData.question);
+    } catch (error) {
+      console.error('Error fetching next question:', error);
+      setError('Failed to fetch next question. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // NEW FEATURE: Function to submit custom question
+  const handleSubmitCustomQuestion = async () => {
+    if (!customQuestion.trim()) {
+      setError('Please enter a question');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const questionData = await submitCustomQuestion(
+        game._id, 
+        customQuestion.trim(),
+        currentUser.accessToken
+      );
+      
+      setNextQuestion(questionData.question);
+      setCustomQuestionMode(false);
+    } catch (error) {
+      console.error('Error submitting custom question:', error);
+      setError('Failed to submit custom question. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // NEW FEATURE: Function to play with selected question
+  const handlePlayWithQuestion = () => {
+    if (!nextQuestion) return;
+    onNextRound(nextQuestion);
+  };
   
   // Get player by ID
   const getPlayerById = (playerId) => {
@@ -139,16 +216,84 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
           </div>
         </div>
         
+        {/* NEW FEATURE: Next Round Section with Question Preview */}
         {isHost && (
           <div className="text-center">
-            <button
-              onClick={onNextRound}
-              className="py-3 px-8 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-            >
-              Start Next Round
-            </button>
+            {!showQuestionPreview ? (
+              <button
+                onClick={handleShowNextQuestion}
+                disabled={loading}
+                className="py-3 px-8 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+              >
+                {loading ? 'Loading...' : 'Start Next Round'}
+              </button>
+            ) : (
+              <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                <h3 className="text-lg font-medium mb-2">Next Question Preview</h3>
+                
+                {customQuestionMode ? (
+                  <div className="mb-4">
+                    <textarea
+                      value={customQuestion}
+                      onChange={(e) => setCustomQuestion(e.target.value)}
+                      placeholder="Enter your custom question..."
+                      className="w-full p-3 bg-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                      rows={3}
+                    />
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={handleSubmitCustomQuestion}
+                        disabled={loading || !customQuestion.trim()}
+                        className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {loading ? 'Submitting...' : 'Set Question'}
+                      </button>
+                      <button
+                        onClick={() => setCustomQuestionMode(false)}
+                        className="py-2 px-4 bg-gray-500 text-white rounded hover:bg-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <p className="text-yellow-400 font-medium text-xl mb-4">{nextQuestion?.text}</p>
+                    <p className="text-gray-400 text-sm mb-4">Category: {nextQuestion?.category}</p>
+                    
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={handlePlayWithQuestion}
+                        className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Play
+                      </button>
+                      <button
+                        onClick={handleSkipQuestion}
+                        disabled={loading}
+                        className="py-2 px-4 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                      >
+                        {loading ? 'Loading...' : 'Skip'}
+                      </button>
+                      <button
+                        onClick={() => setCustomQuestionMode(true)}
+                        className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Custom
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="text-red-500 mb-2">
+                    {error}
+                  </div>
+                )}
+              </div>
+            )}
             <p className="text-sm text-gray-400 mt-2">
-              As the host, you can start the next round when everyone is ready.
+              As the host, you control when the next round begins.
             </p>
           </div>
         )}

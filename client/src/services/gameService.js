@@ -95,12 +95,45 @@ export const voteForSong = async (gameId, userId, submissionId, token) => {
   }
 };
 
+// NEW FEATURE: Get random question preview
+export const getRandomQuestion = async (gameId, token) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/game/${gameId}/question-preview`,
+      createHeaders(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting question preview:', error);
+    throw error;
+  }
+};
+
+// NEW FEATURE: Submit custom question
+export const submitCustomQuestion = async (gameId, questionText, token) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/game/${gameId}/custom-question`,
+      { questionText },
+      createHeaders(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting custom question:', error);
+    throw error;
+  }
+};
+
 // Start a new round
-export const startNewRound = async (gameId, token) => {
+export const startNewRound = async (gameId, questionData, token) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/next-round`, 
-      { gameId },
+      { 
+        gameId,
+        questionText: questionData?.text,
+        questionCategory: questionData?.category
+      },
       createHeaders(token)
     );
     return response.data;
