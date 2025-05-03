@@ -31,6 +31,11 @@ const GameSchema = new mongoose.Schema({
       default: 0
     }
   }],
+  // New field to track players who are actively participating in the current round
+  activePlayers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   currentQuestion: {
     text: String,
     category: String

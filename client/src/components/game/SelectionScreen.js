@@ -1,7 +1,7 @@
 // client/src/components/game/SelectionScreen.js
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchTracks } from '../../services/spotifyService'; // Fixed import from spotifyService instead of gameService
+import { searchTracks } from '../../services/spotifyService';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,6 +12,18 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const [duplicateError, setDuplicateError] = useState(null);
+  
+  // Check if there are active players (from force start)
+  const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
+  
+  // Count of expected submissions
+  const expectedSubmissions = hasActivePlayers 
+    ? game.activePlayers.length 
+    : game.players.length;
+  
+  // Count of submitted players
+  const submittedCount = game.submissions.length;
+  const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
   
   // Check if user has already submitted
   useEffect(() => {
@@ -88,9 +100,45 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     }
   };
   
-  // Count of submitted players
-  const submittedCount = game.submissions.length;
-  const totalPlayers = game.players.length;
+  // Check if user is active in the current round (either all players or specifically included)
+  const isUserActive = !hasActivePlayers || 
+    game.activePlayers.some(player => player._id === currentUser.id);
+  
+  // If user is not active in this round, show a message
+  if (!isUserActive) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-gray-800 rounded-lg p-6 shadow-lg text-center">
+          <h2 className="text-2xl font-bold mb-2">Song Selection</h2>
+          
+          <div className="text-center mb-6">
+            <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+          </div>
+          
+          <div className="py-10">
+            <div className="mb-4">
+              <svg className="w-16 h-16 text-purple-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-medium text-purple-400 mb-2">Observing This Round</h3>
+            <p className="text-gray-300 mb-4">
+              You weren't ready when the host started this round, so you're just observing.
+            </p>
+            <p className="text-gray-400 text-sm">
+              You'll be able to participate in the next round when the host starts it.
+            </p>
+          </div>
+          
+          <div className="mt-6">
+            <p className="text-sm text-gray-400">
+              {submittedCount} of {totalPlayers} active players have submitted songs
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="max-w-3xl mx-auto">
@@ -100,6 +148,12 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         <div className="text-center mb-6">
           <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
         </div>
+        
+        {hasActivePlayers && game.activePlayers.length < game.players.length && (
+          <div className="mb-4 p-3 bg-purple-900/50 text-purple-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> This round is being played with {game.activePlayers.length} out of {game.players.length} players. Only players who were ready when the game started are participating.</p>
+          </div>
+        )}
         
         <div className="mb-4 flex justify-between items-center">
           <p className="text-sm">

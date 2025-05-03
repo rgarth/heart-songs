@@ -11,8 +11,11 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
   
-  // NEW FEATURE: Check if this was a small game (less than 3 players)
-  const wasSmallGame = game.players.length < 3;
+  // Check if there are active players (from force start)
+  const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
+  
+  // Check if this was a small game (less than 3 players)
+  const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
   
   // NEW FEATURE: Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -104,9 +107,15 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
           <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
         </div>
         
-        {wasSmallGame && (
+        {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
             <p><strong>Note:</strong> In games with fewer than 3 players, players can vote for their own submission.</p>
+          </div>
+        )}
+        
+        {hasActivePlayers && game.activePlayers.length < game.players.length && (
+          <div className="mb-4 p-3 bg-purple-900/50 text-purple-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> This round was played with {game.activePlayers.length} out of {game.players.length} players. Only players who were ready when the game started participated.</p>
           </div>
         )}
         

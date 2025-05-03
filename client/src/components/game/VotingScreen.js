@@ -16,8 +16,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [playerReady, setPlayerReady] = useState(false);
   const [playerError, setPlayerError] = useState(null);
   
-  // NEW FEATURE: Check if this is a small game (less than 3 players)
-  const isSmallGame = game.players.length < 3;
+  // Check if there are active players (from force start)
+  const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
+  
+  // Check if this is a small game (less than 3 players)
+  const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
   
   // Check if user has already voted
   useEffect(() => {
@@ -187,7 +190,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     (acc, sub) => acc + sub.votes.length, 
     0
   );
-  const totalPlayers = game.players.length;
+  const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
   
   return (
     <div className="max-w-3xl mx-auto">
@@ -217,6 +220,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
             <p><strong>Note:</strong> In games with fewer than 3 players, you can vote for your own submission.</p>
+          </div>
+        )}
+        
+        {hasActivePlayers && game.activePlayers.length < game.players.length && (
+          <div className="mb-4 p-3 bg-purple-900/50 text-purple-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> This round is being played with {game.activePlayers.length} out of {game.players.length} players. Only players who were ready when the game started are participating.</p>
           </div>
         )}
         

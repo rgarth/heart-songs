@@ -1,7 +1,8 @@
 // client/src/components/game/LobbyScreen.js
-import React from 'react';
+import React, { useState } from 'react';
 
-const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
+const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
   // Find current user in players list
   const currentPlayer = game.players.find(p => p.user._id === currentUser.id);
   const isHost = game.host._id === currentUser.id;
@@ -11,17 +12,22 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
   
   // Check if there are at least 2 players
   const hasEnoughPlayers = game.players.length >= 2;
+  
+  // Count of ready players
+  const readyCount = game.players.filter(p => p.isReady).length;
 
   // Handle sharing game code
   const handleShareGameCode = async () => {
     // Create direct join URL
     const joinUrl = `${window.location.origin}/join/${game.gameCode}`;
+    const shareText = `Join my Heart Songs game: ${joinUrl}`;
     
     // Check if Web Share API is available
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Heart Songs Game Invite',
+          text: 'Join my Heart Songs game!',
           url: joinUrl
         });
       } catch (error) {
@@ -44,6 +50,33 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
+  };
+  
+  // Host-only start game function
+  const handleStartGame = () => {
+    if (!hasEnoughPlayers) {
+      alert('You need at least 2 players to start the game');
+      return;
+    }
+    
+    if (allPlayersReady) {
+      // If all players are ready, start immediately
+      onStartGame();
+    } else {
+      // If not all players are ready, show confirmation dialog
+      setShowConfirmation(true);
+    }
+  };
+  
+  // Confirm starting with not-ready players
+  const confirmStart = () => {
+    onStartGame();
+    setShowConfirmation(false);
+  };
+  
+  // Cancel start
+  const cancelStart = () => {
+    setShowConfirmation(false);
   };
   
   return (
@@ -109,8 +142,9 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
           </div>
         </div>
         
-        <div className="text-center">
-          {currentPlayer && (
+        <div className="text-center flex flex-col items-center gap-4">
+          {/* Non-host players only see Ready/Cancel Ready button */}
+          {currentPlayer && !isHost && (
             <button
               onClick={onToggleReady}
               disabled={!hasEnoughPlayers && !currentPlayer.isReady}
@@ -125,17 +159,79 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
               {currentPlayer.isReady ? 'Cancel Ready' : 'Ready Up'}
             </button>
           )}
+
+          {/* Host sees both Ready button and Start Game button */}
+          {currentPlayer && isHost && (
+            <div className="flex flex-col gap-4 w-full max-w-md">
+              <button
+                onClick={onToggleReady}
+                className={`py-3 px-6 rounded-lg font-medium ${
+                  currentPlayer.isReady 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {currentPlayer.isReady ? 'Cancel Ready' : 'Ready Up'}
+              </button>
+              
+              {hasEnoughPlayers && (
+                <button 
+                  onClick={handleStartGame}
+                  className={`py-3 px-6 rounded-lg font-medium ${
+                    allPlayersReady 
+                      ? 'bg-yellow-500 hover:bg-yellow-600' 
+                      : 'bg-yellow-600 hover:bg-yellow-700'
+                  }`}
+                >
+                  {allPlayersReady 
+                    ? 'Start Game (All Ready)' 
+                    : `Force Start Game (${readyCount}/${game.players.length} Ready)`}
+                </button>
+              )}
+            </div>
+          )}
         </div>
+        
+        {/* Confirmation dialog for starting with not-ready players */}
+        {showConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-xl font-bold mb-4 text-yellow-400">Start Game Confirmation</h3>
+              <p className="mb-6">
+                Not all players are ready. Players who aren't ready will still be included in the game.
+                Are you sure you want to start?
+              </p>
+              <div className="flex gap-4 justify-end">
+                <button 
+                  onClick={cancelStart}
+                  className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmStart}
+                  className="py-2 px-4 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                >
+                  Start Anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="mt-6 text-center text-gray-400">
           {!hasEnoughPlayers ? (
             <div className="text-yellow-500 font-medium mb-2">
               At least 2 players are required to start the game. Waiting for more players to join...
             </div>
-          ) : allPlayersReady ? (
-            "All players are ready! The game will start in a moment..." 
+          ) : isHost ? (
+            allPlayersReady 
+              ? "All players are ready! You can start the game." 
+              : "Not all players are ready. As the host, you can start the game anyway."
           ) : (
-            "Waiting for all players to be ready..."
+            allPlayersReady 
+              ? "All players are ready! Waiting for the host to start the game..." 
+              : "Waiting for all players to be ready..."
           )}
           
           {game.players.length < 3 && hasEnoughPlayers && (

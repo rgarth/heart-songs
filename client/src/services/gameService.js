@@ -57,6 +57,21 @@ export const toggleReady = async (gameId, userId, token) => {
   }
 };
 
+// Force start game (host only)
+export const startGame = async (gameId, userId, token) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/game/start`,
+      { gameId, userId },
+      createHeaders(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error starting game:', error);
+    throw error;
+  }
+};
+
 // Submit song selection
 export const submitSong = async (gameId, userId, songData, token) => {
   console.log('Submitting song for gameId:', gameId);

@@ -213,7 +213,6 @@ router.post('/submit', async (req, res) => {
       songId, 
       songName 
     });
-    console.log('gameId type:', typeof gameId);
     
     // Validate required parameters
     if (!gameId || !userId || !songId) {
@@ -240,14 +239,9 @@ router.post('/submit', async (req, res) => {
     
     // If still not found, return debugging info
     if (!game) {
-      // Get a list of all games for debugging
-      const allGames = await Game.find({}, '_id code').limit(5);
-      console.log('Available games:', allGames);
-      
       return res.status(404).json({ 
         error: 'Game not found', 
         gameId,
-        tip: 'Make sure you\'re using the correct game ID (either MongoDB _id or game code)' 
       });
     }
     
@@ -290,11 +284,17 @@ router.post('/submit', async (req, res) => {
     await game.save();
     console.log('Song submitted successfully, submissions count:', game.submissions.length);
     
-    // Check if all players have submitted
-    const allSubmitted = game.players.length === game.submissions.length;
+    // Check if all ACTIVE players have submitted
+    // If game was force-started, only count submissions from active players
+    const expectedSubmissionsCount = game.activePlayers && game.activePlayers.length > 0 
+      ? game.activePlayers.length 
+      : game.players.length;
+    
+    console.log(`Expected submissions: ${expectedSubmissionsCount}, Current submissions: ${game.submissions.length}`);
+    const allSubmitted = game.submissions.length >= expectedSubmissionsCount;
     
     if (allSubmitted) {
-      console.log('All players have submitted, changing game status to voting');
+      console.log('All active players have submitted, changing game status to voting');
       game.status = 'voting';
       await game.save();
     }
@@ -302,7 +302,8 @@ router.post('/submit', async (req, res) => {
     res.json({
       gameId: game._id,
       status: game.status,
-      submissions: game.submissions.length
+      submissions: game.submissions.length,
+      expectedSubmissions: expectedSubmissionsCount
     });
   } catch (error) {
     console.error('Error submitting song:', error);
@@ -364,9 +365,16 @@ router.post('/vote', async (req, res) => {
     submission.votes.push(userId);
     await game.save();
     
-    // Check if all players have voted
-    const votesCount = game.submissions.reduce((acc, s) => acc + s.votes.length, 0);
-    const allVoted = game.players.length === votesCount;
+    // Check if all ACTIVE players have voted
+    const totalVotes = game.submissions.reduce((acc, s) => acc + s.votes.length, 0);
+    
+    // If game was force-started, only count votes from active players
+    const expectedVotesCount = game.activePlayers && game.activePlayers.length > 0 
+      ? game.activePlayers.length 
+      : game.players.length;
+    
+    console.log(`Expected votes: ${expectedVotesCount}, Current votes: ${totalVotes}`);
+    const allVoted = totalVotes >= expectedVotesCount;
     
     if (allVoted) {
       game.status = 'results';
@@ -410,7 +418,9 @@ router.post('/vote', async (req, res) => {
     res.json({
       gameId: game._id,
       status: game.status,
-      submissions: game.submissions
+      submissions: game.submissions,
+      expectedVotes: expectedVotesCount,
+      currentVotes: totalVotes
     });
   } catch (error) {
     console.error('Error voting:', error);
@@ -607,6 +617,86 @@ router.post('/:gameId/custom-question', async (req, res) => {
   }
 });
 
+// Force start game (host only)
+router.post('/start', async (req, res) => {
+  try {
+    const { gameId, userId } = req.body;
+    console.log('Force starting game for gameId:', gameId, 'by host:', userId);
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== userId) {
+      return res.status(403).json({ error: 'Only the host can force start the game' });
+    }
+    
+    // Check if there are at least 2 players
+    if (game.players.length < 2) {
+      return res.status(400).json({ error: 'At least 2 players are required to start the game' });
+    }
+    
+    // Check if the game is already in progress
+    if (game.status !== 'waiting') {
+      return res.status(400).json({ error: 'Game is already in progress' });
+    }
+
+    // Create playlist
+    const host = await User.findById(game.host);
+    const playlist = await createPlaylist(
+      host.accessToken,
+      `Song Game - ${game.code}`,
+      'Collaborative playlist for the song selection game'
+    );
+    
+    game.playlistId = playlist.id;
+    
+    // Get random question
+    const question = await getRandomQuestion();
+    game.currentQuestion = {
+      text: question.text,
+      category: question.category
+    };
+    
+    // Store the count of ready players for validation in other phases
+    // Filter to get only ready players
+    const readyPlayers = game.players.filter(player => player.isReady);
+    
+    // Save the IDs of ready players in a new field
+    game.activePlayers = readyPlayers.map(player => player.user);
+    
+    // Start the game regardless of ready status
+    game.status = 'selecting';
+    await game.save();
+    
+    // Populate game data
+    await game.populate('players.user', 'displayName profileImage');
+    await game.populate('activePlayers', 'displayName profileImage');
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      players: game.players,
+      activePlayers: game.activePlayers,
+      currentQuestion: game.currentQuestion,
+      playlistId: game.playlistId
+    });
+  } catch (error) {
+    console.error('Error starting game:', error);
+    res.status(500).json({ error: 'Failed to start game' });
+  }
+});
 
 // Debug endpoint to list all games
 router.get('/debug/all', async (req, res) => {

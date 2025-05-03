@@ -1,8 +1,8 @@
-// client/src/pages/Game.js
+// client/src/pages/Game.js - Update to add startGame functionality
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getGameState, toggleReady, startNewRound } from '../services/gameService';
+import { getGameState, toggleReady, startNewRound, startGame } from '../services/gameService';
 import LobbyScreen from '../components/game/LobbyScreen';
 import SelectionScreen from '../components/game/SelectionScreen';
 import VotingScreen from '../components/game/VotingScreen';
@@ -60,6 +60,16 @@ const Game = () => {
     } catch (error) {
       console.error('Error toggling ready status:', error);
       setError('Failed to update ready status');
+    }
+  };
+  
+  // Handle force start game (host only)
+  const handleStartGame = async () => {
+    try {
+      await startGame(gameId, user.id, accessToken);
+    } catch (error) {
+      console.error('Error starting game:', error);
+      setError('Failed to start game');
     }
   };
   
@@ -151,6 +161,7 @@ const Game = () => {
             game={game} 
             currentUser={user} 
             onToggleReady={handleToggleReady} 
+            onStartGame={handleStartGame}
           />
         )}
         
