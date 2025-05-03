@@ -115,6 +115,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         const trackPromises = game.submissions.map(async (submission) => {
           try {
             const track = await getTrack(submission.songId, accessToken);
+            console.log(`Track ${submission.songId} - ${track.name}: Preview URL: ${track.preview_url}`);
             previewsObj[submission.songId] = track.preview_url;
           } catch (error) {
             console.error(`Error fetching track ${submission.songId}:`, error);
@@ -438,9 +439,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               {localSubmissions.map(submission => {
                 const isOwnSubmission = submission.player._id === currentUser.id;
                 const hasPreview = tracksWithPreviews[submission.songId];
-                const noAudioAvailable = !hasPreview && (isMobile || !isPremium || !playerReady);
-                
-                return (
+                const noAudioAvailable = isMobile || !isPremium ? 
+                  !hasPreview : // For mobile or free accounts, audio is only available if there's a preview
+                  !playerReady; // For premium on desktop, audio is available if the player is ready
+                  
+                  return (
                   <div 
                     key={submission._id}
                     className={`flex items-center p-4 rounded-lg ${
