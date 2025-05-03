@@ -1,34 +1,25 @@
 // client/src/components/game/VotingScreen.js
-import React, { useState, useEffect, useRef } from 'react';
-import { getPlaylist, playTrack, pausePlayback, getTrack } from '../../services/spotifyService';
+import React, { useState, useEffect } from 'react';
+import { playTrack, pausePlayback } from '../../services/spotifyService';
 import { voteForSong } from '../../services/gameService';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
-  const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
-  const [player, setPlayer] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [playerError, setPlayerError] = useState(null);
-  const [previewAudio, setPreviewAudio] = useState(null);
-  const [tracksWithPreviews, setTracksWithPreviews] = useState({});
   const [isPremium, setIsPremium] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState({});
   
   // Add state to track if we've already loaded data
   const [dataLoaded, setDataLoaded] = useState(false);
   const [localSubmissions, setLocalSubmissions] = useState([]);
   
-  // Use ref to track the current playlist ID to avoid refetching
-  const lastPlaylistIdRef = useRef(null);
-  
   // Detect if we're on a mobile device
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -89,67 +80,16 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [accessToken]);
   
-  // Load playlist - with improvements to prevent flickering
+  // Load submissions only once
   useEffect(() => {
-    // Skip if we've already loaded this playlist or if there's no playlist
-    if (!game.playlistId || game.playlistId === lastPlaylistIdRef.current) {
+    if (dataLoaded || !game.submissions || game.submissions.length === 0) {
       return;
     }
     
-    const fetchPlaylist = async () => {
-      try {
-        // Only show loading state on initial load
-        if (!dataLoaded) {
-          setLoading(true);
-        }
-        
-        // Update our ref to track that we're loading this playlist
-        lastPlaylistIdRef.current = game.playlistId;
-        
-        const playlistData = await getPlaylist(game.playlistId, accessToken);
-        setPlaylist(playlistData);
-        
-        // Fetch preview URLs for all tracks (needed for mobile or free accounts)
-        const previewsObj = {};
-        
-        // Use Promise.all to fetch all track details in parallel
-        const trackPromises = game.submissions.map(async (submission) => {
-          try {
-            // Set loading state for this track
-            setPreviewLoading(prev => ({ ...prev, [submission.songId]: true }));
-            
-            const track = await getTrack(submission.songId, accessToken);
-            console.log(`Track ${submission.songId} - ${track.name}: Preview URL: ${track.preview_url}`);
-            
-            // Store the preview URL (which might be null, or might be found by spotify-url-info)
-            previewsObj[submission.songId] = track.preview_url;
-            
-            // Clear loading state
-            setPreviewLoading(prev => ({ ...prev, [submission.songId]: false }));
-          } catch (error) {
-            console.error(`Error fetching track ${submission.songId}:`, error);
-            // Clear loading state on error
-            setPreviewLoading(prev => ({ ...prev, [submission.songId]: false }));
-          }
-        });
-        
-        await Promise.all(trackPromises);
-        setTracksWithPreviews(previewsObj);
-        
-        // Mark that we've successfully loaded data
-        setDataLoaded(true);
-      } catch (error) {
-        console.error('Error fetching playlist:', error);
-        setError('Failed to load playlist');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    if (game.playlistId) {
-      fetchPlaylist();
-    }
-  }, [game.playlistId, accessToken, game.submissions, dataLoaded]);
+    setLocalSubmissions(game.submissions);
+    setDataLoaded(true);
+    setLoading(false);
+  }, [game.submissions, dataLoaded]);
   
   // Initialize Spotify Web Playback SDK (only on desktop + premium)
   useEffect(() => {
@@ -216,8 +156,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               setPlayerError('Failed to connect player');
             }
           });
-        
-        setPlayer(spotifyPlayer);
       }
     };
 
@@ -239,98 +177,34 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     };
   }, [accessToken, isMobile, isPremium]);
   
-  // Clean up audio previews when component unmounts
-  useEffect(() => {
-    return () => {
-      if (previewAudio) {
-        previewAudio.pause();
-        setPreviewAudio(null);
-      }
-    };
-  }, [previewAudio]);
-  
-  // Handle play track - unified function for desktop and mobile
+  // Handle play track (for premium desktop users only)
   const handlePlay = async (trackId) => {
-    console.log('Attempting to play track:', trackId, 'Premium:', isPremium, 'Mobile:', isMobile);
+    console.log('Attempting to play track:', trackId);
     
-    // Premium on desktop: Try using Spotify Web Playback SDK first
-    if (!isMobile && isPremium && deviceId) {
-      try {
-        // If this track is already playing, pause it
-        if (currentlyPlaying === trackId) {
-          console.log('Pausing current track');
-          await pausePlayback(accessToken);
-          setCurrentlyPlaying(null);
-        } else {
-          // Play the new track
-          console.log('Playing track with device ID:', deviceId);
-          const trackUri = `spotify:track:${trackId}`;
-          await playTrack(deviceId, trackUri, accessToken);
-          setCurrentlyPlaying(trackId);
-        }
-        setPlayerError(null);
-        return; // Return early if successful
-      } catch (error) {
-        console.error('Error controlling playback:', error);
-        // Continue to fallback - don't set error yet
-      }
-    }
-    
-    // Fallback for mobile, free accounts, or if SDK playback failed: try previews
-    const previewUrl = tracksWithPreviews[trackId];
-    
-    if (previewUrl) {
-      // If an audio is already playing, stop it
-      if (previewAudio) {
-        previewAudio.pause();
-        previewAudio.currentTime = 0;
-        setPreviewAudio(null);
-        
-        // If we're trying to pause the current track, just return
-        if (currentlyPlaying === trackId) {
-          setCurrentlyPlaying(null);
-          return;
-        }
-      }
-      
-      const audio = new Audio(previewUrl);
-      
-      // Set up event listeners
-      audio.addEventListener('ended', () => {
+    try {
+      // If this track is already playing, pause it
+      if (currentlyPlaying === trackId) {
+        console.log('Pausing current track');
+        await pausePlayback(accessToken);
         setCurrentlyPlaying(null);
-        setPreviewAudio(null);
-      });
-      
-      audio.addEventListener('error', (e) => {
-        console.error('Audio playback error:', e);
-        setPlayerError('Failed to play preview. Please try again.');
-        setCurrentlyPlaying(null);
-        setPreviewAudio(null);
-      });
-      
-      // Play the preview
-      audio.play()
-        .then(() => {
-          setPreviewAudio(audio);
-          setCurrentlyPlaying(trackId);
-          setPlayerError(null);
-        })
-        .catch(error => {
-          console.error('Error playing preview:', error);
-          
-          // Handle iOS interaction requirement
-          if (error.name === 'NotAllowedError') {
-            setPlayerError('Playback requires interaction. Please tap play again.');
-            // Keep the audio object ready for user interaction
-            setPreviewAudio(audio);
-          } else {
-            setPlayerError(`Could not play preview: ${error.message}`);
-          }
-        });
-    } else {
-      // No preview URL available and SDK didn't work
-      setPlayerError('No preview available for this track yet. Please try again in a moment.');
+      } else {
+        // Play the new track
+        console.log('Playing track with device ID:', deviceId);
+        const trackUri = `spotify:track:${trackId}`;
+        await playTrack(deviceId, trackUri, accessToken);
+        setCurrentlyPlaying(trackId);
+      }
+      setPlayerError(null);
+    } catch (error) {
+      console.error('Error controlling playback:', error);
+      setPlayerError('Failed to control playback. Please try again.');
     }
+  };
+  
+  // Open song in Spotify app (for mobile users)
+  const openInSpotify = (trackId) => {
+    const spotifyUri = `spotify:track:${trackId}`;
+    window.location.href = spotifyUri;
   };
   
   // Handle vote
@@ -396,7 +270,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         </div>
         
         {/* Player status information */}
-        {playerError && (
+        {playerError && !isMobile && isPremium && (
           <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
             <p><strong>Playback issue:</strong> {playerError}</p>
           </div>
@@ -404,13 +278,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         
         {isMobile && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-            <p><strong>Mobile playback:</strong> 30-second previews will play when available.</p>
+            <p><strong>Mobile device:</strong> Tap "Open in Spotify" to listen to songs.</p>
           </div>
         )}
         
         {!isMobile && !isPremium && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-            <p><strong>Free account:</strong> 30-second previews will play when available. Upgrade to Spotify Premium for full song playback.</p>
+            <p><strong>Spotify Free account:</strong> Playback is not available. Upgrade to Premium to listen to songs during voting.</p>
           </div>
         )}
         
@@ -426,67 +300,60 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </div>
         )}
         
-        {error ? (
-          <div className="text-center py-10 text-red-500">
-            {error}
-          </div>
-        ) : (
-          <div>
-            {hasVoted && (
-              <div className="mb-6 text-center py-4 bg-green-800/30 rounded-lg">
-                <div className="mb-2">
-                  <svg className="w-8 h-8 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <p className="text-green-400 font-medium">Your vote has been submitted!</p>
-                <p className="text-gray-300 text-sm mt-1">You can still listen to all submissions while waiting for others to vote.</p>
+        <div>
+          {hasVoted && (
+            <div className="mb-6 text-center py-4 bg-green-800/30 rounded-lg">
+              <div className="mb-2">
+                <svg className="w-8 h-8 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-            )}
+              <p className="text-green-400 font-medium">Your vote has been submitted!</p>
+              <p className="text-gray-300 text-sm mt-1">
+                {!isMobile && isPremium ? 
+                  "You can still listen to all submissions while waiting for others to vote." :
+                  "Waiting for others to vote..."}
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-4 mb-6">
+            <h3 className="text-lg font-medium mb-2">All Submissions</h3>
             
-            <div className="space-y-4 mb-6">
-              <h3 className="text-lg font-medium mb-2">All Submissions</h3>
+            {localSubmissions.map(submission => {
+              const isOwnSubmission = submission.player._id === currentUser.id;
               
-              {localSubmissions.map(submission => {
-                const isOwnSubmission = submission.player._id === currentUser.id;
-                const hasPreview = tracksWithPreviews[submission.songId];
-                const isPreviewLoading = previewLoading[submission.songId];
-                
-                // For mobile or free accounts, audio is available if there's a preview
-                // For premium on desktop, audio is available if the player is ready
-                const hasAudioAvailable = isMobile || !isPremium ? 
-                  hasPreview !== undefined && hasPreview !== null : // Check if we have a URL
-                  playerReady; // For premium on desktop, audio is available if the player is ready
-                  
-                  return (
-                  <div 
-                    key={submission._id}
-                    className={`flex items-center p-4 rounded-lg ${
-                      !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
-                    } transition-colors ${
-                      selectedSubmission === submission._id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
-                    } ${
-                      isOwnSubmission ? 'border-l-4 border-l-yellow-500' : ''
-                    }`}
-                  >
-                    {submission.albumCover && (
-                      <img 
-                        src={submission.albumCover} 
-                        alt={submission.songName} 
-                        className="w-16 h-16 rounded mr-4" 
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <p className="font-medium">{submission.songName}</p>
-                        {isOwnSubmission && (
-                          <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-400">{submission.artist}</p>
+              return (
+                <div 
+                  key={submission._id}
+                  className={`flex items-center p-4 rounded-lg ${
+                    !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
+                  } transition-colors ${
+                    selectedSubmission === submission._id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
+                  } ${
+                    isOwnSubmission ? 'border-l-4 border-l-yellow-500' : ''
+                  }`}
+                >
+                  {submission.albumCover && (
+                    <img 
+                      src={submission.albumCover} 
+                      alt={submission.songName} 
+                      className="w-16 h-16 rounded mr-4" 
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center">
+                      <p className="font-medium">{submission.songName}</p>
+                      {isOwnSubmission && (
+                        <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
+                      )}
                     </div>
-                    
-                    {/* Play/Pause button - always visible for all tracks */}
+                    <p className="text-sm text-gray-400">{submission.artist}</p>
+                  </div>
+                  
+                  {/* Playback controls based on device/account type */}
+                  {/* For Premium Desktop users: Play/Pause button */}
+                  {!isMobile && isPremium && playerReady && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -495,13 +362,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       className={`py-2 px-4 rounded transition-colors flex items-center ${
                         currentlyPlaying === submission.songId
                           ? 'bg-green-600 text-white'
-                          : isPreviewLoading
-                            ? 'bg-gray-600 text-white opacity-70'
-                            : !hasAudioAvailable 
-                              ? 'bg-gray-600 text-white opacity-50'
-                              : 'bg-gray-600 text-white hover:bg-gray-500'
+                          : 'bg-gray-600 text-white hover:bg-gray-500'
                       }`}
-                      disabled={isPreviewLoading || (!hasAudioAvailable && currentlyPlaying !== submission.songId)}
                     >
                       {currentlyPlaying === submission.songId ? (
                         <>
@@ -510,11 +372,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           </svg>
                           Pause
                         </>
-                      ) : isPreviewLoading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
-                          Loading
-                        </>
                       ) : (
                         <>
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -522,50 +379,63 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           Play
-                          {!hasAudioAvailable && " (No audio)"}
-                          {hasAudioAvailable && isMobile && " (Preview)"}
-                          {hasAudioAvailable && !isMobile && !isPremium && " (Preview)"}
                         </>
                       )}
                     </button>
-                    
-                    {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
-                    {!hasVoted && (isSmallGame || !isOwnSubmission) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSubmission(submission._id);
-                        }}
-                        className={`ml-2 py-2 px-4 rounded ${
-                          selectedSubmission === submission._id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-600 text-white hover:bg-gray-500'
-                        }`}
-                      >
-                        {selectedSubmission === submission._id ? 'Selected' : 'Select'}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            
-            {!hasVoted && (
-              <div className="text-center">
-                <button
-                  onClick={handleVote}
-                  disabled={!selectedSubmission || isVoting}
-                  className="py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {isVoting ? 'Submitting Vote...' : 'Submit Vote'}
-                </button>
-                <p className="text-sm text-gray-400 mt-2">
-                  Select your favorite song{isSmallGame ? "" : " from another player"}, then submit your vote
-                </p>
-              </div>
-            )}
+                  )}
+                  
+                  {/* For Mobile users: "Open in Spotify" button */}
+                  {isMobile && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openInSpotify(submission.songId);
+                      }}
+                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      Open in Spotify
+                    </button>
+                  )}
+                  
+                  {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
+                  {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSubmission(submission._id);
+                      }}
+                      className={`ml-2 py-2 px-4 rounded ${
+                        selectedSubmission === submission._id
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-600 text-white hover:bg-gray-500'
+                      }`}
+                    >
+                      {selectedSubmission === submission._id ? 'Selected' : 'Select'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
+          
+          {!hasVoted && (
+            <div className="text-center">
+              <button
+                onClick={handleVote}
+                disabled={!selectedSubmission || isVoting}
+                className="py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isVoting ? 'Submitting Vote...' : 'Submit Vote'}
+              </button>
+              <p className="text-sm text-gray-400 mt-2">
+                Select your favorite song{isSmallGame ? "" : " from another player"}, then submit your vote
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

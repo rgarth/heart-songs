@@ -1,8 +1,11 @@
 // client/src/services/spotifyService.js
 import axios from 'axios';
-import { getData, getPreview } from 'spotify-url-info';
+// Remove unused import
+// import { getData, getPreview } from 'spotify-url-info';
+import { getPreview } from 'spotify-url-info';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
+// Remove unused API_URL
+// const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 const SPOTIFY_API = 'https://api.spotify.com/v1';
 
 // Configure spotify-url-info to use fetch
@@ -51,7 +54,8 @@ export const getTrack = async (trackId, token) => {
     if (!track.preview_url) {
       try {
         console.log('Track preview_url is null, trying spotify-url-info...');
-        const trackUri = `spotify:track:${trackId}`;
+        // Remove unused variable
+        // const trackUri = `spotify:track:${trackId}`;
         const trackUrl = `https://open.spotify.com/track/${trackId}`;
         
         // Try to get preview using spotify-url-info
@@ -227,7 +231,8 @@ export const setPlaybackVolume = async (volumePercent, token) => {
   }
 };
 
-export default {
+// Fix the anonymous default export warning
+const spotifyService = {
   searchTracks,
   getTrack,
   getPlaylist,
@@ -239,3 +244,5 @@ export default {
   transferPlayback,
   setPlaybackVolume
 };
+
+export default spotifyService;
