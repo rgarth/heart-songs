@@ -87,6 +87,8 @@ router.post('/join', async (req, res) => {
     
     // Check if user is already in the game
     const existingPlayer = game.players.find(p => p.user.toString() === userId);
+    let playerAdded = false;
+    
     if (!existingPlayer) {
       game.players.push({
         user: user._id,
@@ -95,6 +97,7 @@ router.post('/join', async (req, res) => {
       });
       await game.save();
       console.log(`Player ${userId} added to game ${gameCode}`);
+      playerAdded = true;
     } else {
       console.log(`Player ${userId} is already in game ${gameCode}, not adding again`);
     }
@@ -108,7 +111,8 @@ router.post('/join', async (req, res) => {
       gameCode: game.code,
       status: game.status,
       host: game.host,
-      players: game.players
+      players: game.players,
+      playerAdded: playerAdded // Add this flag to indicate if a new player was added
     });
   } catch (error) {
     console.error('Error joining game:', error);

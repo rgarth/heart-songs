@@ -16,14 +16,12 @@ const LobbyScreen = ({ game, currentUser, onToggleReady }) => {
   const handleShareGameCode = async () => {
     // Create direct join URL
     const joinUrl = `${window.location.origin}/join/${game.gameCode}`;
-    const shareText = `Join my Heart Songs game: ${joinUrl}`;
     
     // Check if Web Share API is available
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Heart Songs Game Invite',
-          text: 'Join my Heart Songs game!',
           url: joinUrl
         });
       } catch (error) {
