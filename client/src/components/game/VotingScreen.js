@@ -18,6 +18,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [previewAudio, setPreviewAudio] = useState(null);
   const [tracksWithPreviews, setTracksWithPreviews] = useState({});
   const [isPremium, setIsPremium] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState({});
   
   // Add state to track if we've already loaded data
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -114,11 +115,21 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         // Use Promise.all to fetch all track details in parallel
         const trackPromises = game.submissions.map(async (submission) => {
           try {
+            // Set loading state for this track
+            setPreviewLoading(prev => ({ ...prev, [submission.songId]: true }));
+            
             const track = await getTrack(submission.songId, accessToken);
             console.log(`Track ${submission.songId} - ${track.name}: Preview URL: ${track.preview_url}`);
+            
+            // Store the preview URL (which might be null, or might be found by spotify-url-info)
             previewsObj[submission.songId] = track.preview_url;
+            
+            // Clear loading state
+            setPreviewLoading(prev => ({ ...prev, [submission.songId]: false }));
           } catch (error) {
             console.error(`Error fetching track ${submission.songId}:`, error);
+            // Clear loading state on error
+            setPreviewLoading(prev => ({ ...prev, [submission.songId]: false }));
           }
         });
         
@@ -318,7 +329,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         });
     } else {
       // No preview URL available and SDK didn't work
-      setPlayerError(`No preview available for this track. Unfortunately, Spotify doesn't provide a preview for every song.`);
+      setPlayerError('No preview available for this track yet. Please try again in a moment.');
     }
   };
   
@@ -439,9 +450,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               {localSubmissions.map(submission => {
                 const isOwnSubmission = submission.player._id === currentUser.id;
                 const hasPreview = tracksWithPreviews[submission.songId];
-                const noAudioAvailable = isMobile || !isPremium ? 
-                  !hasPreview : // For mobile or free accounts, audio is only available if there's a preview
-                  !playerReady; // For premium on desktop, audio is available if the player is ready
+                const isPreviewLoading = previewLoading[submission.songId];
+                
+                // For mobile or free accounts, audio is available if there's a preview
+                // For premium on desktop, audio is available if the player is ready
+                const hasAudioAvailable = isMobile || !isPremium ? 
+                  hasPreview !== undefined && hasPreview !== null : // Check if we have a URL
+                  playerReady; // For premium on desktop, audio is available if the player is ready
                   
                   return (
                   <div 
@@ -480,11 +495,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       className={`py-2 px-4 rounded transition-colors flex items-center ${
                         currentlyPlaying === submission.songId
                           ? 'bg-green-600 text-white'
-                          : noAudioAvailable 
-                            ? 'bg-gray-600 text-white opacity-50 cursor-not-allowed'
-                            : 'bg-gray-600 text-white hover:bg-gray-500'
+                          : isPreviewLoading
+                            ? 'bg-gray-600 text-white opacity-70'
+                            : !hasAudioAvailable 
+                              ? 'bg-gray-600 text-white opacity-50'
+                              : 'bg-gray-600 text-white hover:bg-gray-500'
                       }`}
-                      disabled={noAudioAvailable}
+                      disabled={isPreviewLoading || (!hasAudioAvailable && currentlyPlaying !== submission.songId)}
                     >
                       {currentlyPlaying === submission.songId ? (
                         <>
@@ -493,6 +510,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           </svg>
                           Pause
                         </>
+                      ) : isPreviewLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                          Loading
+                        </>
                       ) : (
                         <>
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -500,9 +522,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           Play
-                          {noAudioAvailable && " (No audio)"}
-                          {!noAudioAvailable && isMobile && " (Preview)"}
-                          {!noAudioAvailable && !isMobile && !isPremium && " (Preview)"}
+                          {!hasAudioAvailable && " (No audio)"}
+                          {hasAudioAvailable && isMobile && " (Preview)"}
+                          {hasAudioAvailable && !isMobile && !isPremium && " (Preview)"}
                         </>
                       )}
                     </button>

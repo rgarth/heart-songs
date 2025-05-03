@@ -1,8 +1,19 @@
 // client/src/services/spotifyService.js
 import axios from 'axios';
+import { getData, getPreview } from 'spotify-url-info';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 const SPOTIFY_API = 'https://api.spotify.com/v1';
+
+// Configure spotify-url-info to use fetch
+const fetchWithFallback = async (...args) => {
+  try {
+    return await fetch(...args);
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
+};
 
 // Search for tracks
 export const searchTracks = async (query, token) => {
@@ -24,15 +35,42 @@ export const searchTracks = async (query, token) => {
   }
 };
 
-// Get track details
+// Get track details with enhanced preview URL
 export const getTrack = async (trackId, token) => {
   try {
+    // First try to get the track from Spotify API
     const response = await axios.get(`${SPOTIFY_API}/tracks/${trackId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
     });
-    return response.data;
+    
+    const track = response.data;
+    
+    // If preview_url is null, try to get it using spotify-url-info
+    if (!track.preview_url) {
+      try {
+        console.log('Track preview_url is null, trying spotify-url-info...');
+        const trackUri = `spotify:track:${trackId}`;
+        const trackUrl = `https://open.spotify.com/track/${trackId}`;
+        
+        // Try to get preview using spotify-url-info
+        const previewData = await getPreview(fetchWithFallback)(trackUrl);
+        
+        console.log('Preview data from spotify-url-info:', previewData);
+        
+        // Update the track with preview URL if available
+        if (previewData && previewData.audio) {
+          console.log('Found preview URL:', previewData.audio);
+          track.preview_url = previewData.audio;
+        }
+      } catch (previewError) {
+        console.error('Error getting preview URL with spotify-url-info:', previewError);
+        // Continue with original track data even if this fails
+      }
+    }
+    
+    return track;
   } catch (error) {
     console.error('Error getting track details:', error);
     throw error;
