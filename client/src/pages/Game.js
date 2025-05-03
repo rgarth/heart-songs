@@ -1,5 +1,5 @@
-// client/src/pages/Game.js - Update to add startGame functionality
-import React, { useContext, useEffect, useState } from 'react';
+// client/src/pages/Game.js
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getGameState, toggleReady, startNewRound, startGame } from '../services/gameService';
@@ -19,39 +19,83 @@ const Game = () => {
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
   
-  // Fetch game state (initial and polling)
+  // Fetch game state with optimized polling
+  const fetchGameState = useCallback(async () => {
+    if (!gameId || !accessToken) return;
+    
+    try {
+      const gameData = await getGameState(gameId, accessToken);
+      
+      // Only update state if something important has changed
+      setGame(prevGame => {
+        // Always update on initial load
+        if (!prevGame) return gameData;
+        
+        // Check if important properties changed before updating
+        const hasStatusChanged = prevGame.status !== gameData.status;
+        const hasSubmissionsCountChanged = prevGame.submissions.length !== gameData.submissions.length;
+        
+        // Compare votes by stringifying arrays of vote counts
+        const prevVotesCounts = JSON.stringify(prevGame.submissions.map(s => s.votes.length));
+        const newVotesCounts = JSON.stringify(gameData.submissions.map(s => s.votes.length));
+        const hasVotesChanged = prevVotesCounts !== newVotesCounts;
+        
+        // Compare players ready status
+        const prevReadyCounts = prevGame.players.filter(p => p.isReady).length;
+        const newReadyCounts = gameData.players.filter(p => p.isReady).length;
+        const hasReadyStatusChanged = prevReadyCounts !== newReadyCounts;
+        
+        // Check if players have changed
+        const hasPlayersChanged = prevGame.players.length !== gameData.players.length;
+        
+        if (
+          hasStatusChanged || 
+          hasSubmissionsCountChanged || 
+          hasVotesChanged || 
+          hasReadyStatusChanged || 
+          hasPlayersChanged
+        ) {
+          return gameData;
+        }
+        
+        return prevGame; // No important change, prevent re-render
+      });
+      
+      // Only update loading state on initial load
+      if (initialLoad) {
+        setLoading(false);
+        setInitialLoad(false);
+      }
+    } catch (error) {
+      console.error('Error fetching game state:', error);
+      setError('Failed to fetch game state');
+      setLoading(false);
+      setInitialLoad(false);
+    }
+  }, [gameId, accessToken, initialLoad]);
+  
+  // Set up polling
   useEffect(() => {
     let isMounted = true;
     let intervalId;
-
-    const fetchGameState = async () => {
-      try {
-        const gameData = await getGameState(gameId, accessToken);
-        if (isMounted) {
-          setGame(gameData);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching game state:', error);
-        if (isMounted) {
-          setError('Failed to fetch game state');
-          setLoading(false);
-        }
-      }
-    };
 
     // Initial fetch
     fetchGameState();
     
     // Setup polling
-    intervalId = setInterval(fetchGameState, POLLING_INTERVAL);
+    intervalId = setInterval(() => {
+      if (isMounted) {
+        fetchGameState();
+      }
+    }, POLLING_INTERVAL);
     
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [gameId, accessToken]);
+  }, [fetchGameState]);
   
   // Handle ready toggle
   const handleToggleReady = async () => {

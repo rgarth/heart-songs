@@ -12,9 +12,8 @@ const Login = () => {
   
   // Store the redirect path in localStorage so we can access it after OAuth redirect
   useEffect(() => {
-    if (redirectPath && redirectPath !== '/') {
-      localStorage.setItem('redirectAfterAuth', redirectPath);
-    }
+    console.log('Setting redirectAfterAuth:', redirectPath);
+    localStorage.setItem('redirectAfterAuth', redirectPath);
   }, [redirectPath]);
   
   const handleLogin = () => {

@@ -114,3 +114,90 @@ export const getPlaybackState = async (token) => {
     throw error;
   }
 };
+
+// Get user profile information
+export const getUserProfile = async (token) => {
+  try {
+    const response = await axios.get(
+      `${SPOTIFY_API}/me`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    throw error;
+  }
+};
+
+// Check if user has premium
+export const checkUserPremium = async (token) => {
+  try {
+    const profile = await getUserProfile(token);
+    return profile.product === 'premium';
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false; // Default to non-premium on error
+  }
+};
+
+// Transfer playback to specified device
+export const transferPlayback = async (deviceId, token) => {
+  try {
+    await axios.put(
+      `${SPOTIFY_API}/me/player`,
+      {
+        device_ids: [deviceId],
+        play: false
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error('Error transferring playback:', error);
+    throw error;
+  }
+};
+
+// Set playback volume
+export const setPlaybackVolume = async (volumePercent, token) => {
+  try {
+    await axios.put(
+      `${SPOTIFY_API}/me/player/volume`,
+      null,
+      {
+        params: {
+          volume_percent: volumePercent
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error('Error setting volume:', error);
+    throw error;
+  }
+};
+
+export default {
+  searchTracks,
+  getTrack,
+  getPlaylist,
+  playTrack,
+  pausePlayback,
+  getPlaybackState,
+  getUserProfile,
+  checkUserPremium,
+  transferPlayback,
+  setPlaybackVolume
+};

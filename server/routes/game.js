@@ -164,34 +164,42 @@ router.post('/ready', async (req, res) => {
       } else {
         // Enough players, proceed with starting the game
         // Create playlist
-      const host = await User.findById(game.host);
-      const playlist = await createPlaylist(
-        host.accessToken,
-        `Song Game - ${game.code}`,
-        'Collaborative playlist for the song selection game'
-      );
-      
-      game.playlistId = playlist.id;
-      
-      // Get random question
-      const question = await getRandomQuestion();
-      game.currentQuestion = {
-        text: question.text,
-        category: question.category
-      };
-      
-      game.status = 'selecting';
-      await game.save();
-    }
+        const host = await User.findById(game.host);
+        const playlist = await createPlaylist(
+          host.accessToken,
+          `Song Game - ${game.code}`,
+          'Collaborative playlist for the song selection game'
+        );
+        
+        game.playlistId = playlist.id;
+        
+        // Get random question
+        const question = await getRandomQuestion();
+        game.currentQuestion = {
+          text: question.text,
+          category: question.category
+        };
+        
+        // When all players are ready, all players are active
+        // Initialize activePlayers with all player IDs
+        game.activePlayers = game.players.map(player => player.user);
+        
+        game.status = 'selecting';
+        await game.save();
+      }
     }
     
     // Populate game data
     await game.populate('players.user', 'displayName profileImage');
+    if (game.activePlayers && game.activePlayers.length > 0) {
+      await game.populate('activePlayers', 'displayName profileImage');
+    }
     
     res.json({
       gameId: game._id,
       status: game.status,
       players: game.players,
+      activePlayers: game.activePlayers || [],
       currentQuestion: game.currentQuestion,
       playlistId: game.playlistId
     });
@@ -460,6 +468,10 @@ router.post('/next-round', async (req, res) => {
       player.isReady = false;
     });
     
+    // Reset active players to empty for the new round
+    // This will be repopulated when players ready up or the host forces the start
+    game.activePlayers = [];
+    
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
       // Use the provided question
@@ -493,7 +505,8 @@ router.post('/next-round', async (req, res) => {
       gameId: game._id,
       status: game.status,
       currentQuestion: game.currentQuestion,
-      playlistId: game.playlistId
+      playlistId: game.playlistId,
+      activePlayers: []
     });
   } catch (error) {
     console.error('Error starting new round:', error);

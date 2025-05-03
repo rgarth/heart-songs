@@ -1,6 +1,6 @@
 // client/src/components/game/VotingScreen.js
-import React, { useState, useEffect } from 'react';
-import { getPlaylist, playTrack, pausePlayback } from '../../services/spotifyService';
+import React, { useState, useEffect, useRef } from 'react';
+import { getPlaylist, playTrack, pausePlayback, getTrack } from '../../services/spotifyService';
 import { voteForSong } from '../../services/gameService';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
@@ -15,6 +15,19 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [deviceId, setDeviceId] = useState(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [playerError, setPlayerError] = useState(null);
+  const [previewAudio, setPreviewAudio] = useState(null);
+  const [tracksWithPreviews, setTracksWithPreviews] = useState({});
+  const [isPremium, setIsPremium] = useState(false);
+  
+  // Add state to track if we've already loaded data
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [localSubmissions, setLocalSubmissions] = useState([]);
+  
+  // Use ref to track the current playlist ID to avoid refetching
+  const lastPlaylistIdRef = useRef(null);
+  
+  // Detect if we're on a mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -22,7 +35,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Check if this is a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
   
-  // Check if user has already voted
+  // Update local submissions whenever game.submissions changes
+  useEffect(() => {
+    if (game.submissions && game.submissions.length > 0) {
+      setLocalSubmissions(game.submissions);
+    }
+  }, [game.submissions]);
+  
+  // Check if user has already voted - only run once per vote change
   useEffect(() => {
     const userVoted = game.submissions.some(s => 
       s.votes.some(v => v._id === currentUser.id)
@@ -33,13 +53,79 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Load playlist
+  // Check user's Spotify subscription type
   useEffect(() => {
+    const checkSpotifySubscription = async () => {
+      try {
+        console.log('Checking Spotify subscription type...');
+        
+        const response = await fetch('https://api.spotify.com/v1/me', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('User subscription type:', data.product);
+          const isPremiumUser = data.product === 'premium';
+          setIsPremium(isPremiumUser);
+          console.log('User has premium:', isPremiumUser);
+        } else {
+          console.error('Failed to fetch user subscription info:', response.statusText);
+          // Default to non-premium to be safe
+          setIsPremium(false);
+        }
+      } catch (error) {
+        console.error('Error checking Spotify subscription:', error);
+        // Default to non-premium to be safe
+        setIsPremium(false);
+      }
+    };
+    
+    if (accessToken) {
+      checkSpotifySubscription();
+    }
+  }, [accessToken]);
+  
+  // Load playlist - with improvements to prevent flickering
+  useEffect(() => {
+    // Skip if we've already loaded this playlist or if there's no playlist
+    if (!game.playlistId || game.playlistId === lastPlaylistIdRef.current) {
+      return;
+    }
+    
     const fetchPlaylist = async () => {
       try {
-        setLoading(true);
+        // Only show loading state on initial load
+        if (!dataLoaded) {
+          setLoading(true);
+        }
+        
+        // Update our ref to track that we're loading this playlist
+        lastPlaylistIdRef.current = game.playlistId;
+        
         const playlistData = await getPlaylist(game.playlistId, accessToken);
         setPlaylist(playlistData);
+        
+        // Fetch preview URLs for all tracks (needed for mobile or free accounts)
+        const previewsObj = {};
+        
+        // Use Promise.all to fetch all track details in parallel
+        const trackPromises = game.submissions.map(async (submission) => {
+          try {
+            const track = await getTrack(submission.songId, accessToken);
+            previewsObj[submission.songId] = track.preview_url;
+          } catch (error) {
+            console.error(`Error fetching track ${submission.songId}:`, error);
+          }
+        });
+        
+        await Promise.all(trackPromises);
+        setTracksWithPreviews(previewsObj);
+        
+        // Mark that we've successfully loaded data
+        setDataLoaded(true);
       } catch (error) {
         console.error('Error fetching playlist:', error);
         setError('Failed to load playlist');
@@ -51,10 +137,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     if (game.playlistId) {
       fetchPlaylist();
     }
-  }, [game.playlistId, accessToken]);
+  }, [game.playlistId, accessToken, game.submissions, dataLoaded]);
   
-  // Initialize Spotify Web Playback SDK
+  // Initialize Spotify Web Playback SDK (only on desktop + premium)
   useEffect(() => {
+    // Skip SDK initialization on mobile devices or non-premium accounts
+    if (isMobile || !isPremium) return;
+    
     let spotifyPlayer = null;
     
     const initializePlayer = () => {
@@ -136,35 +225,99 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         spotifyPlayer.disconnect();
       }
     };
-  }, [accessToken]);
+  }, [accessToken, isMobile, isPremium]);
   
-  // Handle play track
+  // Clean up audio previews when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewAudio) {
+        previewAudio.pause();
+        setPreviewAudio(null);
+      }
+    };
+  }, [previewAudio]);
+  
+  // Handle play track - unified function for desktop and mobile
   const handlePlay = async (trackId) => {
-    console.log('Attempting to play track:', trackId);
+    console.log('Attempting to play track:', trackId, 'Premium:', isPremium, 'Mobile:', isMobile);
     
-    if (!deviceId) {
-      console.error('No device ID available');
-      setPlayerError('No playback device available. Make sure Spotify is open and you are logged in.');
-      return;
+    // Premium on desktop: Try using Spotify Web Playback SDK first
+    if (!isMobile && isPremium && deviceId) {
+      try {
+        // If this track is already playing, pause it
+        if (currentlyPlaying === trackId) {
+          console.log('Pausing current track');
+          await pausePlayback(accessToken);
+          setCurrentlyPlaying(null);
+        } else {
+          // Play the new track
+          console.log('Playing track with device ID:', deviceId);
+          const trackUri = `spotify:track:${trackId}`;
+          await playTrack(deviceId, trackUri, accessToken);
+          setCurrentlyPlaying(trackId);
+        }
+        setPlayerError(null);
+        return; // Return early if successful
+      } catch (error) {
+        console.error('Error controlling playback:', error);
+        // Continue to fallback - don't set error yet
+      }
     }
     
-    try {
-      // If this track is already playing, pause it
-      if (currentlyPlaying === trackId) {
-        console.log('Pausing current track');
-        await pausePlayback(accessToken);
-        setCurrentlyPlaying(null);
-      } else {
-        // Play the new track
-        console.log('Playing track with device ID:', deviceId);
-        const trackUri = `spotify:track:${trackId}`;
-        await playTrack(deviceId, trackUri, accessToken);
-        setCurrentlyPlaying(trackId);
+    // Fallback for mobile, free accounts, or if SDK playback failed: try previews
+    const previewUrl = tracksWithPreviews[trackId];
+    
+    if (previewUrl) {
+      // If an audio is already playing, stop it
+      if (previewAudio) {
+        previewAudio.pause();
+        previewAudio.currentTime = 0;
+        setPreviewAudio(null);
+        
+        // If we're trying to pause the current track, just return
+        if (currentlyPlaying === trackId) {
+          setCurrentlyPlaying(null);
+          return;
+        }
       }
-      setPlayerError(null);
-    } catch (error) {
-      console.error('Error controlling playback:', error);
-      setPlayerError(`Failed to control playback: ${error.message}`);
+      
+      const audio = new Audio(previewUrl);
+      
+      // Set up event listeners
+      audio.addEventListener('ended', () => {
+        setCurrentlyPlaying(null);
+        setPreviewAudio(null);
+      });
+      
+      audio.addEventListener('error', (e) => {
+        console.error('Audio playback error:', e);
+        setPlayerError('Failed to play preview. Please try again.');
+        setCurrentlyPlaying(null);
+        setPreviewAudio(null);
+      });
+      
+      // Play the preview
+      audio.play()
+        .then(() => {
+          setPreviewAudio(audio);
+          setCurrentlyPlaying(trackId);
+          setPlayerError(null);
+        })
+        .catch(error => {
+          console.error('Error playing preview:', error);
+          
+          // Handle iOS interaction requirement
+          if (error.name === 'NotAllowedError') {
+            setPlayerError('Playback requires interaction. Please tap play again.');
+            // Keep the audio object ready for user interaction
+            setPreviewAudio(audio);
+          } else {
+            setPlayerError(`Could not play preview: ${error.message}`);
+          }
+        });
+    } else {
+      // No preview URL available and SDK didn't work
+      setPlayerError(`No preview available for this track. Unfortunately, Spotify doesn't provide a preview for every song.`);
     }
   };
   
@@ -192,6 +345,26 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   );
   const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
   
+  // Early return when data is still being initially loaded
+  if (loading && !dataLoaded) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-2 text-center">Voting Time</h2>
+          
+          <div className="text-center mb-6">
+            <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+          </div>
+          
+          <div className="text-center py-10">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-gray-300 mt-4">Loading submissions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -217,6 +390,18 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </div>
         )}
         
+        {isMobile && (
+          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
+            <p><strong>Mobile playback:</strong> 30-second previews will play when available.</p>
+          </div>
+        )}
+        
+        {!isMobile && !isPremium && (
+          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
+            <p><strong>Free account:</strong> 30-second previews will play when available. Upgrade to Spotify Premium for full song playback.</p>
+          </div>
+        )}
+        
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
             <p><strong>Note:</strong> In games with fewer than 3 players, you can vote for your own submission.</p>
@@ -229,12 +414,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </div>
         )}
         
-        {loading ? (
-          <div className="text-center py-10">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-300 mt-4">Loading submissions...</p>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="text-center py-10 text-red-500">
             {error}
           </div>
@@ -255,8 +435,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <div className="space-y-4 mb-6">
               <h3 className="text-lg font-medium mb-2">All Submissions</h3>
               
-              {game.submissions.map(submission => {
+              {localSubmissions.map(submission => {
                 const isOwnSubmission = submission.player._id === currentUser.id;
+                const hasPreview = tracksWithPreviews[submission.songId];
+                const noAudioAvailable = !hasPreview && (isMobile || !isPremium || !playerReady);
                 
                 return (
                   <div 
@@ -295,8 +477,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       className={`py-2 px-4 rounded transition-colors flex items-center ${
                         currentlyPlaying === submission.songId
                           ? 'bg-green-600 text-white'
-                          : 'bg-gray-600 text-white hover:bg-gray-500'
+                          : noAudioAvailable 
+                            ? 'bg-gray-600 text-white opacity-50 cursor-not-allowed'
+                            : 'bg-gray-600 text-white hover:bg-gray-500'
                       }`}
+                      disabled={noAudioAvailable}
                     >
                       {currentlyPlaying === submission.songId ? (
                         <>
@@ -312,6 +497,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           Play
+                          {noAudioAvailable && " (No audio)"}
+                          {!noAudioAvailable && isMobile && " (Preview)"}
+                          {!noAudioAvailable && !isMobile && !isPremium && " (Preview)"}
                         </>
                       )}
                     </button>
