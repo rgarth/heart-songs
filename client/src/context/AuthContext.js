@@ -1,149 +1,100 @@
 // client/src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { validateSession } from '../services/AuthService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [sessionToken, setSessionToken] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load auth data from localStorage on mount
   useEffect(() => {
-    // Check for stored auth data on component mount
-    const storedUser = localStorage.getItem('anon_user');
-    const storedToken = localStorage.getItem('session_token');
-    const sessionExpiry = localStorage.getItem('session_expiry');
-    
-    console.log('Initial auth state from localStorage:', { 
-      hasUser: !!storedUser, 
-      hasToken: !!storedToken, 
-      hasExpiry: !!sessionExpiry 
-    });
-    
-    if (storedToken) {
-      console.log('Found stored token:', storedToken);
-    }
-    
-    if (storedUser && storedToken && sessionExpiry) {
-      // Check if session is expired
-      const now = new Date();
-      const expiryDate = new Date(sessionExpiry);
-      
-      if (expiryDate > now) {
-        // Session still valid, restore user data
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setSessionToken(storedToken);
-        console.log('Restored session from localStorage:', { 
-          user: parsedUser.displayName,
-          tokenLength: storedToken.length
+    const loadAuthData = async () => {
+      try {
+        // Check for stored auth data
+        const storedUser = localStorage.getItem('user');
+        const storedAccessToken = localStorage.getItem('accessToken');
+        
+        console.log('Initial auth state from localStorage:', {
+          hasUser: !!storedUser,
+          hasToken: !!storedAccessToken
         });
-      } else {
-        // Session expired, clear data
-        console.log('Session expired, clearing data');
-        clearSessionData();
+        
+        if (storedUser && storedAccessToken) {
+          // Parse user data
+          const userData = JSON.parse(storedUser);
+          
+          // Set state
+          setUser(userData);
+          setAccessToken(storedAccessToken);
+          
+          console.log('Found stored token:', storedAccessToken);
+          console.log('Restored session from localStorage:', {
+            user: userData.displayName || userData.id,
+            tokenLength: storedAccessToken.length
+          });
+        } else {
+          console.log('No valid auth data found in localStorage');
+        }
+      } catch (error) {
+        console.error('Error loading auth data:', error);
+        // Clear potentially corrupted data
+        logout();
+      } finally {
+        setLoading(false);
       }
-    }
+    };
     
-    setLoading(false);
+    loadAuthData();
   }, []);
 
-  // Clear all session data
-  const clearSessionData = () => {
-    console.log('Clearing session data');
-    localStorage.removeItem('anon_user');
-    localStorage.removeItem('session_token');
-    localStorage.removeItem('session_expiry');
-    setUser(null);
-    setSessionToken(null);
-  };
+  // Log changes to auth context for debugging
+  useEffect(() => {
+    console.log('AuthContext updated:', {
+      hasUser: !!user,
+      displayName: user?.displayName || user?.username,
+      hasToken: !!accessToken,
+      tokenLength: accessToken?.length
+    });
+  }, [user, accessToken]);
 
-  // Login function (for anonymous authentication)
+  // Login function
   const login = (userData, token) => {
-    console.log('Login with:', { 
-      userData: userData ? { 
-        id: userData.id, 
-        displayName: userData.displayName 
-      } : null, 
-      hasToken: !!token,
-      tokenLength: token ? token.length : 0
+    console.log('Login called with:', {
+      userData: userData?.displayName || userData?.username || userData?.id,
+      tokenLength: token?.length
     });
     
-    if (!userData || !token) {
-      console.error('Cannot login - missing user data or token');
-      return;
-    }
-    
     setUser(userData);
-    setSessionToken(token);
-    
-    // Calculate expiry (24 hours from now)
-    const expiryDate = new Date();
-    expiryDate.setHours(expiryDate.getHours() + 24);
+    setAccessToken(token);
     
     // Store in localStorage
-    localStorage.setItem('anon_user', JSON.stringify(userData));
-    localStorage.setItem('session_token', token);
-    localStorage.setItem('session_expiry', expiryDate.toISOString());
-    
-    console.log('Auth data saved to localStorage');
-    
-    // Verify the data was saved correctly
-    const storedToken = localStorage.getItem('session_token');
-    console.log('Verified token in localStorage:', storedToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('accessToken', token);
   };
 
   // Logout function
   const logout = () => {
-    console.log('Logging out, clearing session data');
-    clearSessionData();
-  };
-
-  // Validate the current session
-  const validateCurrentSession = async () => {
-    if (!sessionToken) return false;
+    console.log('Logging out, clearing auth state');
     
-    try {
-      const result = await validateSession(sessionToken);
-      return result.valid;
-    } catch (error) {
-      console.error('Session validation failed:', error);
-      clearSessionData();
-      return false;
-    }
-  };
-
-  // Update username (only available for anonymous users)
-  const updateUsername = (newUsername) => {
-    if (!user) return;
+    setUser(null);
+    setAccessToken(null);
     
-    const updatedUser = { ...user, displayName: newUsername };
-    setUser(updatedUser);
-    localStorage.setItem('anon_user', JSON.stringify(updatedUser));
+    // Clear localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
   };
-
-  // For debugging - log when context values change
-  useEffect(() => {
-    console.log('AuthContext updated:', { 
-      hasUser: !!user, 
-      displayName: user?.displayName,
-      hasToken: !!sessionToken,
-      tokenLength: sessionToken?.length
-    });
-  }, [user, sessionToken]);
 
   return (
     <AuthContext.Provider 
       value={{ 
         user, 
-        sessionToken,
+        accessToken,
         loading, 
         login, 
-        logout,
-        validateCurrentSession,
-        updateUsername,
-        isAnonymous: true // Always true in this version
+        logout
       }}
     >
       {children}

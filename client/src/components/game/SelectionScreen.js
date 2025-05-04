@@ -1,9 +1,9 @@
 // client/src/components/game/SelectionScreen.js
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchTracks, getSpotifyOpenURL } from '../../services/spotifyService';
+import { searchTracks } from '../../services/spotifyService';
 
-const SelectionScreen = ({ game, currentUser, sessionToken }) => {
+const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedSong, setSelectedSong] = useState(null);
@@ -44,7 +44,7 @@ const SelectionScreen = ({ game, currentUser, sessionToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      const results = await searchTracks(searchQuery);
+      const results = await searchTracks(searchQuery, accessToken);
       setSearchResults(results);
       
     } catch (error) {
@@ -76,12 +76,6 @@ const SelectionScreen = ({ game, currentUser, sessionToken }) => {
     setSelectedSong(track);
   };
   
-  // Open in Spotify
-  const openInSpotify = (trackId) => {
-    const spotifyUrl = getSpotifyOpenURL(trackId);
-    window.open(spotifyUrl, '_blank');
-  };
-  
   // Handle song submission
   const handleSubmit = async () => {
     if (!selectedSong) return;
@@ -96,7 +90,7 @@ const SelectionScreen = ({ game, currentUser, sessionToken }) => {
     try {
       setIsSubmitting(true);
       
-      await submitSong(game._id, currentUser.id, selectedSong, sessionToken);
+      await submitSong(game._id, currentUser.id, selectedSong, accessToken);
       
       setHasSubmitted(true);
     } catch (error) {
@@ -107,11 +101,27 @@ const SelectionScreen = ({ game, currentUser, sessionToken }) => {
   };
   
   // Check if user is active in the current round (either all players or specifically included)
-  const isUserActive = !hasActivePlayers || 
-    game.activePlayers.some(player => player._id === currentUser.id);
+  const isUserActive = () => {
+    // If no activePlayers list exists or it's empty, consider all players active
+    if (!game.activePlayers || game.activePlayers.length === 0) {
+      return true;
+    }
+    
+    // Otherwise, check if the current user is in the activePlayers list
+    return game.activePlayers.some(player => {
+      // Handle both object and string comparisons
+      if (typeof player === 'object' && player._id) {
+        return player._id === currentUser.id;
+      }
+      return player === currentUser.id;
+    });
+  };
+  
+  // Use the function to determine active status
+  const userIsActive = isUserActive();
   
   // If user is not active in this round, show a message
-  if (!isUserActive) {
+  if (!userIsActive) {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="bg-gray-800 rounded-lg p-6 shadow-lg text-center">
@@ -233,21 +243,13 @@ const SelectionScreen = ({ game, currentUser, sessionToken }) => {
                       {selectedSong.album.name}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {isSubmitting ? 'Submitting...' : 'Confirm'}
-                    </button>
-                    <button
-                      onClick={() => openInSpotify(selectedSong.id)}
-                      className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
-                    >
-                      Preview in Spotify
-                    </button>
-                  </div>
+                  <button 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Confirm'}
+                  </button>
                 </div>
               </div>
             )}
@@ -288,15 +290,6 @@ const SelectionScreen = ({ game, currentUser, sessionToken }) => {
                             </p>
                           )}
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openInSpotify(track.id);
-                          }}
-                          className="py-1 px-2 bg-gray-600 text-white text-xs rounded hover:bg-gray-500"
-                        >
-                          Preview
-                        </button>
                       </div>
                     );
                   })}

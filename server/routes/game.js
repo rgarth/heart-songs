@@ -626,10 +626,8 @@ router.post('/:gameId/custom-question', async (req, res) => {
 // Force start game (host only)
 router.post('/start', async (req, res) => {
   try {
-    const { gameId, questionText, questionCategory } = req.body;
-    const user = req.user;
-    
-    console.log('Force starting game for gameId:', gameId, 'by host:', user.displayName);
+    const { gameId, userId, questionText, questionCategory } = req.body;
+    console.log('Force starting game for gameId:', gameId, 'by host:', userId);
     
     // Find game by _id or code
     let game = null;
@@ -646,7 +644,7 @@ router.post('/start', async (req, res) => {
     }
     
     // Check if user is the host
-    if (game.host.toString() !== user._id.toString()) {
+    if (game.host.toString() !== userId) {
       return res.status(403).json({ error: 'Only the host can force start the game' });
     }
     
@@ -660,6 +658,16 @@ router.post('/start', async (req, res) => {
       return res.status(400).json({ error: 'Game is already in progress' });
     }
 
+    // Create playlist
+    const host = await User.findById(game.host);
+    const playlist = await createPlaylist(
+      host.accessToken,
+      `Song Game - ${game.code}`,
+      'Collaborative playlist for the song selection game'
+    );
+    
+    game.playlistId = playlist.id;
+    
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
       // Use the provided question
@@ -677,32 +685,39 @@ router.post('/start', async (req, res) => {
     }
 
     // Auto-ready the host if they're not already ready
-    const hostPlayerIndex = game.players.findIndex(p => p.user.toString() === user._id.toString());
+    const hostPlayerIndex = game.players.findIndex(p => p.user.toString() === userId);
     if (hostPlayerIndex !== -1 && !game.players[hostPlayerIndex].isReady) {
       game.players[hostPlayerIndex].isReady = true;
     }
     
-    // Store the count of ready players for validation in other phases
-    // Filter to get only ready players
-    const readyPlayers = game.players.filter(player => player.isReady);
+    // Critical fix: Make sure all ready players are added to activePlayers
+    // This includes the host who we just made ready
+    game.activePlayers = game.players
+      .filter(player => player.isReady)
+      .map(player => player.user);
     
-    // Save the IDs of ready players in a new field
-    game.activePlayers = readyPlayers.map(player => player.user);
+    // Log active players for debugging
+    console.log('Active players for this game:', {
+      totalPlayers: game.players.length,
+      readyPlayers: game.players.filter(player => player.isReady).length,
+      activePlayers: game.activePlayers.length
+    });
     
     // Start the game regardless of ready status
     game.status = 'selecting';
     await game.save();
     
     // Populate game data
-    await game.populate('players.user', 'displayName');
-    await game.populate('activePlayers', 'displayName');
+    await game.populate('players.user', 'displayName profileImage');
+    await game.populate('activePlayers', 'displayName profileImage');
     
     res.json({
       gameId: game._id,
       status: game.status,
       players: game.players,
       activePlayers: game.activePlayers,
-      currentQuestion: game.currentQuestion
+      currentQuestion: game.currentQuestion,
+      playlistId: game.playlistId
     });
   } catch (error) {
     console.error('Error starting game:', error);

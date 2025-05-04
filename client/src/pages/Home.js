@@ -5,52 +5,58 @@ import { AuthContext } from '../context/AuthContext';
 import { createGame, joinGame } from '../services/gameService';
 
 const Home = () => {
-  const { user, sessionToken, logout } = useContext(AuthContext);
+  const { user, accessToken, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   
   const [gameCode, setGameCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Debug statement to check authentication
+  // Debug log to help identify issues
   useEffect(() => {
-    // Log auth context values
-    console.log('Auth context in Home:', { 
-      hasUser: !!user, 
-      userName: user?.displayName,
-      hasSessionToken: !!sessionToken,
-      sessionTokenLength: sessionToken?.length
+    console.log('Auth context in Home:', {
+      hasUser: !!user,
+      userName: user?.displayName || user?.username,
+      hasAccessToken: !!accessToken,
+      accessTokenLength: accessToken?.length
     });
     
-    // Also check localStorage directly
-    const directToken = localStorage.getItem('session_token');
-    console.log('Direct token from localStorage:', directToken);
+    // Check localStorage directly to compare
+    const localStorageToken = localStorage.getItem('accessToken');
+    console.log('Direct token from localStorage:', localStorageToken);
     
-    // Compare the values
-    if (sessionToken !== directToken) {
-      console.warn('Token mismatch between context and localStorage!', {
-        contextToken: sessionToken,
-        localStorageToken: directToken
+    // Verify if there's a mismatch
+    if (accessToken !== localStorageToken) {
+      console.error('Token mismatch between context and localStorage!', {
+        contextToken: accessToken,
+        localStorageToken
       });
     }
-  }, [user, sessionToken]);
+  }, [user, accessToken]);
   
   const handleCreateGame = async () => {
     try {
       setLoading(true);
       setError('');
       
-      // Get token directly from localStorage as a fallback
-      const token = sessionToken || localStorage.getItem('session_token');
-      
-      if (!token) {
-        console.error('No token available for authentication');
+      if (!user || !user.id) {
+        console.error('Missing user data:', { hasUser: !!user, hasUserId: user?.id });
         setError('Authentication error. Please login again.');
         setLoading(false);
         return;
       }
       
-      console.log('Creating game with token:', token);
+      // Get the most up-to-date token (either from context or localStorage)
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.error('No authentication token available');
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log(`Creating game for user: ${user.id} with token preview: ${token.substring(0, 10)}...`);
       const game = await createGame(user.id, token);
       
       // Navigate to game page
@@ -75,10 +81,18 @@ const Home = () => {
       setLoading(true);
       setError('');
       
-      // Get token directly from localStorage as a fallback
-      const token = sessionToken || localStorage.getItem('session_token');
+      if (!user || !user.id) {
+        console.error('Missing user data:', { hasUser: !!user, hasUserId: user?.id });
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      // Get the most up-to-date token (either from context or localStorage)
+      const token = accessToken || localStorage.getItem('accessToken');
       
       if (!token) {
+        console.error('No authentication token available');
         setError('Authentication error. Please login again.');
         setLoading(false);
         return;
@@ -105,12 +119,12 @@ const Home = () => {
             {user?.profileImage && (
               <img 
                 src={user.profileImage} 
-                alt={user.displayName} 
+                alt={user.displayName || user.username} 
                 className="w-10 h-10 rounded-full mr-3" 
               />
             )}
             <div className="mr-4">
-              <p className="font-medium">{user?.displayName}</p>
+              <p className="font-medium">{user?.displayName || user?.username}</p>
               <p className="text-sm text-gray-400">Score: {user?.score || 0}</p>
             </div>
             <button 
@@ -183,17 +197,6 @@ const Home = () => {
               <li>Points are awarded based on votes</li>
               <li>Repeat with new questions!</li>
             </ol>
-          </div>
-          
-          <div className="mt-4 text-center">
-            <a 
-              href="/debug" 
-              className="text-blue-400 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Debug Auth
-            </a>
           </div>
         </div>
       </div>
