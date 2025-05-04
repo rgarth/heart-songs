@@ -27,8 +27,21 @@ async function getRandomQuestion() {
 // Create a new game
 router.post('/create', async (req, res) => {
   try {
+    console.log('Create game route called');
+    console.log('Request body:', req.body);
+    console.log('User from auth middleware:', req.user ? {
+      id: req.user._id,
+      displayName: req.user.displayName
+    } : 'No user attached to request');
+    
     // Use the authenticated user from the middleware
     const host = req.user;
+    
+    if (!host) {
+      console.error('Authentication middleware did not attach user to request');
+      return res.status(401).json({ error: 'User authentication failed' });
+    }
+    
     console.log('Creating game for user:', host.displayName);
     
     // Generate a unique game code
@@ -40,6 +53,8 @@ router.post('/create', async (req, res) => {
       const existingGame = await Game.findOne({ code: gameCode });
       isUnique = !existingGame;
     }
+    
+    console.log('Generated unique game code:', gameCode);
     
     // Create the game
     const game = new Game({
@@ -62,7 +77,7 @@ router.post('/create', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating game:', error);
-    res.status(500).json({ error: 'Failed to create game' });
+    res.status(500).json({ error: 'Failed to create game', details: error.message });
   }
 });
 
@@ -494,6 +509,7 @@ router.post('/next-round', async (req, res) => {
 router.get('/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
+    console.log('Getting game state for:', gameId, 'User:', req.user.displayName);
     
     // Find game by _id or code
     let game = null;

@@ -15,6 +15,16 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('session_token');
     const sessionExpiry = localStorage.getItem('session_expiry');
     
+    console.log('Initial auth state from localStorage:', { 
+      hasUser: !!storedUser, 
+      hasToken: !!storedToken, 
+      hasExpiry: !!sessionExpiry 
+    });
+    
+    if (storedToken) {
+      console.log('Found stored token:', storedToken);
+    }
+    
     if (storedUser && storedToken && sessionExpiry) {
       // Check if session is expired
       const now = new Date();
@@ -22,10 +32,16 @@ export const AuthProvider = ({ children }) => {
       
       if (expiryDate > now) {
         // Session still valid, restore user data
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
         setSessionToken(storedToken);
+        console.log('Restored session from localStorage:', { 
+          user: parsedUser.displayName,
+          tokenLength: storedToken.length
+        });
       } else {
         // Session expired, clear data
+        console.log('Session expired, clearing data');
         clearSessionData();
       }
     }
@@ -35,6 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   // Clear all session data
   const clearSessionData = () => {
+    console.log('Clearing session data');
     localStorage.removeItem('anon_user');
     localStorage.removeItem('session_token');
     localStorage.removeItem('session_expiry');
@@ -44,6 +61,20 @@ export const AuthProvider = ({ children }) => {
 
   // Login function (for anonymous authentication)
   const login = (userData, token) => {
+    console.log('Login with:', { 
+      userData: userData ? { 
+        id: userData.id, 
+        displayName: userData.displayName 
+      } : null, 
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    });
+    
+    if (!userData || !token) {
+      console.error('Cannot login - missing user data or token');
+      return;
+    }
+    
     setUser(userData);
     setSessionToken(token);
     
@@ -55,10 +86,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('anon_user', JSON.stringify(userData));
     localStorage.setItem('session_token', token);
     localStorage.setItem('session_expiry', expiryDate.toISOString());
+    
+    console.log('Auth data saved to localStorage');
+    
+    // Verify the data was saved correctly
+    const storedToken = localStorage.getItem('session_token');
+    console.log('Verified token in localStorage:', storedToken);
   };
 
   // Logout function
   const logout = () => {
+    console.log('Logging out, clearing session data');
     clearSessionData();
   };
 
@@ -84,6 +122,16 @@ export const AuthProvider = ({ children }) => {
     setUser(updatedUser);
     localStorage.setItem('anon_user', JSON.stringify(updatedUser));
   };
+
+  // For debugging - log when context values change
+  useEffect(() => {
+    console.log('AuthContext updated:', { 
+      hasUser: !!user, 
+      displayName: user?.displayName,
+      hasToken: !!sessionToken,
+      tokenLength: sessionToken?.length
+    });
+  }, [user, sessionToken]);
 
   return (
     <AuthContext.Provider 

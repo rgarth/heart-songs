@@ -1,23 +1,57 @@
 // client/src/pages/Home.js
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { createGame, joinGame } from '../services/gameService';
 
 const Home = () => {
-  const { user, accessToken, logout } = useContext(AuthContext);
+  const { user, sessionToken, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   
   const [gameCode, setGameCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Debug statement to check authentication
+  useEffect(() => {
+    // Log auth context values
+    console.log('Auth context in Home:', { 
+      hasUser: !!user, 
+      userName: user?.displayName,
+      hasSessionToken: !!sessionToken,
+      sessionTokenLength: sessionToken?.length
+    });
+    
+    // Also check localStorage directly
+    const directToken = localStorage.getItem('session_token');
+    console.log('Direct token from localStorage:', directToken);
+    
+    // Compare the values
+    if (sessionToken !== directToken) {
+      console.warn('Token mismatch between context and localStorage!', {
+        contextToken: sessionToken,
+        localStorageToken: directToken
+      });
+    }
+  }, [user, sessionToken]);
+  
   const handleCreateGame = async () => {
     try {
       setLoading(true);
       setError('');
       
-      const game = await createGame(user.id, accessToken);
+      // Get token directly from localStorage as a fallback
+      const token = sessionToken || localStorage.getItem('session_token');
+      
+      if (!token) {
+        console.error('No token available for authentication');
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Creating game with token:', token);
+      const game = await createGame(user.id, token);
       
       // Navigate to game page
       navigate(`/game/${game.gameId}`);
@@ -41,7 +75,16 @@ const Home = () => {
       setLoading(true);
       setError('');
       
-      const game = await joinGame(gameCode.trim().toUpperCase(), user.id, accessToken);
+      // Get token directly from localStorage as a fallback
+      const token = sessionToken || localStorage.getItem('session_token');
+      
+      if (!token) {
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      const game = await joinGame(gameCode.trim().toUpperCase(), user.id, token);
       
       // Navigate to game page
       navigate(`/game/${game.gameId}`);
@@ -140,6 +183,17 @@ const Home = () => {
               <li>Points are awarded based on votes</li>
               <li>Repeat with new questions!</li>
             </ol>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <a 
+              href="/debug" 
+              className="text-blue-400 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Debug Auth
+            </a>
           </div>
         </div>
       </div>

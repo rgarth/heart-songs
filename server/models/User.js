@@ -2,13 +2,12 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
-  // For Spotify auth (legacy, not used in anonymous version)
+  // For Spotify auth (no longer used)
+  // Completely removed the unique constraint
   spotifyId: {
-    type: String,
-    sparse: true,
-    unique: true
+    type: String
   },
-  // For anonymous users
+  // For anonymous users - this is the primary identifier now
   anonId: {
     type: String,
     sparse: true,
@@ -42,12 +41,14 @@ const UserSchema = new mongoose.Schema({
       const date = new Date();
       date.setDate(date.getDate() + 7);
       return date;
-    },
-    expires: 0 // Use MongoDB TTL to automatically delete expired documents
+    }
   }
 });
 
-// Create a TTL index on expiresAt - only applies to anonymous users
+// Create a TTL index on expiresAt
 UserSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// Create a unique index on the displayName for username uniqueness
+UserSchema.index({ displayName: 1 }, { unique: true });
 
 module.exports = mongoose.model('User', UserSchema);

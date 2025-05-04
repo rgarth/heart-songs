@@ -10,9 +10,19 @@ export const registerAnonymous = async (username = null) => {
     // If no username is provided, generate one
     const playerName = username || generateUsername();
     
+    console.log('Registering anonymous user with username:', playerName);
+    
     const response = await axios.post(`${API_URL}/auth/register-anonymous`, { 
       username: playerName 
     });
+    
+    console.log('Registration response:', response.data);
+    
+    // Validate response data
+    if (!response.data || !response.data.sessionToken) {
+      console.error('Invalid response data - missing sessionToken:', response.data);
+      throw new Error('Server returned invalid data');
+    }
     
     return response.data;
   } catch (error) {
@@ -38,13 +48,22 @@ export const checkUsernameAvailability = async (username) => {
 // Validate user session
 export const validateSession = async (sessionToken) => {
   try {
+    if (!sessionToken) {
+      console.error('No sessionToken provided to validateSession');
+      return { valid: false };
+    }
+    
+    console.log('Validating session with token:', sessionToken);
+    
     const response = await axios.post(`${API_URL}/auth/validate-session`, { 
       sessionToken 
     });
     
+    console.log('Validation response:', response.data);
+    
     return response.data;
   } catch (error) {
     console.error('Error validating session:', error);
-    throw error;
+    return { valid: false };
   }
 };

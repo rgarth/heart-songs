@@ -80,10 +80,24 @@ const Login = () => {
       }
       
       // Register with server
+      console.log('Registering with username:', chosenUsername);
       const data = await registerAnonymous(chosenUsername);
+      
+      console.log('Registration successful, received data:', data);
+      
+      if (!data || !data.sessionToken) {
+        throw new Error('No session token received from server');
+      }
+      
+      // Debug: Log the token we're about to store
+      console.log('About to store session token:', data.sessionToken);
       
       // Login with the returned data
       login(data.user, data.sessionToken);
+      
+      // Verify the token was set in localStorage
+      const storedToken = localStorage.getItem('session_token');
+      console.log('Token stored in localStorage:', storedToken);
       
       // Navigate based on redirect path
       if (redirectPath && redirectPath.startsWith('/join/')) {

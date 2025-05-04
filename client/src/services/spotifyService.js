@@ -1,90 +1,53 @@
 // client/src/services/spotifyService.js
 import axios from 'axios';
-// Remove unused import
-// import { getData, getPreview } from 'spotify-url-info';
-import { getPreview } from 'spotify-url-info';
 
-// Remove unused API_URL
-// const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
-const SPOTIFY_API = 'https://api.spotify.com/v1';
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 
-// Configure spotify-url-info to use fetch
-const fetchWithFallback = async (...args) => {
+/**
+ * Search for tracks using the server as a proxy to Spotify API
+ * @param {string} query The search query
+ * @param {number} limit Maximum number of results to return
+ * @returns {Promise<Array>} Array of track objects
+ */
+export const searchTracks = async (query, limit = 10) => {
   try {
-    return await fetch(...args);
-  } catch (error) {
-    console.error('Fetch error:', error);
-    throw error;
-  }
-};
-
-// Search for tracks
-export const searchTracks = async (query, token) => {
-  try {
-    const response = await axios.get(`${SPOTIFY_API}/search`, {
+    const response = await axios.get(`${API_URL}/spotify/search`, {
       params: {
-        q: query,
-        type: 'track',
-        limit: 10
-      },
-      headers: {
-        Authorization: `Bearer ${token}`
+        query,
+        limit
       }
     });
-    return response.data.tracks.items;
+    return response.data;
   } catch (error) {
     console.error('Error searching tracks:', error);
     throw error;
   }
 };
 
-// Get track details with enhanced preview URL
-export const getTrack = async (trackId, token) => {
+/**
+ * Get track details using the server as a proxy to Spotify API
+ * @param {string} trackId The Spotify track ID
+ * @returns {Promise<Object>} Track details
+ */
+export const getTrack = async (trackId) => {
   try {
-    // First try to get the track from Spotify API
-    const response = await axios.get(`${SPOTIFY_API}/tracks/${trackId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    
-    const track = response.data;
-    
-    // If preview_url is null, try to get it using spotify-url-info
-    if (!track.preview_url) {
-      try {
-        console.log('Track preview_url is null, trying spotify-url-info...');
-        // Remove unused variable
-        // const trackUri = `spotify:track:${trackId}`;
-        const trackUrl = `https://open.spotify.com/track/${trackId}`;
-        
-        // Try to get preview using spotify-url-info
-        const previewData = await getPreview(fetchWithFallback)(trackUrl);
-        
-        console.log('Preview data from spotify-url-info:', previewData);
-        
-        // Update the track with preview URL if available
-        if (previewData && previewData.audio) {
-          console.log('Found preview URL:', previewData.audio);
-          track.preview_url = previewData.audio;
-        }
-      } catch (previewError) {
-        console.error('Error getting preview URL with spotify-url-info:', previewError);
-        // Continue with original track data even if this fails
-      }
-    }
-    
-    return track;
+    const response = await axios.get(`${API_URL}/spotify/track/${trackId}`);
+    return response.data;
   } catch (error) {
     console.error('Error getting track details:', error);
     throw error;
   }
 };
 
-// Get playlist
+/**
+ * Get playlist details
+ * @param {string} playlistId Playlist ID
+ * @param {string} token Access token
+ * @returns {Promise<Object>} Playlist details
+ */
 export const getPlaylist = async (playlistId, token) => {
   try {
-    const response = await axios.get(`${SPOTIFY_API}/playlists/${playlistId}`, {
+    const response = await axios.get(`${API_URL}/spotify/playlist/${playlistId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -96,18 +59,26 @@ export const getPlaylist = async (playlistId, token) => {
   }
 };
 
-// Play a track using Spotify Web Playback SDK
+/**
+ * Play a track using Spotify Web Playback SDK
+ * @param {string} deviceId Device ID
+ * @param {string} trackUri Track URI
+ * @param {string} token Access token
+ * @returns {Promise<boolean>} Success status
+ */
 export const playTrack = async (deviceId, trackUri, token) => {
   try {
     console.log(`Playing track ${trackUri} on device ${deviceId}`);
     
     await axios.put(
-      `${SPOTIFY_API}/me/player/play?device_id=${deviceId}`,
-      { uris: [trackUri] },
+      `${API_URL}/spotify/play`,
+      { 
+        device_id: deviceId,
+        track_uri: trackUri
+      },
       {
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`
         }
       }
     );
@@ -120,11 +91,15 @@ export const playTrack = async (deviceId, trackUri, token) => {
   }
 };
 
-// Pause playback
+/**
+ * Pause playback
+ * @param {string} token Access token
+ * @returns {Promise<boolean>} Success status
+ */
 export const pausePlayback = async (token) => {
   try {
     await axios.put(
-      `${SPOTIFY_API}/me/player/pause`,
+      `${API_URL}/spotify/pause`,
       {},
       {
         headers: {
@@ -139,11 +114,15 @@ export const pausePlayback = async (token) => {
   }
 };
 
-// Get playback state
+/**
+ * Get playback state
+ * @param {string} token Access token
+ * @returns {Promise<Object>} Playback state
+ */
 export const getPlaybackState = async (token) => {
   try {
     const response = await axios.get(
-      `${SPOTIFY_API}/me/player`,
+      `${API_URL}/spotify/player`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -157,11 +136,15 @@ export const getPlaybackState = async (token) => {
   }
 };
 
-// Get user profile information
+/**
+ * Get user profile information
+ * @param {string} token Access token
+ * @returns {Promise<Object>} User profile
+ */
 export const getUserProfile = async (token) => {
   try {
     const response = await axios.get(
-      `${SPOTIFY_API}/me`,
+      `${API_URL}/spotify/me`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -175,7 +158,11 @@ export const getUserProfile = async (token) => {
   }
 };
 
-// Check if user has premium
+/**
+ * Check if user has premium
+ * @param {string} token Access token
+ * @returns {Promise<boolean>} Premium status
+ */
 export const checkUserPremium = async (token) => {
   try {
     const profile = await getUserProfile(token);
@@ -186,19 +173,23 @@ export const checkUserPremium = async (token) => {
   }
 };
 
-// Transfer playback to specified device
+/**
+ * Transfer playback to specified device
+ * @param {string} deviceId Device ID
+ * @param {string} token Access token
+ * @returns {Promise<boolean>} Success status
+ */
 export const transferPlayback = async (deviceId, token) => {
   try {
     await axios.put(
-      `${SPOTIFY_API}/me/player`,
+      `${API_URL}/spotify/transfer`,
       {
         device_ids: [deviceId],
         play: false
       },
       {
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`
         }
       }
     );
@@ -209,11 +200,16 @@ export const transferPlayback = async (deviceId, token) => {
   }
 };
 
-// Set playback volume
+/**
+ * Set playback volume
+ * @param {number} volumePercent Volume percentage (0-100)
+ * @param {string} token Access token
+ * @returns {Promise<boolean>} Success status
+ */
 export const setPlaybackVolume = async (volumePercent, token) => {
   try {
     await axios.put(
-      `${SPOTIFY_API}/me/player/volume`,
+      `${API_URL}/spotify/volume`,
       null,
       {
         params: {
@@ -231,7 +227,16 @@ export const setPlaybackVolume = async (volumePercent, token) => {
   }
 };
 
-// Fix the anonymous default export warning
+/**
+ * Generate a Spotify open URL for the given track ID
+ * @param {string} trackId The Spotify track ID
+ * @returns {string} URL that will open in Spotify app or web player
+ */
+export const getSpotifyOpenURL = (trackId) => {
+  return `https://open.spotify.com/track/${trackId}`;
+};
+
+// Default export
 const spotifyService = {
   searchTracks,
   getTrack,
@@ -242,7 +247,8 @@ const spotifyService = {
   getUserProfile,
   checkUserPremium,
   transferPlayback,
-  setPlaybackVolume
+  setPlaybackVolume,
+  getSpotifyOpenURL
 };
 
 export default spotifyService;
