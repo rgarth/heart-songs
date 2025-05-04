@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { getSpotifyOpenURL } from '../../services/spotifyService';
 import { voteForSong } from '../../services/gameService';
 
-const VotingScreen = ({ game, currentUser, sessionToken }) => {
+const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [error, setError] = useState(null);
   
   // Add state to track if we've already loaded data
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -60,12 +61,25 @@ const VotingScreen = ({ game, currentUser, sessionToken }) => {
     
     try {
       setIsVoting(true);
+      setError(null);
       
-      await voteForSong(game._id, currentUser.id, selectedSubmission, sessionToken);
+      // Get the most up-to-date token
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication token missing. Please refresh the page and try again.');
+        setIsVoting(false);
+        return;
+      }
+      
+      console.log(`Voting for submission ${selectedSubmission} with token preview: ${token.substring(0, 10)}...`);
+      
+      await voteForSong(game._id, currentUser.id, selectedSubmission, token);
       
       setHasVoted(true);
     } catch (error) {
       console.error('Error voting:', error);
+      setError('Failed to submit your vote. Please try again.');
     } finally {
       setIsVoting(false);
     }
@@ -129,6 +143,12 @@ const VotingScreen = ({ game, currentUser, sessionToken }) => {
         {hasActivePlayers && game.activePlayers.length < game.players.length && (
           <div className="mb-4 p-3 bg-purple-900/50 text-purple-200 rounded-lg text-sm">
             <p><strong>Note:</strong> This round is being played with {game.activePlayers.length} out of {game.players.length} players. Only players who were ready when the game started are participating.</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
+            <p><strong>Error:</strong> {error}</p>
           </div>
         )}
         

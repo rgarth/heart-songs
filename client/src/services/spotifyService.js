@@ -11,10 +11,14 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
  */
 export const searchTracks = async (query, limit = 10) => {
   try {
+    // FIXED: Make sure limit is a number, not the access token
+    // The token should not be passed here at all
+    const numericLimit = typeof limit === 'number' ? limit : 10;
+    
     const response = await axios.get(`${API_URL}/spotify/search`, {
       params: {
         query,
-        limit
+        limit: numericLimit
       }
     });
     return response.data;

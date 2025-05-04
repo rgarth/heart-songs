@@ -44,7 +44,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      const results = await searchTracks(searchQuery, accessToken);
+      // FIXED: Don't pass the accessToken to searchTracks function
+      // The searchTracks function doesn't need authentication
+      const results = await searchTracks(searchQuery);
       setSearchResults(results);
       
     } catch (error) {

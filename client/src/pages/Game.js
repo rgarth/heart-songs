@@ -320,14 +320,13 @@ const Game = () => {
         )}
         
         {game.status === 'voting' && (
-          <VotingScreen 
-            game={game}
-            currentUser={{
-              ...user,
-              accessToken: accessToken || localStorage.getItem('accessToken')
-            }}
-            accessToken={accessToken || localStorage.getItem('accessToken')}
-          />
+
+        <VotingScreen 
+          game={game}
+          currentUser={user}
+          accessToken={accessToken}
+          sessionToken={accessToken} // Updated: Pass accessToken as sessionToken
+        />
         )}
         
         {game.status === 'results' && (

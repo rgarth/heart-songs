@@ -627,7 +627,7 @@ router.post('/:gameId/custom-question', async (req, res) => {
 router.post('/start', async (req, res) => {
   try {
     const { gameId, userId, questionText, questionCategory } = req.body;
-    console.log('Force starting game for gameId:', gameId, 'by host:', userId);
+    console.log('Force starting game for gameId:', gameId, 'by host:', userId, 'with question:', questionText);
     
     // Find game by _id or code
     let game = null;
@@ -658,15 +658,23 @@ router.post('/start', async (req, res) => {
       return res.status(400).json({ error: 'Game is already in progress' });
     }
 
-    // Create playlist
-    const host = await User.findById(game.host);
-    const playlist = await createPlaylist(
-      host.accessToken,
-      `Song Game - ${game.code}`,
-      'Collaborative playlist for the song selection game'
-    );
-    
-    game.playlistId = playlist.id;
+    // Create playlist in our database (removed external Spotify playlist creation)
+    try {
+      // Create a new playlist document in our database
+      const playlist = new Playlist({
+        gameId: game._id.toString(),
+        tracks: []
+      });
+      
+      await playlist.save();
+      console.log('Internal playlist created:', playlist._id);
+      
+      // Store the playlist ID reference in the game
+      game.playlistId = playlist._id.toString();
+    } catch (playlistError) {
+      console.error('Error creating playlist:', playlistError);
+      // Continue even if there's an error with the playlist
+    }
     
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
@@ -675,6 +683,7 @@ router.post('/start', async (req, res) => {
         text: questionText,
         category: questionCategory
       };
+      console.log('Using provided question:', questionText);
     } else {
       // Get random question
       const question = await getRandomQuestion();
@@ -682,6 +691,7 @@ router.post('/start', async (req, res) => {
         text: question.text,
         category: question.category
       };
+      console.log('Using random question:', question.text);
     }
 
     // Auto-ready the host if they're not already ready
@@ -708,8 +718,8 @@ router.post('/start', async (req, res) => {
     await game.save();
     
     // Populate game data
-    await game.populate('players.user', 'displayName profileImage');
-    await game.populate('activePlayers', 'displayName profileImage');
+    await game.populate('players.user');
+    await game.populate('activePlayers');
     
     res.json({
       gameId: game._id,

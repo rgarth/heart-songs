@@ -25,21 +25,30 @@ async function getClientCredentialsToken() {
   }
   
   try {
+    console.log('Requesting new Spotify access token with client credentials');
+    
+    // Create basic auth with client ID and client secret
+    const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+    
+    // Create form data with grant_type=client_credentials
+    const params = new URLSearchParams();
+    params.append('grant_type', 'client_credentials');
+    
     const response = await axios({
       method: 'post',
       url: 'https://accounts.spotify.com/api/token',
-      params: {
-        grant_type: 'client_credentials'
-      },
+      data: params,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')
+        'Authorization': `Basic ${auth}`
       }
     });
     
     accessToken = response.data.access_token;
     // Set expiry time (subtract 60 seconds for safety margin)
     tokenExpiry = now + (response.data.expires_in - 60) * 1000;
+    
+    console.log('Successfully obtained Spotify access token');
     
     return accessToken;
   } catch (error) {
@@ -56,18 +65,26 @@ async function getClientCredentialsToken() {
  */
 async function searchTracks(query, limit = 10) {
   try {
+    // Always ensure limit is a number
+    const numericLimit = parseInt(limit);
+    const validLimit = isNaN(numericLimit) ? 10 : Math.min(Math.max(1, numericLimit), 50);
+    
+    console.log(`Searching Spotify for "${query}" with limit ${validLimit}`);
+    
     const token = await getClientCredentialsToken();
     
     const response = await axios.get('https://api.spotify.com/v1/search', {
       params: {
         q: query,
         type: 'track',
-        limit
+        limit: validLimit
       },
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
+    
+    console.log(`Found ${response.data.tracks.items.length} tracks matching "${query}"`);
     
     return response.data.tracks.items;
   } catch (error) {
@@ -113,7 +130,7 @@ async function saveTrackToPlaylist(gameId, trackId, trackName, artistName, album
   try {
     const Playlist = require('../models/Playlist');
     
-    const playlist = await Playlist.findOne({ gameId });
+    let playlist = await Playlist.findOne({ gameId });
     
     if (!playlist) {
       // Create new playlist for this game
@@ -128,6 +145,7 @@ async function saveTrackToPlaylist(gameId, trackId, trackName, artistName, album
       });
       
       await newPlaylist.save();
+      console.log(`Created new playlist for game ${gameId} with first track: ${trackName}`);
       return newPlaylist.tracks[0];
     }
     
@@ -140,6 +158,7 @@ async function saveTrackToPlaylist(gameId, trackId, trackName, artistName, album
     });
     
     await playlist.save();
+    console.log(`Added track to playlist for game ${gameId}: ${trackName}`);
     return playlist.tracks[playlist.tracks.length - 1];
   } catch (error) {
     console.error('Error saving track to playlist:', error);
