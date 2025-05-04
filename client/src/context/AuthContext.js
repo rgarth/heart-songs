@@ -1,90 +1,101 @@
 // client/src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
-import { refreshAccessToken } from '../services/AuthService';
+import { validateSession } from '../services/AuthService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
+  const [sessionToken, setSessionToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check for stored auth data on component mount
-    const storedUser = localStorage.getItem('user');
-    const storedAccessToken = localStorage.getItem('accessToken');
-    const storedRefreshToken = localStorage.getItem('refreshToken');
-    const tokenExpiry = localStorage.getItem('tokenExpiry');
+    const storedUser = localStorage.getItem('anon_user');
+    const storedToken = localStorage.getItem('session_token');
+    const sessionExpiry = localStorage.getItem('session_expiry');
     
-    if (storedUser && storedAccessToken && storedRefreshToken) {
-      setUser(JSON.parse(storedUser));
-      setAccessToken(storedAccessToken);
-      setRefreshToken(storedRefreshToken);
-      
-      // Check if token is expired or about to expire
+    if (storedUser && storedToken && sessionExpiry) {
+      // Check if session is expired
       const now = new Date();
-      const expiryDate = new Date(tokenExpiry);
+      const expiryDate = new Date(sessionExpiry);
       
-      if (expiryDate <= now) {
-        handleTokenRefresh(storedRefreshToken);
+      if (expiryDate > now) {
+        // Session still valid, restore user data
+        setUser(JSON.parse(storedUser));
+        setSessionToken(storedToken);
+      } else {
+        // Session expired, clear data
+        clearSessionData();
       }
     }
     
     setLoading(false);
   }, []);
 
-  // Function to refresh token
-  const handleTokenRefresh = async (token) => {
-    try {
-      const data = await refreshAccessToken(token);
-      setAccessToken(data.accessToken);
-      
-      // Update localStorage
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('tokenExpiry', data.expiryDate);
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      logout();
-    }
+  // Clear all session data
+  const clearSessionData = () => {
+    localStorage.removeItem('anon_user');
+    localStorage.removeItem('session_token');
+    localStorage.removeItem('session_expiry');
+    setUser(null);
+    setSessionToken(null);
   };
 
-  // Login function
-  const login = (userData, token, refresh) => {
+  // Login function (for anonymous authentication)
+  const login = (userData, token) => {
     setUser(userData);
-    setAccessToken(token);
-    setRefreshToken(refresh);
+    setSessionToken(token);
+    
+    // Calculate expiry (24 hours from now)
+    const expiryDate = new Date();
+    expiryDate.setHours(expiryDate.getHours() + 24);
     
     // Store in localStorage
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('accessToken', token);
-    localStorage.setItem('refreshToken', refresh);
-    localStorage.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
+    localStorage.setItem('anon_user', JSON.stringify(userData));
+    localStorage.setItem('session_token', token);
+    localStorage.setItem('session_expiry', expiryDate.toISOString());
   };
 
   // Logout function
   const logout = () => {
-    setUser(null);
-    setAccessToken(null);
-    setRefreshToken(null);
+    clearSessionData();
+  };
+
+  // Validate the current session
+  const validateCurrentSession = async () => {
+    if (!sessionToken) return false;
     
-    // Clear localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('tokenExpiry');
+    try {
+      const result = await validateSession(sessionToken);
+      return result.valid;
+    } catch (error) {
+      console.error('Session validation failed:', error);
+      clearSessionData();
+      return false;
+    }
+  };
+
+  // Update username (only available for anonymous users)
+  const updateUsername = (newUsername) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, displayName: newUsername };
+    setUser(updatedUser);
+    localStorage.setItem('anon_user', JSON.stringify(updatedUser));
   };
 
   return (
     <AuthContext.Provider 
       value={{ 
         user, 
-        accessToken, 
-        refreshToken, 
+        sessionToken,
         loading, 
         login, 
         logout,
-        refreshToken: handleTokenRefresh
+        validateCurrentSession,
+        updateUsername,
+        isAnonymous: true // Always true in this version
       }}
     >
       {children}

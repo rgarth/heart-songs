@@ -1,9 +1,9 @@
 // client/src/components/game/SelectionScreen.js
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchTracks } from '../../services/spotifyService';
+import { searchTracks, getSpotifyOpenURL } from '../../services/spotifyService';
 
-const SelectionScreen = ({ game, currentUser, accessToken }) => {
+const SelectionScreen = ({ game, currentUser, sessionToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedSong, setSelectedSong] = useState(null);
@@ -44,7 +44,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      const results = await searchTracks(searchQuery, accessToken);
+      const results = await searchTracks(searchQuery);
       setSearchResults(results);
       
     } catch (error) {
@@ -76,6 +76,12 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     setSelectedSong(track);
   };
   
+  // Open in Spotify
+  const openInSpotify = (trackId) => {
+    const spotifyUrl = getSpotifyOpenURL(trackId);
+    window.open(spotifyUrl, '_blank');
+  };
+  
   // Handle song submission
   const handleSubmit = async () => {
     if (!selectedSong) return;
@@ -90,7 +96,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     try {
       setIsSubmitting(true);
       
-      await submitSong(game._id, currentUser.id, selectedSong, accessToken);
+      await submitSong(game._id, currentUser.id, selectedSong, sessionToken);
       
       setHasSubmitted(true);
     } catch (error) {
@@ -227,13 +233,21 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       {selectedSong.album.name}
                     </p>
                   </div>
-                  <button 
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Confirm'}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Confirm'}
+                    </button>
+                    <button
+                      onClick={() => openInSpotify(selectedSong.id)}
+                      className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+                    >
+                      Preview in Spotify
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -274,6 +288,15 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                             </p>
                           )}
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openInSpotify(track.id);
+                          }}
+                          className="py-1 px-2 bg-gray-600 text-white text-xs rounded hover:bg-gray-500"
+                        >
+                          Preview
+                        </button>
                       </div>
                     );
                   })}

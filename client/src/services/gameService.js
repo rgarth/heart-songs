@@ -3,22 +3,22 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 
-// Create headers with auth token
-const createHeaders = (token) => {
+// Create headers with session token
+const createHeaders = (sessionToken) => {
   return {
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${sessionToken}`
     }
   };
 };
 
 // Create a new game
-export const createGame = async (userId, token) => {
+export const createGame = async (userId, sessionToken) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/create`, 
       { userId },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -28,12 +28,12 @@ export const createGame = async (userId, token) => {
 };
 
 // Join an existing game
-export const joinGame = async (gameCode, userId, token) => {
+export const joinGame = async (gameCode, userId, sessionToken) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/join`, 
       { gameCode, userId },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -43,12 +43,12 @@ export const joinGame = async (gameCode, userId, token) => {
 };
 
 // Toggle ready status
-export const toggleReady = async (gameId, userId, token) => {
+export const toggleReady = async (gameId, userId, sessionToken) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/ready`, 
       { gameId, userId },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -58,7 +58,7 @@ export const toggleReady = async (gameId, userId, token) => {
 };
 
 // Force start game (host only)
-export const startGame = async (gameId, userId, token, questionData = null) => {
+export const startGame = async (gameId, userId, sessionToken, questionData = null) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/start`,
@@ -68,7 +68,7 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
         questionText: questionData?.text,
         questionCategory: questionData?.category
       },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -78,7 +78,7 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
 };
 
 // Submit song selection
-export const submitSong = async (gameId, userId, songData, token) => {
+export const submitSong = async (gameId, userId, songData, sessionToken) => {
   console.log('Submitting song for gameId:', gameId);
   try {
     const response = await axios.post(
@@ -91,7 +91,7 @@ export const submitSong = async (gameId, userId, songData, token) => {
         artist: songData.artists[0].name,
         albumCover: songData.album.images[0]?.url || ''
       },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -101,12 +101,12 @@ export const submitSong = async (gameId, userId, songData, token) => {
 };
 
 // Vote for a song
-export const voteForSong = async (gameId, userId, submissionId, token) => {
+export const voteForSong = async (gameId, userId, submissionId, sessionToken) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/vote`, 
       { gameId, userId, submissionId },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -116,11 +116,11 @@ export const voteForSong = async (gameId, userId, submissionId, token) => {
 };
 
 // Get random question preview
-export const getRandomQuestion = async (gameId, token) => {
+export const getRandomQuestion = async (gameId, sessionToken) => {
   try {
     const response = await axios.get(
       `${API_URL}/game/${gameId}/question-preview`,
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -130,12 +130,12 @@ export const getRandomQuestion = async (gameId, token) => {
 };
 
 // Submit custom question
-export const submitCustomQuestion = async (gameId, questionText, token) => {
+export const submitCustomQuestion = async (gameId, questionText, sessionToken) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/${gameId}/custom-question`,
       { questionText },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -145,7 +145,7 @@ export const submitCustomQuestion = async (gameId, questionText, token) => {
 };
 
 // Start a new round
-export const startNewRound = async (gameId, questionData, token) => {
+export const startNewRound = async (gameId, questionData, sessionToken) => {
   try {
     const response = await axios.post(
       `${API_URL}/game/next-round`, 
@@ -154,7 +154,7 @@ export const startNewRound = async (gameId, questionData, token) => {
         questionText: questionData?.text,
         questionCategory: questionData?.category
       },
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {
@@ -164,11 +164,11 @@ export const startNewRound = async (gameId, questionData, token) => {
 };
 
 // Get game state
-export const getGameState = async (gameId, token) => {
+export const getGameState = async (gameId, sessionToken) => {
   try {
     const response = await axios.get(
       `${API_URL}/game/${gameId}`,
-      createHeaders(token)
+      createHeaders(sessionToken)
     );
     return response.data;
   } catch (error) {

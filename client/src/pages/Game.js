@@ -14,7 +14,7 @@ const POLLING_INTERVAL = 2000;
 const Game = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
-  const { user, accessToken } = useContext(AuthContext);
+  const { user, sessionToken } = useContext(AuthContext);
   
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,10 +23,10 @@ const Game = () => {
   
   // Fetch game state with optimized polling
   const fetchGameState = useCallback(async () => {
-    if (!gameId || !accessToken) return;
+    if (!gameId || !sessionToken) return;
     
     try {
-      const gameData = await getGameState(gameId, accessToken);
+      const gameData = await getGameState(gameId, sessionToken);
       
       // Only update state if something important has changed
       setGame(prevGame => {
@@ -74,7 +74,7 @@ const Game = () => {
       setLoading(false);
       setInitialLoad(false);
     }
-  }, [gameId, accessToken, initialLoad]);
+  }, [gameId, sessionToken, initialLoad]);
   
   // Set up polling
   useEffect(() => {
@@ -100,7 +100,7 @@ const Game = () => {
   // Handle ready toggle
   const handleToggleReady = async () => {
     try {
-      await toggleReady(gameId, user.id, accessToken);
+      await toggleReady(gameId, user.id, sessionToken);
     } catch (error) {
       console.error('Error toggling ready status:', error);
       setError('Failed to update ready status');
@@ -110,7 +110,7 @@ const Game = () => {
   // Handle force start game (host only)
   const handleStartGame = async (questionData = null) => {
     try {
-      await startGame(gameId, user.id, accessToken, questionData);
+      await startGame(gameId, user.id, sessionToken, questionData);
     } catch (error) {
       console.error('Error starting game:', error);
       setError('Failed to start game');
@@ -120,7 +120,7 @@ const Game = () => {
   // Handle starting a new round with selected or custom question
   const handleNextRound = async (questionData) => {
     try {
-      await startNewRound(gameId, questionData, accessToken);
+      await startNewRound(gameId, questionData, sessionToken);
     } catch (error) {
       console.error('Error starting new round:', error);
       setError('Failed to start new round');
@@ -186,7 +186,7 @@ const Game = () => {
       <div className="container mx-auto px-4 py-6">
         <header className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold">❤️🎵 Heart Songs</h1>
+            <h1 className="text-2xl font-bold">Heart Songs</h1>
             <div className="flex items-center mt-1">
               <span className="text-sm text-gray-400 mr-2">Game Code:</span>
               <span className="text-xl font-bold tracking-wider bg-gray-800 px-3 py-1 rounded-lg text-yellow-400">{game.gameCode}</span>
@@ -206,6 +206,7 @@ const Game = () => {
             currentUser={user} 
             onToggleReady={handleToggleReady} 
             onStartGame={handleStartGame}
+            sessionToken={sessionToken}
           />
         )}
         
@@ -213,7 +214,7 @@ const Game = () => {
           <SelectionScreen 
             game={game}
             currentUser={user}
-            accessToken={accessToken}
+            sessionToken={sessionToken}
           />
         )}
         
@@ -221,7 +222,7 @@ const Game = () => {
           <VotingScreen 
             game={game}
             currentUser={user}
-            accessToken={accessToken}
+            sessionToken={sessionToken}
           />
         )}
         
@@ -229,7 +230,7 @@ const Game = () => {
           <ResultsScreen 
             game={game}
             currentUser={user}
-            accessToken={accessToken}
+            sessionToken={sessionToken}
             onNextRound={handleNextRound}
           />
         )}

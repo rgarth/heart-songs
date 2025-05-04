@@ -5,7 +5,12 @@ const mongoose = require('mongoose');
 const Game = require('../models/Game');
 const User = require('../models/User');
 const Question = require('../models/Question');
-const { createPlaylist, addTrackToPlaylist, deletePlaylist } = require('../services/spotifyService');
+const Playlist = require('../models/Playlist');
+const { authenticateUser } = require('../middleware/auth');
+const { saveTrackToPlaylist } = require('../services/spotifyService');
+
+// Apply authentication middleware to all game routes
+router.use(authenticateUser);
 
 // Generate a random game code
 function generateGameCode() {
@@ -22,14 +27,9 @@ async function getRandomQuestion() {
 // Create a new game
 router.post('/create', async (req, res) => {
   try {
-    const { userId } = req.body;
-    console.log('Creating game for userId:', userId);
-    
-    const host = await User.findById(userId);
-    
-    if (!host) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    // Use the authenticated user from the middleware
+    const host = req.user;
+    console.log('Creating game for user:', host.displayName);
     
     // Generate a unique game code
     let gameCode;
@@ -68,8 +68,10 @@ router.post('/create', async (req, res) => {
 
 router.post('/join', async (req, res) => {
   try {
-    const { gameCode, userId } = req.body;
-    console.log('Joining game with code:', gameCode, 'for userId:', userId);
+    const { gameCode } = req.body;
+    const user = req.user;
+    
+    console.log('Joining game with code:', gameCode, 'for user:', user.displayName);
     
     const game = await Game.findOne({ code: gameCode });
     if (!game) {
@@ -80,13 +82,8 @@ router.post('/join', async (req, res) => {
       return res.status(400).json({ error: 'Game already in progress' });
     }
     
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
     // Check if user is already in the game
-    const existingPlayer = game.players.find(p => p.user.toString() === userId);
+    const existingPlayer = game.players.find(p => p.user.toString() === user._id.toString());
     let playerAdded = false;
     
     if (!existingPlayer) {
@@ -96,15 +93,15 @@ router.post('/join', async (req, res) => {
         score: 0
       });
       await game.save();
-      console.log(`Player ${userId} added to game ${gameCode}`);
+      console.log(`Player ${user.displayName} added to game ${gameCode}`);
       playerAdded = true;
     } else {
-      console.log(`Player ${userId} is already in game ${gameCode}, not adding again`);
+      console.log(`Player ${user.displayName} is already in game ${gameCode}, not adding again`);
     }
     
     // Populate players
-    await game.populate('players.user', 'displayName profileImage');
-    await game.populate('host', 'displayName profileImage');
+    await game.populate('players.user', 'displayName');
+    await game.populate('host', 'displayName');
     
     res.json({
       gameId: game._id,
@@ -112,7 +109,7 @@ router.post('/join', async (req, res) => {
       status: game.status,
       host: game.host,
       players: game.players,
-      playerAdded: playerAdded // Add this flag to indicate if a new player was added
+      playerAdded: playerAdded
     });
   } catch (error) {
     console.error('Error joining game:', error);
@@ -123,8 +120,10 @@ router.post('/join', async (req, res) => {
 // Toggle ready status
 router.post('/ready', async (req, res) => {
   try {
-    const { gameId, userId } = req.body;
-    console.log('Toggling ready status for gameId:', gameId, 'userId:', userId);
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    console.log('Toggling ready status for gameId:', gameId, 'user:', user.displayName);
     
     // Find game by _id or code
     let game = null;
@@ -141,7 +140,7 @@ router.post('/ready', async (req, res) => {
     }
     
     // Find the player
-    const playerIndex = game.players.findIndex(p => p.user.toString() === userId);
+    const playerIndex = game.players.findIndex(p => p.user.toString() === user._id.toString());
     if (playerIndex === -1) {
       return res.status(404).json({ error: 'Player not found in this game' });
     }
@@ -158,20 +157,14 @@ router.post('/ready', async (req, res) => {
       // Check if there are at least 2 players before starting the game
       if (game.players.length < 2) {
         // If less than 2 players, don't start the game yet but don't return an error
-        // The frontend will handle disabling the ready button, but we still 
-        // want to save the player's ready status
         console.log('Not enough players to start the game (minimum 2 required)');
       } else {
-        // Enough players, proceed with starting the game
-        // Create playlist
-        const host = await User.findById(game.host);
-        const playlist = await createPlaylist(
-          host.accessToken,
-          `Song Game - ${game.code}`,
-          'Collaborative playlist for the song selection game'
-        );
-        
-        game.playlistId = playlist.id;
+        // Create playlist for the game in our database
+        const playlist = new Playlist({
+          gameId: game._id,
+          tracks: []
+        });
+        await playlist.save();
         
         // Get random question
         const question = await getRandomQuestion();
@@ -190,9 +183,9 @@ router.post('/ready', async (req, res) => {
     }
     
     // Populate game data
-    await game.populate('players.user', 'displayName profileImage');
+    await game.populate('players.user', 'displayName');
     if (game.activePlayers && game.activePlayers.length > 0) {
-      await game.populate('activePlayers', 'displayName profileImage');
+      await game.populate('activePlayers', 'displayName');
     }
     
     res.json({
@@ -200,8 +193,7 @@ router.post('/ready', async (req, res) => {
       status: game.status,
       players: game.players,
       activePlayers: game.activePlayers || [],
-      currentQuestion: game.currentQuestion,
-      playlistId: game.playlistId
+      currentQuestion: game.currentQuestion
     });
   } catch (error) {
     console.error('Error updating ready status:', error);
@@ -212,21 +204,22 @@ router.post('/ready', async (req, res) => {
 // Submit song selection
 router.post('/submit', async (req, res) => {
   try {
-    const { gameId, userId, songId, songName, artist, albumCover } = req.body;
+    const { gameId, songId, songName, artist, albumCover } = req.body;
+    const user = req.user;
     
     // Log detailed information for debugging
     console.log('Submit song request:', { 
       gameId, 
-      userId, 
+      user: user.displayName, 
       songId, 
       songName 
     });
     
     // Validate required parameters
-    if (!gameId || !userId || !songId) {
+    if (!gameId || !songId) {
       return res.status(400).json({ 
         error: 'Missing required parameters',
-        received: { gameId, userId, songId }
+        received: { gameId, songId }
       });
     }
     
@@ -260,7 +253,7 @@ router.post('/submit', async (req, res) => {
     }
     
     // Check if user already submitted
-    const existingSubmission = game.submissions.find(s => s.player && s.player.toString() === userId);
+    const existingSubmission = game.submissions.find(s => s.player && s.player.toString() === user._id.toString());
     
     if (existingSubmission) {
       // Update existing submission
@@ -271,7 +264,7 @@ router.post('/submit', async (req, res) => {
     } else {
       // Create new submission
       game.submissions.push({
-        player: userId,
+        player: user._id,
         songId,
         songName,
         artist,
@@ -280,10 +273,15 @@ router.post('/submit', async (req, res) => {
       });
     }
     
-    // Add track to playlist
+    // Add track to our playlist database
     try {
-      const host = await User.findById(game.host);
-      await addTrackToPlaylist(host.accessToken, game.playlistId, songId);
+      await saveTrackToPlaylist(
+        game._id.toString(), 
+        songId, 
+        songName, 
+        artist, 
+        albumCover || ''
+      );
     } catch (playlistError) {
       console.error('Error adding track to playlist:', playlistError);
       // Continue even if there's an error with the playlist
@@ -322,8 +320,10 @@ router.post('/submit', async (req, res) => {
 // Vote for a song
 router.post('/vote', async (req, res) => {
   try {
-    const { gameId, userId, submissionId } = req.body;
-    console.log('Vote request:', { gameId, userId, submissionId });
+    const { gameId, submissionId } = req.body;
+    const user = req.user;
+    
+    console.log('Vote request:', { gameId, userId: user._id, submissionId });
     
     // Find game by _id or code
     let game = null;
@@ -353,24 +353,24 @@ router.post('/vote', async (req, res) => {
     const canVoteForSelf = game.players.length < 3;
     
     // Check if player is voting for their own submission
-    if (submission.player.toString() === userId && !canVoteForSelf) {
+    if (submission.player.toString() === user._id.toString() && !canVoteForSelf) {
       return res.status(400).json({ error: 'Cannot vote for your own submission in games with 3 or more players' });
     }
     
     // Check if player already voted
     const alreadyVoted = game.submissions.some(s => 
-      s.votes.some(v => v.toString() === userId)
+      s.votes.some(v => v.toString() === user._id.toString())
     );
     
     if (alreadyVoted) {
       // Remove previous vote
       game.submissions.forEach(s => {
-        s.votes = s.votes.filter(v => v.toString() !== userId);
+        s.votes = s.votes.filter(v => v.toString() !== user._id.toString());
       });
     }
     
     // Add vote
-    submission.votes.push(userId);
+    submission.votes.push(user._id);
     await game.save();
     
     // Check if all ACTIVE players have voted
@@ -398,20 +398,6 @@ router.post('/vote', async (req, res) => {
       });
       
       await game.save();
-
-      // Clean up the playlist once voting is complete
-      if (game.playlistId) {
-        try {
-          console.log(`Cleaning up playlist ${game.playlistId} after voting is complete`);
-          const host = await User.findById(game.host);
-          const { deletePlaylist } = require('../services/spotifyService');
-          await deletePlaylist(host.accessToken, game.playlistId);
-          console.log('Playlist successfully deleted after voting');
-        } catch (error) {
-          console.error('Error deleting playlist after voting:', error);
-          // Continue even if there's an error with playlist deletion
-        }
-      }
       
       // Update user scores in the database
       for (const player of game.players) {
@@ -420,8 +406,8 @@ router.post('/vote', async (req, res) => {
     }
     
     // Populate player data
-    await game.populate('submissions.player', 'displayName profileImage');
-    await game.populate('submissions.votes', 'displayName profileImage');
+    await game.populate('submissions.player', 'displayName');
+    await game.populate('submissions.votes', 'displayName');
     
     res.json({
       gameId: game._id,
@@ -488,15 +474,6 @@ router.post('/next-round', async (req, res) => {
       };
     }
     
-    // Create new playlist
-    const host = await User.findById(game.host);
-    const playlist = await createPlaylist(
-      host.accessToken,
-      `Song Game - ${game.code} - Round ${Date.now()}`,
-      'Collaborative playlist for the song selection game'
-    );
-    
-    game.playlistId = playlist.id;
     game.status = 'selecting';
     
     await game.save();
@@ -505,7 +482,6 @@ router.post('/next-round', async (req, res) => {
       gameId: game._id,
       status: game.status,
       currentQuestion: game.currentQuestion,
-      playlistId: game.playlistId,
       activePlayers: []
     });
   } catch (error) {
@@ -533,10 +509,10 @@ router.get('/:gameId', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    await game.populate('host', 'displayName profileImage');
-    await game.populate('players.user', 'displayName profileImage');
-    await game.populate('submissions.player', 'displayName profileImage');
-    await game.populate('submissions.votes', 'displayName profileImage');
+    await game.populate('host', 'displayName');
+    await game.populate('players.user', 'displayName');
+    await game.populate('submissions.player', 'displayName');
+    await game.populate('submissions.votes', 'displayName');
     
     res.json({
       _id: game._id,
@@ -546,8 +522,8 @@ router.get('/:gameId', async (req, res) => {
       host: game.host,
       players: game.players,
       currentQuestion: game.currentQuestion,
-      playlistId: game.playlistId,
-      submissions: game.submissions
+      submissions: game.submissions,
+      activePlayers: game.activePlayers || []
     });
   } catch (error) {
     console.error('Error getting game state:', error);
@@ -555,6 +531,7 @@ router.get('/:gameId', async (req, res) => {
   }
 });
 
+// Get random question preview
 router.get('/:gameId/question-preview', async (req, res) => {
   try {
     const { gameId } = req.params;
@@ -633,8 +610,10 @@ router.post('/:gameId/custom-question', async (req, res) => {
 // Force start game (host only)
 router.post('/start', async (req, res) => {
   try {
-    const { gameId, userId, questionText, questionCategory } = req.body;
-    console.log('Force starting game for gameId:', gameId, 'by host:', userId);
+    const { gameId, questionText, questionCategory } = req.body;
+    const user = req.user;
+    
+    console.log('Force starting game for gameId:', gameId, 'by host:', user.displayName);
     
     // Find game by _id or code
     let game = null;
@@ -651,7 +630,7 @@ router.post('/start', async (req, res) => {
     }
     
     // Check if user is the host
-    if (game.host.toString() !== userId) {
+    if (game.host.toString() !== user._id.toString()) {
       return res.status(403).json({ error: 'Only the host can force start the game' });
     }
     
@@ -665,16 +644,6 @@ router.post('/start', async (req, res) => {
       return res.status(400).json({ error: 'Game is already in progress' });
     }
 
-    // Create playlist
-    const host = await User.findById(game.host);
-    const playlist = await createPlaylist(
-      host.accessToken,
-      `Song Game - ${game.code}`,
-      'Collaborative playlist for the song selection game'
-    );
-    
-    game.playlistId = playlist.id;
-    
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
       // Use the provided question
@@ -692,7 +661,7 @@ router.post('/start', async (req, res) => {
     }
 
     // Auto-ready the host if they're not already ready
-    const hostPlayerIndex = game.players.findIndex(p => p.user.toString() === userId);
+    const hostPlayerIndex = game.players.findIndex(p => p.user.toString() === user._id.toString());
     if (hostPlayerIndex !== -1 && !game.players[hostPlayerIndex].isReady) {
       game.players[hostPlayerIndex].isReady = true;
     }
@@ -709,34 +678,19 @@ router.post('/start', async (req, res) => {
     await game.save();
     
     // Populate game data
-    await game.populate('players.user', 'displayName profileImage');
-    await game.populate('activePlayers', 'displayName profileImage');
+    await game.populate('players.user', 'displayName');
+    await game.populate('activePlayers', 'displayName');
     
     res.json({
       gameId: game._id,
       status: game.status,
       players: game.players,
       activePlayers: game.activePlayers,
-      currentQuestion: game.currentQuestion,
-      playlistId: game.playlistId
+      currentQuestion: game.currentQuestion
     });
   } catch (error) {
     console.error('Error starting game:', error);
     res.status(500).json({ error: 'Failed to start game' });
-  }
-});
-
-// Debug endpoint to list all games
-router.get('/debug/all', async (req, res) => {
-  try {
-    const games = await Game.find({})
-      .select('_id code status host players.length submissions.length')
-      .limit(10);
-    
-    res.json({ games });
-  } catch (error) {
-    console.error('Error listing games:', error);
-    res.status(500).json({ error: 'Failed to list games' });
   }
 });
 
