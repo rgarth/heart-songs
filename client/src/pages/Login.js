@@ -23,7 +23,7 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-3xl font-bold text-white mb-6">Heart Songs</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">❤️🎵 Heart Songs</h1>
         <p className="text-gray-300 mb-8">
           A fun multiplayer game where you pick songs to match different questions
           and vote for your favorites!
