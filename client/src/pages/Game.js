@@ -186,7 +186,7 @@ const Game = () => {
       <div className="container mx-auto px-4 py-6">
         <header className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Heart Songs</h1>
+            <h1 className="text-2xl font-bold">❤️🎵 Heart Songs</h1>
             <div className="flex items-center mt-1">
               <span className="text-sm text-gray-400 mr-2">Game Code:</span>
               <span className="text-xl font-bold tracking-wider bg-gray-800 px-3 py-1 rounded-lg text-yellow-400">{game.gameCode}</span>
