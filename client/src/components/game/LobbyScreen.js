@@ -178,7 +178,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
         <div className="mb-6 text-center">
           <p className="text-sm text-gray-400 mb-1">Game Code:</p>
           <div className="flex items-center justify-center gap-2">
-            <p className="text-3xl font-bold tracking-wider bg-gray-700 inline-block px-4 py-2 rounded-lg text-yellow-400">
+            <p className="text-3xl font-bold tracking-wider bg-gray-700 inline-block px-4 py-2 rounded-lg text-yellow-400 font-mono">
               {game.gameCode}
             </p>
             <button 
