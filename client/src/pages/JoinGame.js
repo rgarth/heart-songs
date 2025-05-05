@@ -24,7 +24,6 @@ const JoinGame = () => {
       
       // Check if we're already processing a join for this game code
       if (sessionStorage.getItem(joinFlag)) {
-        console.log(`Already joining game ${gameCode}, preventing duplicate join`);
         
         try {
           // Just get the game state to navigate to the correct game page

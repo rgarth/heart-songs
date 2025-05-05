@@ -72,8 +72,6 @@ export const getPlaylist = async (playlistId, token) => {
  */
 export const playTrack = async (deviceId, trackUri, token) => {
   try {
-    console.log(`Playing track ${trackUri} on device ${deviceId}`);
-    
     await axios.put(
       `${API_URL}/spotify/play`,
       { 
@@ -87,7 +85,6 @@ export const playTrack = async (deviceId, trackUri, token) => {
       }
     );
     
-    console.log('Play request successful');
     return true;
   } catch (error) {
     console.error('Error playing track:', error.response?.data || error.message);

@@ -74,10 +74,6 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
       setLoading(true);
       setError(null);
       
-      // Log the token to verify it's correct
-      console.log("Access token in handleShowQuestionControls:", 
-        currentUser.accessToken ? `${currentUser.accessToken.substring(0, 10)}...` : 'undefined');
-      
       // Make sure we're passing the correct token
       const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
       setNextQuestion(questionData.question);

@@ -72,8 +72,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         return;
       }
       
-      console.log(`Voting for submission ${selectedSubmission} with token preview: ${token.substring(0, 10)}...`);
-      
       await voteForSong(game._id, currentUser.id, selectedSubmission, token);
       
       setHasVoted(true);

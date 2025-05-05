@@ -12,28 +12,6 @@ const Home = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Debug log to help identify issues
-  useEffect(() => {
-    console.log('Auth context in Home:', {
-      hasUser: !!user,
-      userName: user?.displayName || user?.username,
-      hasAccessToken: !!accessToken,
-      accessTokenLength: accessToken?.length
-    });
-    
-    // Check localStorage directly to compare
-    const localStorageToken = localStorage.getItem('accessToken');
-    console.log('Direct token from localStorage:', localStorageToken);
-    
-    // Verify if there's a mismatch
-    if (accessToken !== localStorageToken) {
-      console.error('Token mismatch between context and localStorage!', {
-        contextToken: accessToken,
-        localStorageToken
-      });
-    }
-  }, [user, accessToken]);
-  
   const handleCreateGame = async () => {
     try {
       setLoading(true);
@@ -56,7 +34,6 @@ const Home = () => {
         return;
       }
       
-      console.log(`Creating game for user: ${user.id} with token preview: ${token.substring(0, 10)}...`);
       const game = await createGame(user.id, token);
       
       // Navigate to game page

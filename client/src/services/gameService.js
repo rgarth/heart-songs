@@ -11,7 +11,6 @@ const createHeaders = (token) => {
   }
   
   // Only log a preview of the token for security
-  console.log(`Creating headers with token preview: ${token.substring(0, 10)}...`);
   
   return {
     headers: {
@@ -55,15 +54,12 @@ export const createGame = async (userId, token) => {
       throw new Error('Missing required parameters: userId and token are required');
     }
     
-    console.log(`Creating game for user: ${userId} with token preview: ${token.substring(0, 10)}...`);
-    
     const response = await axios.post(
       `${API_URL}/game/create`, 
       { userId },
       createHeaders(token)
     );
     
-    console.log('Game created successfully:', response.data);
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'creating game');
@@ -82,14 +78,12 @@ export const joinGame = async (gameCode, userId, token) => {
       throw new Error('Missing required parameters: gameCode, userId and token are required');
     }
     
-    console.log(`Joining game with code: ${gameCode} for user: ${userId}`);
     const response = await axios.post(
       `${API_URL}/game/join`, 
       { gameCode, userId },
       createHeaders(token)
     );
     
-    console.log('Successfully joined game:', response.data);
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'joining game');
@@ -108,14 +102,12 @@ export const toggleReady = async (gameId, userId, token) => {
       throw new Error('Missing required parameters: gameId, userId and token are required');
     }
     
-    console.log(`Toggling ready status for game: ${gameId}, user: ${userId}`);
     const response = await axios.post(
       `${API_URL}/game/ready`, 
       { gameId, userId },
       createHeaders(token)
     );
     
-    console.log('Ready status toggled successfully');
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'toggling ready status');
@@ -134,7 +126,6 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
       throw new Error('Missing required parameters: gameId, userId and token are required');
     }
     
-    console.log(`Starting game: ${gameId} by host: ${userId}`);
     const payload = { 
       gameId, 
       userId 
@@ -144,7 +135,6 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
     if (questionData) {
       payload.questionText = questionData.text;
       payload.questionCategory = questionData.category;
-      console.log('Using custom question:', questionData.text);
     }
     
     const response = await axios.post(
@@ -153,7 +143,6 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
       createHeaders(token)
     );
     
-    console.log('Game started successfully');
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'starting game');
@@ -173,7 +162,6 @@ export const submitSong = async (gameId, userId, songData, token) => {
       throw new Error('Missing required parameters for submitting song');
     }
     
-    console.log(`Submitting song for game: ${gameId}, user: ${userId}, song: ${songData.name}`);
     const response = await axios.post(
       `${API_URL}/game/submit`, 
       { 
@@ -187,7 +175,6 @@ export const submitSong = async (gameId, userId, songData, token) => {
       createHeaders(token)
     );
     
-    console.log('Song submitted successfully');
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'submitting song');
@@ -207,14 +194,12 @@ export const voteForSong = async (gameId, userId, submissionId, token) => {
       throw new Error('Missing required parameters for voting');
     }
     
-    console.log(`Voting for submission: ${submissionId} in game: ${gameId} by user: ${userId}`);
     const response = await axios.post(
       `${API_URL}/game/vote`, 
       { gameId, userId, submissionId },
       createHeaders(token)
     );
     
-    console.log('Vote submitted successfully');
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'voting for song');
@@ -255,7 +240,6 @@ export const submitCustomQuestion = async (gameId, questionText, token) => {
       throw new Error('Missing required parameters for custom question');
     }
     
-    console.log(`Submitting custom question for game: ${gameId}: "${questionText}"`);
     const response = await axios.post(
       `${API_URL}/game/${gameId}/custom-question`,
       { questionText },
@@ -285,7 +269,6 @@ export const startNewRound = async (gameId, questionData, token) => {
     if (questionData) {
       payload.questionText = questionData.text;
       payload.questionCategory = questionData.category;
-      console.log('Using custom question for new round:', questionData.text);
     }
     
     const response = await axios.post(
@@ -294,7 +277,6 @@ export const startNewRound = async (gameId, questionData, token) => {
       createHeaders(token)
     );
     
-    console.log('New round started successfully');
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'starting new round');

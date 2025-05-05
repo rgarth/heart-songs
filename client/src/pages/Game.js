@@ -43,16 +43,7 @@ const Game = () => {
     }
     
     try {
-      console.log(`Fetching game state for game: ${gameId} (attempt ${retryCount + 1})`);
       const gameData = await getGameState(gameId, token);
-      
-      console.log('Game state fetched successfully:', {
-        gameId: gameData._id,
-        status: gameData.status,
-        playersCount: gameData.players?.length,
-        submissionsCount: gameData.submissions?.length,
-        activePlayers: gameData.activePlayers?.length || 0
-      });
       
       // Reset retry counter on success
       if (retryCount > 0) {
