@@ -10,6 +10,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [hasVoted, setHasVoted] = useState(false);
   const [error, setError] = useState(null);
   
+  // Add state for Spotify player modal
+  const [showSpotifyPlayer, setShowSpotifyPlayer] = useState(false);
+  const [currentSpotifyTrack, setCurrentSpotifyTrack] = useState(null);
+  
   // Add state to track if we've already loaded data
   const [dataLoaded, setDataLoaded] = useState(false);
   const [localSubmissions, setLocalSubmissions] = useState([]);
@@ -49,31 +53,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     setLoading(false);
   }, [game.submissions, dataLoaded]);
   
-  // Open song in Spotify
+  // Open song in Spotify modal
   const openInSpotify = (trackId) => {
-    // Get both Spotify app URI and web fallback URL
-    const spotifyAppUri = `spotify:track:${trackId}`;
-    const spotifyWebUrl = `https://open.spotify.com/track/${trackId}`;
-    
-    // Check if we're on a mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // Create an invisible iframe to try opening the Spotify app
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = spotifyAppUri;
-      document.body.appendChild(iframe);
-      
-      // Set a timeout to remove the iframe and open the web URL if the app doesn't open
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-        window.location.href = spotifyWebUrl; // Use location.href instead of window.open
-      }, 500);
-    } else {
-      // On desktop, just open in a new tab as before
-      window.open(spotifyWebUrl, '_blank');
-    }
+    setCurrentSpotifyTrack(trackId);
+    setShowSpotifyPlayer(true);
   };
   
   // Handle vote
@@ -150,7 +133,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         </div>
         
         <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-          <p><strong>Note:</strong> Click "Open in Spotify" to listen to songs in the Spotify app or web player.</p>
+          <p><strong>Note:</strong> Click "Listen on Spotify" to preview songs without leaving the game.</p>
         </div>
         
         {isSmallGame && (
@@ -225,7 +208,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     <p className="text-sm text-gray-400">{submission.artist}</p>
                   </div>
                   
-                  {/* "Open in Spotify" button */}
+                  {/* "Listen on Spotify" button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -234,9 +217,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                     </svg>
-                    Open in Spotify
+                    Listen on Spotify
                   </button>
                   
                   {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
@@ -276,6 +259,65 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           )}
         </div>
       </div>
+
+      {/* Spotify Player Modal */}
+      {showSpotifyPlayer && currentSpotifyTrack && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 p-4 rounded-lg max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Spotify Preview</h3>
+              <button 
+                onClick={() => setShowSpotifyPlayer(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <iframe 
+                src={`https://open.spotify.com/embed/track/${currentSpotifyTrack}`}
+                width="100%" 
+                height="80" 
+                frameBorder="0" 
+                allowtransparency="true" 
+                allow="encrypted-media"
+              ></iframe>
+            </div>
+            
+            <div className="flex justify-between">
+              <a 
+                href={`spotify:track:${currentSpotifyTrack}`}
+                className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                Open in Spotify App
+              </a>
+              <a 
+                href={`https://open.spotify.com/track/${currentSpotifyTrack}`} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Open in Browser
+              </a>
+            </div>
+            
+            <div className="text-center mt-4">
+              <button
+                onClick={() => setShowSpotifyPlayer(false)}
+                className="py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Back to Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
