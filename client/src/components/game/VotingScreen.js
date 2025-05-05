@@ -178,7 +178,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               return (
                 <div 
                   key={submission._id}
-                  className={`flex items-center p-4 rounded-lg ${
+                  className={`p-4 rounded-lg ${
                     !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
                   } transition-colors ${
                     selectedSubmission === submission._id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
@@ -191,53 +191,58 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     }
                   }}
                 >
-                  {submission.albumCover && (
-                    <img 
-                      src={submission.albumCover} 
-                      alt={submission.songName} 
-                      className="w-16 h-16 rounded mr-4" 
-                    />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <p className="font-medium">{submission.songName}</p>
-                      {isOwnSubmission && (
-                        <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
-                      )}
+                  <div className="flex items-center mb-3">
+                    {submission.albumCover && (
+                      <img 
+                        src={submission.albumCover} 
+                        alt={submission.songName} 
+                        className="w-16 h-16 rounded mr-4" 
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <p className="font-medium">{submission.songName}</p>
+                        {isOwnSubmission && (
+                          <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400">{submission.artist}</p>
                     </div>
-                    <p className="text-sm text-gray-400">{submission.artist}</p>
                   </div>
                   
-                  {/* "Listen on Spotify" button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openInSpotify(submission.songId);
-                    }}
-                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    Listen on Spotify
-                  </button>
-                  
-                  {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
-                  {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                  {/* Mobile-friendly button layout - stacked below song info */}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {/* "Listen on Spotify" button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedSubmission(submission._id);
+                        openInSpotify(submission.songId);
                       }}
-                      className={`ml-2 py-2 px-4 rounded ${
-                        selectedSubmission === submission._id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-600 text-white hover:bg-gray-500'
-                      }`}
+                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
                     >
-                      {selectedSubmission === submission._id ? 'Selected' : 'Select'}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                      Listen on Spotify
                     </button>
-                  )}
+                    
+                    {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
+                    {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSubmission(submission._id);
+                        }}
+                        className={`py-2 px-4 rounded ${
+                          selectedSubmission === submission._id
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-600 text-white hover:bg-gray-500'
+                        }`}
+                      >
+                        {selectedSubmission === submission._id ? 'Selected' : 'Select'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

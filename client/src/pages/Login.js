@@ -127,13 +127,13 @@ const Login = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-gray-750 p-4 rounded-lg">
             <div className="flex justify-between mb-2">
-              <span className="text-gray-300 text-sm">Your username:</span>
+              <span className="text-gray-300 text-sm font-medium">Choose a Game Handle:</span>
               <button 
                 type="button"
                 onClick={toggleCustomUsername}
                 className="text-blue-400 text-sm hover:underline"
               >
-                {customUsername ? 'Use generated username' : 'Create custom username'}
+                {customUsername ? 'Use generated handle' : 'Create custom handle'}
               </button>
             </div>
             
@@ -159,7 +159,7 @@ const Login = () => {
                   type="button"
                   onClick={handleRegenerateUsername}
                   className="ml-2 p-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600"
-                  title="Generate new username"
+                  title="Generate new handle"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
@@ -180,12 +180,12 @@ const Login = () => {
             disabled={loading}
             className="w-full py-3 px-4 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : 'Join Game'}
+            {loading ? 'Creating account...' : 'Continue to Game'}
           </button>
         </form>
         
         <p className="text-gray-400 mt-6 text-sm">
-          Your username will only last for the duration of your session.
+          Your handle will only last for the duration of your session.
         </p>
       </div>
     </div>
