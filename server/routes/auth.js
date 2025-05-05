@@ -1,152 +1,115 @@
 // server/routes/auth.js
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
 const User = require('../models/User');
-const querystring = require('querystring');
-const dotenv = require('dotenv');
+const crypto = require('crypto');
+const { isValidUsername } = require('../utils/usernameValidation');
 
-// Spotify OAuth credentials
-dotenv.config('../.env');
-const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
-const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://127.0.0.1:3000/callback';
-const FRONTEND_URI = process.env.FRONTEND_URI || 'http://127.0.0.1:3000';
-
-// Login route - redirect to Spotify authorization
-router.get('/login', (req, res) => {
-  const scope = 'user-read-private user-read-email playlist-modify-private playlist-modify-public user-library-read streaming';
-  
-  res.redirect('https://accounts.spotify.com/authorize?' + 
-    querystring.stringify({
-      response_type: 'code',
-      client_id: CLIENT_ID,
-      scope: scope,
-      redirect_uri: REDIRECT_URI,
-    }));
-});
-
-// Callback route - process Spotify authorization
-router.post('/callback', async (req, res) => {
-  const code = req.body.code;
-
+// Register anonymous user
+router.post('/register-anonymous', async (req, res) => {
   try {
-    // Exchange code for access token
-    const tokenResponse = await axios({
-      method: 'post',
-      url: 'https://accounts.spotify.com/api/token',
-      data: querystring.stringify({
-        code: code,
-        redirect_uri: REDIRECT_URI,
-        grant_type: 'authorization_code'
-      }),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')
-      }
-    });
-
-    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    const { username } = req.body;
     
-    // Get user profile information
-    const userResponse = await axios({
-      method: 'get',
-      url: 'https://api.spotify.com/v1/me',
-      headers: {
-        'Authorization': `Bearer ${access_token}`
-      }
-    });
-
-    const userData = userResponse.data;
-    
-    // Calculate token expiry time
-    const expiryDate = new Date();
-    expiryDate.setSeconds(expiryDate.getSeconds() + expires_in);
-
-    // Find or create user
-    let user = await User.findOne({ spotifyId: userData.id });
-    
-    if (user) {
-      // Update existing user
-      user.accessToken = access_token;
-      user.refreshToken = refresh_token;
-      user.tokenExpiry = expiryDate;
-      user.displayName = userData.display_name;
-      user.email = userData.email;
-      user.profileImage = userData.images.length > 0 ? userData.images[0].url : null;
-    } else {
-      // Create new user
-      user = new User({
-        spotifyId: userData.id,
-        displayName: userData.display_name,
-        email: userData.email,
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        tokenExpiry: expiryDate,
-        profileImage: userData.images.length > 0 ? userData.images[0].url : null
-      });
+    if (!username || !isValidUsername(username)) {
+      return res.status(400).json({ error: 'Invalid username format' });
     }
+    
+    // Check if username is already taken
+    const existingUser = await User.findOne({ displayName: username });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username is already taken' });
+    }
+    
+    // Generate session token (use as ID as well for anonymous users)
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    
+    // Calculate token expiry time (24 hours)
+    const expiryDate = new Date();
+    expiryDate.setHours(expiryDate.getHours() + 24);
+    
+    // Create new anonymous user
+    const user = new User({
+      anonId: sessionToken,
+      displayName: username,
+      isAnonymous: true,
+      score: 0,
+      tokenExpiry: expiryDate
+    });
     
     await user.save();
     
-    // Return user data and tokens
+    // Return user data and session token
     res.json({
       user: {
         id: user._id,
-        spotifyId: user.spotifyId,
         displayName: user.displayName,
-        email: user.email,
-        profileImage: user.profileImage,
-        score: user.score
+        score: user.score,
+        isAnonymous: true
       },
-      accessToken: access_token,
-      refreshToken: refresh_token
+      sessionToken: sessionToken
     });
   } catch (error) {
-    console.error('Error during authentication:', error);
-    res.status(500).json({ error: 'Authentication failed' });
+    console.error('Error registering anonymous user:', error);
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
-// Refresh token route
-router.post('/refresh-token', async (req, res) => {
-  const { refreshToken } = req.body;
-  
+// Check username availability
+router.post('/check-username', async (req, res) => {
   try {
-    const response = await axios({
-      method: 'post',
-      url: 'https://accounts.spotify.com/api/token',
-      data: querystring.stringify({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken
-      }),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')
-      }
-    });
-
-    const { access_token, expires_in } = response.data;
+    const { username } = req.body;
     
-    // Calculate new expiry time
-    const expiryDate = new Date();
-    expiryDate.setSeconds(expiryDate.getSeconds() + expires_in);
-    
-    // Update user with new access token
-    const user = await User.findOne({ refreshToken });
-    if (user) {
-      user.accessToken = access_token;
-      user.tokenExpiry = expiryDate;
-      await user.save();
+    if (!username || !isValidUsername(username)) {
+      return res.json({ available: false });
     }
     
+    // Check if username exists
+    const existingUser = await User.findOne({ displayName: username });
+    
     res.json({
-      accessToken: access_token,
-      expiryDate
+      available: !existingUser
     });
   } catch (error) {
-    console.error('Error refreshing token:', error);
-    res.status(500).json({ error: 'Failed to refresh token' });
+    console.error('Error checking username availability:', error);
+    res.status(500).json({ error: 'Failed to check username' });
+  }
+});
+
+// Validate session token
+router.post('/validate-session', async (req, res) => {
+  try {
+    const { sessionToken } = req.body;
+    
+    if (!sessionToken) {
+      return res.json({ valid: false });
+    }
+    
+    // Find user by session token
+    const user = await User.findOne({ anonId: sessionToken });
+    
+    if (!user) {
+      return res.json({ valid: false });
+    }
+    
+    // Check if token is expired
+    const now = new Date();
+    if (user.tokenExpiry < now) {
+      return res.json({ valid: false });
+    }
+    
+    // Return valid status and user data
+    res.json({
+      valid: true,
+      user: {
+        id: user._id,
+        displayName: user.displayName,
+        score: user.score,
+        isAnonymous: true
+      }
+    });
+  } catch (error) {
+    console.error('Error validating session:', error);
+    res.status(500).json({ error: 'Failed to validate session' });
   }
 });
 

@@ -74,7 +74,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
       setLoading(true);
       setError(null);
       
-      // Get the first random question
+      // Make sure we're passing the correct token
       const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
       setNextQuestion(questionData.question);
       setShowQuestionControls(true);
@@ -200,19 +200,21 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
             {game.players.map(player => (
               <div 
                 key={player.user._id} 
-                className="flex items-center justify-between bg-gray-700 p-3 rounded-lg"
+                className={`flex items-center justify-between bg-gray-700 p-3 rounded-lg ${
+                  player.isReady ? 'border-l-4 border-green-500' : ''
+                }`}
               >
                 <div className="flex items-center">
                   {player.user.profileImage && (
                     <img 
                       src={player.user.profileImage} 
-                      alt={player.user.displayName} 
+                      alt={player.user.displayName || player.user.username} 
                       className="w-10 h-10 rounded-full mr-3"
                     />
                   )}
                   <div>
                     <p className="font-medium">
-                      {player.user.displayName}
+                      {player.user.displayName || player.user.username}
                       {player.user._id === game.host._id && (
                         <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-1 rounded">Host</span>
                       )}
@@ -225,7 +227,12 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
                     // The host is always shown as "Host" instead of Ready/Not Ready
                     <span className="text-yellow-500 font-medium">Host</span>
                   ) : player.isReady ? (
-                    <span className="text-green-500 font-medium">Ready</span>
+                    <span className="text-green-500 font-medium flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Ready
+                    </span>
                   ) : (
                     <span className="text-red-500 font-medium">Not Ready</span>
                   )}

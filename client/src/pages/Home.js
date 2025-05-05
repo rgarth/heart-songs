@@ -1,5 +1,5 @@
 // client/src/pages/Home.js
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { createGame, joinGame } from '../services/gameService';
@@ -17,7 +17,24 @@ const Home = () => {
       setLoading(true);
       setError('');
       
-      const game = await createGame(user.id, accessToken);
+      if (!user || !user.id) {
+        console.error('Missing user data:', { hasUser: !!user, hasUserId: user?.id });
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      // Get the most up-to-date token (either from context or localStorage)
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.error('No authentication token available');
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      const game = await createGame(user.id, token);
       
       // Navigate to game page
       navigate(`/game/${game.gameId}`);
@@ -41,7 +58,24 @@ const Home = () => {
       setLoading(true);
       setError('');
       
-      const game = await joinGame(gameCode.trim().toUpperCase(), user.id, accessToken);
+      if (!user || !user.id) {
+        console.error('Missing user data:', { hasUser: !!user, hasUserId: user?.id });
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      // Get the most up-to-date token (either from context or localStorage)
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.error('No authentication token available');
+        setError('Authentication error. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      const game = await joinGame(gameCode.trim().toUpperCase(), user.id, token);
       
       // Navigate to game page
       navigate(`/game/${game.gameId}`);
@@ -62,12 +96,12 @@ const Home = () => {
             {user?.profileImage && (
               <img 
                 src={user.profileImage} 
-                alt={user.displayName} 
+                alt={user.displayName || user.username} 
                 className="w-10 h-10 rounded-full mr-3" 
               />
             )}
             <div className="mr-4">
-              <p className="font-medium">{user?.displayName}</p>
+              <p className="font-medium">{user?.displayName || user?.username}</p>
               <p className="text-sm text-gray-400">Score: {user?.score || 0}</p>
             </div>
             <button 

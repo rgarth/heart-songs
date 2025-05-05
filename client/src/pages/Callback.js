@@ -34,14 +34,12 @@ const Callback = () => {
         
         // Check if there's a stored redirect path (for join game links)
         const redirectPath = localStorage.getItem('redirectAfterAuth');
-        console.log('Redirect path from localStorage:', redirectPath);
         
         if (redirectPath) {
           // Clear the stored path
           localStorage.removeItem('redirectAfterAuth');
           
           // Redirect to the stored path
-          console.log('Redirecting to:', redirectPath);
           navigate(redirectPath, { replace: true });
         } else {
           // Default redirect to home

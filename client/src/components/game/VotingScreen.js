@@ -1,6 +1,6 @@
 // client/src/components/game/VotingScreen.js
 import React, { useState, useEffect } from 'react';
-import { playTrack, pausePlayback } from '../../services/spotifyService';
+import { getSpotifyOpenURL } from '../../services/spotifyService';
 import { voteForSong } from '../../services/gameService';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
@@ -8,18 +8,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
-  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
-  const [deviceId, setDeviceId] = useState(null);
-  const [playerReady, setPlayerReady] = useState(false);
-  const [playerError, setPlayerError] = useState(null);
-  const [isPremium, setIsPremium] = useState(false);
+  const [error, setError] = useState(null);
   
   // Add state to track if we've already loaded data
   const [dataLoaded, setDataLoaded] = useState(false);
   const [localSubmissions, setLocalSubmissions] = useState([]);
-  
-  // Detect if we're on a mobile device
-  const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -45,41 +38,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Check user's Spotify subscription type
-  useEffect(() => {
-    const checkSpotifySubscription = async () => {
-      try {
-        console.log('Checking Spotify subscription type...');
-        
-        const response = await fetch('https://api.spotify.com/v1/me', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('User subscription type:', data.product);
-          const isPremiumUser = data.product === 'premium';
-          setIsPremium(isPremiumUser);
-          console.log('User has premium:', isPremiumUser);
-        } else {
-          console.error('Failed to fetch user subscription info:', response.statusText);
-          // Default to non-premium to be safe
-          setIsPremium(false);
-        }
-      } catch (error) {
-        console.error('Error checking Spotify subscription:', error);
-        // Default to non-premium to be safe
-        setIsPremium(false);
-      }
-    };
-    
-    if (accessToken) {
-      checkSpotifySubscription();
-    }
-  }, [accessToken]);
-  
   // Load submissions only once
   useEffect(() => {
     if (dataLoaded || !game.submissions || game.submissions.length === 0) {
@@ -91,120 +49,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     setLoading(false);
   }, [game.submissions, dataLoaded]);
   
-  // Initialize Spotify Web Playback SDK (only on desktop + premium)
-  useEffect(() => {
-    // Skip SDK initialization on mobile devices or non-premium accounts
-    if (isMobile || !isPremium) return;
-    
-    let spotifyPlayer = null;
-    
-    const initializePlayer = () => {
-      if (!window.Spotify) {
-        console.log('Spotify SDK not available yet, loading script...');
-        const script = document.createElement("script");
-        script.src = "https://sdk.scdn.co/spotify-player.js";
-        script.async = true;
-        document.body.appendChild(script);
-      } else if (!spotifyPlayer) {
-        console.log('Initializing Spotify player...');
-        spotifyPlayer = new window.Spotify.Player({
-          name: 'Heart Songs Game Player',
-          getOAuthToken: cb => { cb(accessToken); }
-        });
-        
-        // Error handling
-        spotifyPlayer.addListener('initialization_error', ({ message }) => {
-          console.error('Failed to initialize player:', message);
-          setPlayerError(`Player initialization failed: ${message}`);
-        });
-        
-        spotifyPlayer.addListener('authentication_error', ({ message }) => {
-          console.error('Failed to authenticate:', message);
-          setPlayerError(`Authentication failed: ${message}`);
-        });
-        
-        spotifyPlayer.addListener('account_error', ({ message }) => {
-          console.error('Account error:', message);
-          setPlayerError(`Account error: ${message}`);
-        });
-        
-        spotifyPlayer.addListener('playback_error', ({ message }) => {
-          console.error('Playback error:', message);
-          setPlayerError(`Playback error: ${message}`);
-        });
-        
-        // Ready
-        spotifyPlayer.addListener('ready', ({ device_id }) => {
-          console.log('Spotify player ready with Device ID:', device_id);
-          setDeviceId(device_id);
-          setPlayerReady(true);
-          setPlayerError(null);
-        });
-        
-        spotifyPlayer.addListener('not_ready', ({ device_id }) => {
-          console.log('Device has gone offline:', device_id);
-          setPlayerReady(false);
-        });
-        
-        // Connect
-        spotifyPlayer.connect()
-          .then(success => {
-            if (success) {
-              console.log('Spotify player connected successfully');
-            } else {
-              console.error('Failed to connect Spotify player');
-              setPlayerError('Failed to connect player');
-            }
-          });
-      }
-    };
-
-    // Initialize when the component mounts
-    initializePlayer();
-    
-    // Set up the SDK ready callback
-    window.onSpotifyWebPlaybackSDKReady = () => {
-      console.log('Spotify Web Playback SDK is ready');
-      initializePlayer();
-    };
-    
-    // Cleanup on component unmount
-    return () => {
-      if (spotifyPlayer) {
-        console.log('Disconnecting Spotify player');
-        spotifyPlayer.disconnect();
-      }
-    };
-  }, [accessToken, isMobile, isPremium]);
-  
-  // Handle play track (for premium desktop users only)
-  const handlePlay = async (trackId) => {
-    console.log('Attempting to play track:', trackId);
-    
-    try {
-      // If this track is already playing, pause it
-      if (currentlyPlaying === trackId) {
-        console.log('Pausing current track');
-        await pausePlayback(accessToken);
-        setCurrentlyPlaying(null);
-      } else {
-        // Play the new track
-        console.log('Playing track with device ID:', deviceId);
-        const trackUri = `spotify:track:${trackId}`;
-        await playTrack(deviceId, trackUri, accessToken);
-        setCurrentlyPlaying(trackId);
-      }
-      setPlayerError(null);
-    } catch (error) {
-      console.error('Error controlling playback:', error);
-      setPlayerError('Failed to control playback. Please try again.');
-    }
-  };
-  
-  // Open song in Spotify app (for mobile users)
+  // Open song in Spotify
   const openInSpotify = (trackId) => {
-    const spotifyUri = `spotify:track:${trackId}`;
-    window.location.href = spotifyUri;
+    const spotifyUrl = getSpotifyOpenURL(trackId);
+    window.open(spotifyUrl, '_blank');
   };
   
   // Handle vote
@@ -213,12 +61,23 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     
     try {
       setIsVoting(true);
+      setError(null);
       
-      await voteForSong(game._id, currentUser.id, selectedSubmission, accessToken);
+      // Get the most up-to-date token
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication token missing. Please refresh the page and try again.');
+        setIsVoting(false);
+        return;
+      }
+      
+      await voteForSong(game._id, currentUser.id, selectedSubmission, token);
       
       setHasVoted(true);
     } catch (error) {
       console.error('Error voting:', error);
+      setError('Failed to submit your vote. Please try again.');
     } finally {
       setIsVoting(false);
     }
@@ -269,24 +128,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </p>
         </div>
         
-        {/* Player status information */}
-        {playerError && !isMobile && isPremium && (
-          <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
-            <p><strong>Playback issue:</strong> {playerError}</p>
-          </div>
-        )}
-        
-        {isMobile && (
-          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-            <p><strong>Mobile device:</strong> Tap "Open in Spotify" to listen to songs.</p>
-          </div>
-        )}
-        
-        {!isMobile && !isPremium && (
-          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-            <p><strong>Spotify Free account:</strong> Playback is not available. Upgrade to Premium to listen to songs during voting.</p>
-          </div>
-        )}
+        <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
+          <p><strong>Note:</strong> Click "Open in Spotify" to listen to songs in the Spotify app or web player.</p>
+        </div>
         
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
@@ -300,6 +144,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </div>
         )}
         
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
+            <p><strong>Error:</strong> {error}</p>
+          </div>
+        )}
+        
         <div>
           {hasVoted && (
             <div className="mb-6 text-center py-4 bg-green-800/30 rounded-lg">
@@ -310,9 +160,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               </div>
               <p className="text-green-400 font-medium">Your vote has been submitted!</p>
               <p className="text-gray-300 text-sm mt-1">
-                {!isMobile && isPremium ? 
-                  "You can still listen to all submissions while waiting for others to vote." :
-                  "Waiting for others to vote..."}
+                You can still listen to all submissions while waiting for others to vote.
               </p>
             </div>
           )}
@@ -333,6 +181,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   } ${
                     isOwnSubmission ? 'border-l-4 border-l-yellow-500' : ''
                   }`}
+                  onClick={() => {
+                    if (!hasVoted && (isSmallGame || !isOwnSubmission)) {
+                      setSelectedSubmission(submission._id);
+                    }
+                  }}
                 >
                   {submission.albumCover && (
                     <img 
@@ -351,54 +204,19 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     <p className="text-sm text-gray-400">{submission.artist}</p>
                   </div>
                   
-                  {/* Playback controls based on device/account type */}
-                  {/* For Premium Desktop users: Play/Pause button */}
-                  {!isMobile && isPremium && playerReady && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlay(submission.songId);
-                      }}
-                      className={`py-2 px-4 rounded transition-colors flex items-center ${
-                        currentlyPlaying === submission.songId
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-600 text-white hover:bg-gray-500'
-                      }`}
-                    >
-                      {currentlyPlaying === submission.songId ? (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" />
-                          </svg>
-                          Pause
-                        </>
-                      ) : (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Play
-                        </>
-                      )}
-                    </button>
-                  )}
-                  
-                  {/* For Mobile users: "Open in Spotify" button */}
-                  {isMobile && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openInSpotify(submission.songId);
-                      }}
-                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      Open in Spotify
-                    </button>
-                  )}
+                  {/* "Open in Spotify" button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openInSpotify(submission.songId);
+                    }}
+                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Open in Spotify
+                  </button>
                   
                   {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
                   {!hasVoted && (isSmallGame || !isOwnSubmission) && (

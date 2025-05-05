@@ -8,8 +8,7 @@ const gameRoutes = require('./routes/game');
 const spotifyRoutes = require('./routes/spotify');
 
 // Load environment variables
-dotenv.config('../.env');
-console.log('SPOTIFY_CLIENT_ID:', process.env.SPOTIFY_CLIENT_ID);
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -27,6 +26,20 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/spotify', spotifyRoutes);
+
+// Basic health check route
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', version: '1.0.0' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({ 
+    error: 'Server error', 
+    message: err.message || 'An unexpected error occurred'
+  });
+});
 
 // Start server
 app.listen(PORT, () => {

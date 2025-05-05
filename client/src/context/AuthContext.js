@@ -1,90 +1,70 @@
 // client/src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from 'react';
-import { refreshAccessToken } from '../services/AuthService';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { validateSession } from '../services/AuthService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load auth data from localStorage on mount
   useEffect(() => {
-    // Check for stored auth data on component mount
-    const storedUser = localStorage.getItem('user');
-    const storedAccessToken = localStorage.getItem('accessToken');
-    const storedRefreshToken = localStorage.getItem('refreshToken');
-    const tokenExpiry = localStorage.getItem('tokenExpiry');
-    
-    if (storedUser && storedAccessToken && storedRefreshToken) {
-      setUser(JSON.parse(storedUser));
-      setAccessToken(storedAccessToken);
-      setRefreshToken(storedRefreshToken);
-      
-      // Check if token is expired or about to expire
-      const now = new Date();
-      const expiryDate = new Date(tokenExpiry);
-      
-      if (expiryDate <= now) {
-        handleTokenRefresh(storedRefreshToken);
+    const loadAuthData = async () => {
+      try {
+        // Check for stored auth data
+        const storedUser = localStorage.getItem('user');
+        const storedAccessToken = localStorage.getItem('accessToken');
+        
+        if (storedUser && storedAccessToken) {
+          // Parse user data
+          const userData = JSON.parse(storedUser);
+          
+          // Set state
+          setUser(userData);
+          setAccessToken(storedAccessToken);
+        }
+      } catch (error) {
+        console.error('Error loading auth data:', error);
+        // Clear potentially corrupted data
+        logout();
+      } finally {
+        setLoading(false);
       }
-    }
+    };
     
-    setLoading(false);
+    loadAuthData();
   }, []);
 
-  // Function to refresh token
-  const handleTokenRefresh = async (token) => {
-    try {
-      const data = await refreshAccessToken(token);
-      setAccessToken(data.accessToken);
-      
-      // Update localStorage
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('tokenExpiry', data.expiryDate);
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      logout();
-    }
-  };
-
   // Login function
-  const login = (userData, token, refresh) => {
+  const login = (userData, token) => {
     setUser(userData);
     setAccessToken(token);
-    setRefreshToken(refresh);
     
     // Store in localStorage
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('accessToken', token);
-    localStorage.setItem('refreshToken', refresh);
-    localStorage.setItem('tokenExpiry', new Date(Date.now() + 3600 * 1000).toISOString());
   };
 
   // Logout function
   const logout = () => {
     setUser(null);
     setAccessToken(null);
-    setRefreshToken(null);
     
     // Clear localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('tokenExpiry');
   };
 
   return (
     <AuthContext.Provider 
       value={{ 
         user, 
-        accessToken, 
-        refreshToken, 
+        accessToken,
         loading, 
         login, 
-        logout,
-        refreshToken: handleTokenRefresh
+        logout
       }}
     >
       {children}

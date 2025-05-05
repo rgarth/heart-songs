@@ -44,7 +44,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      const results = await searchTracks(searchQuery, accessToken);
+      // FIXED: Don't pass the accessToken to searchTracks function
+      // The searchTracks function doesn't need authentication
+      const results = await searchTracks(searchQuery);
       setSearchResults(results);
       
     } catch (error) {
@@ -101,11 +103,27 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   };
   
   // Check if user is active in the current round (either all players or specifically included)
-  const isUserActive = !hasActivePlayers || 
-    game.activePlayers.some(player => player._id === currentUser.id);
+  const isUserActive = () => {
+    // If no activePlayers list exists or it's empty, consider all players active
+    if (!game.activePlayers || game.activePlayers.length === 0) {
+      return true;
+    }
+    
+    // Otherwise, check if the current user is in the activePlayers list
+    return game.activePlayers.some(player => {
+      // Handle both object and string comparisons
+      if (typeof player === 'object' && player._id) {
+        return player._id === currentUser.id;
+      }
+      return player === currentUser.id;
+    });
+  };
+  
+  // Use the function to determine active status
+  const userIsActive = isUserActive();
   
   // If user is not active in this round, show a message
-  if (!isUserActive) {
+  if (!userIsActive) {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="bg-gray-800 rounded-lg p-6 shadow-lg text-center">
