@@ -17,11 +17,6 @@ export const AuthProvider = ({ children }) => {
         const storedUser = localStorage.getItem('user');
         const storedAccessToken = localStorage.getItem('accessToken');
         
-        console.log('Initial auth state from localStorage:', {
-          hasUser: !!storedUser,
-          hasToken: !!storedAccessToken
-        });
-        
         if (storedUser && storedAccessToken) {
           // Parse user data
           const userData = JSON.parse(storedUser);
@@ -29,14 +24,6 @@ export const AuthProvider = ({ children }) => {
           // Set state
           setUser(userData);
           setAccessToken(storedAccessToken);
-          
-          console.log('Found stored token:', storedAccessToken);
-          console.log('Restored session from localStorage:', {
-            user: userData.displayName || userData.id,
-            tokenLength: storedAccessToken.length
-          });
-        } else {
-          console.log('No valid auth data found in localStorage');
         }
       } catch (error) {
         console.error('Error loading auth data:', error);
@@ -50,23 +37,8 @@ export const AuthProvider = ({ children }) => {
     loadAuthData();
   }, []);
 
-  // Log changes to auth context for debugging
-  useEffect(() => {
-    console.log('AuthContext updated:', {
-      hasUser: !!user,
-      displayName: user?.displayName || user?.username,
-      hasToken: !!accessToken,
-      tokenLength: accessToken?.length
-    });
-  }, [user, accessToken]);
-
   // Login function
   const login = (userData, token) => {
-    console.log('Login called with:', {
-      userData: userData?.displayName || userData?.username || userData?.id,
-      tokenLength: token?.length
-    });
-    
     setUser(userData);
     setAccessToken(token);
     
@@ -77,8 +49,6 @@ export const AuthProvider = ({ children }) => {
 
   // Logout function
   const logout = () => {
-    console.log('Logging out, clearing auth state');
-    
     setUser(null);
     setAccessToken(null);
     

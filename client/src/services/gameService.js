@@ -232,15 +232,11 @@ export const getRandomQuestion = async (gameId, token) => {
       throw new Error('Missing required parameters: gameId and token are required');
     }
     
-    console.log(`Getting question preview for game: ${gameId}`);
-    console.log("Request headers:", createHeaders(token));
-    
     const response = await axios.get(
       `${API_URL}/game/${gameId}/question-preview`,
       createHeaders(token)
     );
     
-    console.log('Question retrieved successfully:', response.data);
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'getting question preview');
@@ -266,7 +262,6 @@ export const submitCustomQuestion = async (gameId, questionText, token) => {
       createHeaders(token)
     );
     
-    console.log('Custom question submitted successfully');
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'submitting custom question');
@@ -284,7 +279,6 @@ export const startNewRound = async (gameId, questionData, token) => {
       throw new Error('Missing required parameters: gameId and token are required');
     }
     
-    console.log(`Starting new round for game: ${gameId}`);
     const payload = { gameId };
     
     // Add question data if provided

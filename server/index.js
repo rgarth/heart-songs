@@ -13,27 +13,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5050;
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  
-  // Log request headers for debugging auth issues
-  if (req.url.includes('/api/game/') || req.url.includes('/api/auth/')) {
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-  }
-  
-  const originalSend = res.send;
-  res.send = function(body) {
-    console.log(`${new Date().toISOString()} - Response ${res.statusCode} for ${req.method} ${req.url}`);
-    if (res.statusCode >= 400) {
-      console.log('Error response body:', body);
-    }
-    return originalSend.call(this, body);
-  };
-  
-  next();
-});
-
 // Middleware
 app.use(cors());
 app.use(express.json());

@@ -27,13 +27,6 @@ async function getRandomQuestion() {
 // Create a new game
 router.post('/create', async (req, res) => {
   try {
-    console.log('Create game route called');
-    console.log('Request body:', req.body);
-    console.log('User from auth middleware:', req.user ? {
-      id: req.user._id,
-      displayName: req.user.displayName
-    } : 'No user attached to request');
-    
     // Use the authenticated user from the middleware
     const host = req.user;
     
@@ -41,8 +34,6 @@ router.post('/create', async (req, res) => {
       console.error('Authentication middleware did not attach user to request');
       return res.status(401).json({ error: 'User authentication failed' });
     }
-    
-    console.log('Creating game for user:', host.displayName);
     
     // Generate a unique game code
     let gameCode;
@@ -54,8 +45,6 @@ router.post('/create', async (req, res) => {
       isUnique = !existingGame;
     }
     
-    console.log('Generated unique game code:', gameCode);
-    
     // Create the game
     const game = new Game({
       code: gameCode,
@@ -64,8 +53,6 @@ router.post('/create', async (req, res) => {
     });
     
     await game.save();
-    
-    console.log('Game created:', game._id, 'with code:', game.code);
     
     res.json({
       gameId: game._id,
@@ -85,8 +72,6 @@ router.post('/join', async (req, res) => {
   try {
     const { gameCode } = req.body;
     const user = req.user;
-    
-    console.log('Joining game with code:', gameCode, 'for user:', user.displayName);
     
     const game = await Game.findOne({ code: gameCode });
     if (!game) {
@@ -108,10 +93,7 @@ router.post('/join', async (req, res) => {
         score: 0
       });
       await game.save();
-      console.log(`Player ${user.displayName} added to game ${gameCode}`);
       playerAdded = true;
-    } else {
-      console.log(`Player ${user.displayName} is already in game ${gameCode}, not adding again`);
     }
     
     // Populate players
@@ -137,8 +119,6 @@ router.post('/ready', async (req, res) => {
   try {
     const { gameId } = req.body;
     const user = req.user;
-    
-    console.log('Toggling ready status for gameId:', gameId, 'user:', user.displayName);
     
     // Find game by _id or code
     let game = null;
@@ -170,10 +150,7 @@ router.post('/ready', async (req, res) => {
     // If all players are ready, start the game
     if (allReady && game.status === 'waiting') {
       // Check if there are at least 2 players before starting the game
-      if (game.players.length < 2) {
-        // If less than 2 players, don't start the game yet but don't return an error
-        console.log('Not enough players to start the game (minimum 2 required)');
-      } else {
+      if (game.players.length > 1) {
         // Create playlist for the game in our database
         const playlist = new Playlist({
           gameId: game._id,
@@ -222,14 +199,6 @@ router.post('/submit', async (req, res) => {
     const { gameId, songId, songName, artist, albumCover } = req.body;
     const user = req.user;
     
-    // Log detailed information for debugging
-    console.log('Submit song request:', { 
-      gameId, 
-      user: user.displayName, 
-      songId, 
-      songName 
-    });
-    
     // Validate required parameters
     if (!gameId || !songId) {
       return res.status(400).json({ 
@@ -243,13 +212,11 @@ router.post('/submit', async (req, res) => {
     
     // First try to find by _id if it looks like a valid ObjectId
     if (mongoose.Types.ObjectId.isValid(gameId)) {
-      console.log('Looking up game by _id:', gameId);
       game = await Game.findById(gameId);
     }
     
     // If not found, try by code
     if (!game) {
-      console.log('Looking up game by code:', gameId);
       game = await Game.findOne({ code: gameId });
     }
     
@@ -260,8 +227,6 @@ router.post('/submit', async (req, res) => {
         gameId,
       });
     }
-    
-    console.log('Game found:', game._id, 'with code:', game.code);
     
     if (game.status !== 'selecting') {
       return res.status(400).json({ error: 'Game is not in selecting phase' });
@@ -303,7 +268,6 @@ router.post('/submit', async (req, res) => {
     }
     
     await game.save();
-    console.log('Song submitted successfully, submissions count:', game.submissions.length);
     
     // Check if all ACTIVE players have submitted
     // If game was force-started, only count submissions from active players
@@ -311,11 +275,9 @@ router.post('/submit', async (req, res) => {
       ? game.activePlayers.length 
       : game.players.length;
     
-    console.log(`Expected submissions: ${expectedSubmissionsCount}, Current submissions: ${game.submissions.length}`);
     const allSubmitted = game.submissions.length >= expectedSubmissionsCount;
     
     if (allSubmitted) {
-      console.log('All active players have submitted, changing game status to voting');
       game.status = 'voting';
       await game.save();
     }
@@ -337,8 +299,6 @@ router.post('/vote', async (req, res) => {
   try {
     const { gameId, submissionId } = req.body;
     const user = req.user;
-    
-    console.log('Vote request:', { gameId, userId: user._id, submissionId });
     
     // Find game by _id or code
     let game = null;
@@ -396,7 +356,6 @@ router.post('/vote', async (req, res) => {
       ? game.activePlayers.length 
       : game.players.length;
     
-    console.log(`Expected votes: ${expectedVotesCount}, Current votes: ${totalVotes}`);
     const allVoted = totalVotes >= expectedVotesCount;
     
     if (allVoted) {
@@ -441,7 +400,6 @@ router.post('/vote', async (req, res) => {
 router.post('/next-round', async (req, res) => {
   try {
     const { gameId, questionText, questionCategory } = req.body;
-    console.log('Starting new round for gameId:', gameId);
     
     // Find game by _id or code
     let game = null;
@@ -509,7 +467,6 @@ router.post('/next-round', async (req, res) => {
 router.get('/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
-    console.log('Getting game state for:', gameId, 'User:', req.user.displayName);
     
     // Find game by _id or code
     let game = null;
@@ -551,7 +508,6 @@ router.get('/:gameId', async (req, res) => {
 router.get('/:gameId/question-preview', async (req, res) => {
   try {
     const { gameId } = req.params;
-    console.log('Getting question preview for game:', gameId);
     
     // Find game to validate it exists
     let game = null;
@@ -587,8 +543,6 @@ router.post('/:gameId/custom-question', async (req, res) => {
   try {
     const { gameId } = req.params;
     const { questionText } = req.body;
-    
-    console.log('Submitting custom question for game:', gameId);
     
     if (!questionText || questionText.trim() === '') {
       return res.status(400).json({ error: 'Question text is required' });
@@ -627,7 +581,6 @@ router.post('/:gameId/custom-question', async (req, res) => {
 router.post('/start', async (req, res) => {
   try {
     const { gameId, userId, questionText, questionCategory } = req.body;
-    console.log('Force starting game for gameId:', gameId, 'by host:', userId, 'with question:', questionText);
     
     // Find game by _id or code
     let game = null;
@@ -667,7 +620,6 @@ router.post('/start', async (req, res) => {
       });
       
       await playlist.save();
-      console.log('Internal playlist created:', playlist._id);
       
       // Store the playlist ID reference in the game
       game.playlistId = playlist._id.toString();
@@ -683,7 +635,6 @@ router.post('/start', async (req, res) => {
         text: questionText,
         category: questionCategory
       };
-      console.log('Using provided question:', questionText);
     } else {
       // Get random question
       const question = await getRandomQuestion();
@@ -691,7 +642,6 @@ router.post('/start', async (req, res) => {
         text: question.text,
         category: question.category
       };
-      console.log('Using random question:', question.text);
     }
 
     // Auto-ready the host if they're not already ready
@@ -705,13 +655,6 @@ router.post('/start', async (req, res) => {
     game.activePlayers = game.players
       .filter(player => player.isReady)
       .map(player => player.user);
-    
-    // Log active players for debugging
-    console.log('Active players for this game:', {
-      totalPlayers: game.players.length,
-      readyPlayers: game.players.filter(player => player.isReady).length,
-      activePlayers: game.activePlayers.length
-    });
     
     // Start the game regardless of ready status
     game.status = 'selecting';
