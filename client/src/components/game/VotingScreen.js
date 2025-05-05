@@ -51,8 +51,29 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   
   // Open song in Spotify
   const openInSpotify = (trackId) => {
-    const spotifyUrl = getSpotifyOpenURL(trackId);
-    window.open(spotifyUrl, '_blank');
+    // Get both Spotify app URI and web fallback URL
+    const spotifyAppUri = `spotify:track:${trackId}`;
+    const spotifyWebUrl = `https://open.spotify.com/track/${trackId}`;
+    
+    // Check if we're on a mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // Create an invisible iframe to try opening the Spotify app
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = spotifyAppUri;
+      document.body.appendChild(iframe);
+      
+      // Set a timeout to remove the iframe and open the web URL if the app doesn't open
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        window.location.href = spotifyWebUrl; // Use location.href instead of window.open
+      }, 500);
+    } else {
+      // On desktop, just open in a new tab as before
+      window.open(spotifyWebUrl, '_blank');
+    }
   };
   
   // Handle vote
