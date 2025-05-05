@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Game from './pages/Game';
 import JoinGame from './pages/JoinGame';
-import Debug from './pages/Debug';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -16,7 +15,6 @@ function App() {
         <div className="app">
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/debug" element={<Debug />} />
             <Route 
               path="/" 
               element={
