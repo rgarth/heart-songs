@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { registerAnonymous, checkUsernameAvailability } from '../services/AuthService';
 import { generateUsername, isValidUsername } from '../utils/usernameGenerator';
+// Logo is loaded directly from public folder
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -108,9 +109,17 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+        {/* Logo */}
+        <div className="mb-6 flex justify-center">
+          <img src="/logo512.png" alt="Heart Songs Logo" className="h-32 w-auto" />
+        </div>
+        
         <h1 className="text-3xl font-bold text-white mb-6">Heart Songs</h1>
         <p className="text-gray-300 mb-8">
-          Pick songs that match questions and vote for your favorites!
+          Welcome to Heart Songs.
+        </p>
+        <p className="text-gray-300 mb-8">
+          The Game where your music choice reveals you personality!
         </p>
         
         {redirectPath && redirectPath.startsWith('/join/') && (

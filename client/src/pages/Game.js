@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getGameState, toggleReady, startNewRound, startGame, endGame } from '../services/gameService';
+import Header from '../components/Header'; // Import the Header component
 import LobbyScreen from '../components/game/LobbyScreen';
 import SelectionScreen from '../components/game/SelectionScreen';
 import VotingScreen from '../components/game/VotingScreen';
@@ -23,11 +24,25 @@ const Game = () => {
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
     previousRounds: []
   });
+  
+  // Copy game code to clipboard
+  const copyGameCode = () => {
+    if (!game || !game.gameCode) return;
+    
+    try {
+      navigator.clipboard.writeText(game.gameCode);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
   
   // Fetch game state with optimized polling
   const fetchGameState = useCallback(async () => {
@@ -226,61 +241,59 @@ const Game = () => {
     }
   };
   
-  // Improved handleEndGame function for Game.js
+  // Handle ending the game
+  const handleEndGame = async () => {
+    try {
+      if (!user || !user.id) {
+        setError('User information missing. Please login again.');
+        return;
+      }
+      
+      // Get the most up-to-date token
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication error. Please login again.');
+        return;
+      }
+      
+      // Store current round data in game history before ending
+      if (game && game.status === 'results' && game.submissions && game.submissions.length > 0) {
+        // Make sure to save the winning song from the current round
+        setGameHistory(prev => {
+          const roundData = {
+            question: game.currentQuestion,
+            submissions: [...game.submissions].sort((a, b) => b.votes.length - a.votes.length)
+          };
+          
+          return {
+            ...prev,
+            previousRounds: [...prev.previousRounds, roundData]
+          };
+        });
+      }
+      
+      // Update game status locally without waiting for server
+      setGame(prevGame => ({
+        ...prevGame,
+        status: 'ended'
+      }));
+      
+      // Call API to end the game on the server
+      const response = await endGame(gameId, token);
+      
+      // If the server response includes playlist data, update our state
+      if (response && response.playlist) {
+        console.log('Received playlist data from server:', response.playlist.length, 'tracks');
+      }
+      
+    } catch (error) {
+      console.error('Error ending game:', error);
+      setError('Failed to end game. Please try again.');
+    }
+  };
 
-// Handle ending the game
-const handleEndGame = async () => {
-  try {
-    if (!user || !user.id) {
-      setError('User information missing. Please login again.');
-      return;
-    }
-    
-    // Get the most up-to-date token
-    const token = accessToken || localStorage.getItem('accessToken');
-    
-    if (!token) {
-      setError('Authentication error. Please login again.');
-      return;
-    }
-    
-    // Store current round data in game history before ending
-    if (game && game.status === 'results' && game.submissions && game.submissions.length > 0) {
-      // Make sure to save the winning song from the current round
-      setGameHistory(prev => {
-        const roundData = {
-          question: game.currentQuestion,
-          submissions: [...game.submissions].sort((a, b) => b.votes.length - a.votes.length)
-        };
-        
-        return {
-          ...prev,
-          previousRounds: [...prev.previousRounds, roundData]
-        };
-      });
-    }
-    
-    // Update game status locally without waiting for server
-    setGame(prevGame => ({
-      ...prevGame,
-      status: 'ended'
-    }));
-    
-    // Call API to end the game on the server
-    const response = await endGame(gameId, token);
-    
-    // If the server response includes playlist data, update our state
-    if (response && response.playlist) {
-      console.log('Received playlist data from server:', response.playlist.length, 'tracks');
-    }
-    
-  } catch (error) {
-    console.error('Error ending game:', error);
-    setError('Failed to end game. Please try again.');
-  }
-};
-
-// Go back to home
+  // Go back to home
   const handleLeaveGame = () => {
     navigate('/');
   };
@@ -301,21 +314,24 @@ const handleEndGame = async () => {
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
-          <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
-          <p className="text-white mb-6">{error}</p>
-          <div className="text-sm text-gray-400 mb-4">
-            <p>Game ID: {gameId}</p>
-            <p>User ID: {user?.id}</p>
-            <p>Has Token: {accessToken ? 'Yes' : 'No'}</p>
+      <div className="flex flex-col min-h-screen bg-gray-900">
+        <Header />
+        <div className="flex items-center justify-center flex-1">
+          <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
+            <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
+            <p className="text-white mb-6">{error}</p>
+            <div className="text-sm text-gray-400 mb-4">
+              <p>Game ID: {gameId}</p>
+              <p>User ID: {user?.id}</p>
+              <p>Has Token: {accessToken ? 'Yes' : 'No'}</p>
+            </div>
+            <button
+              onClick={handleLeaveGame}
+              className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Back to Home
+            </button>
           </div>
-          <button
-            onClick={handleLeaveGame}
-            className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Back to Home
-          </button>
         </div>
       </div>
     );
@@ -324,21 +340,24 @@ const handleEndGame = async () => {
   // Game not found
   if (!game) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
-          <h2 className="text-2xl font-bold text-white mb-4">Game Not Found</h2>
-          <p className="text-gray-300 mb-6">The game you're looking for doesn't exist or has ended.</p>
-          <div className="text-sm text-gray-400 mb-4">
-            <p>Game ID: {gameId}</p>
-            <p>User ID: {user?.id}</p>
-            <p>Has Token: {accessToken ? 'Yes' : 'No'}</p>
+      <div className="flex flex-col min-h-screen bg-gray-900">
+        <Header />
+        <div className="flex items-center justify-center flex-1">
+          <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
+            <h2 className="text-2xl font-bold text-white mb-4">Game Not Found</h2>
+            <p className="text-gray-300 mb-6">The game you're looking for doesn't exist or has ended.</p>
+            <div className="text-sm text-gray-400 mb-4">
+              <p>Game ID: {gameId}</p>
+              <p>User ID: {user?.id}</p>
+              <p>Has Token: {accessToken ? 'Yes' : 'No'}</p>
+            </div>
+            <button
+              onClick={handleLeaveGame}
+              className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Back to Home
+            </button>
           </div>
-          <button
-            onClick={handleLeaveGame}
-            className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Back to Home
-          </button>
         </div>
       </div>
     );
@@ -346,23 +365,48 @@ const handleEndGame = async () => {
 
   // Render appropriate game screen based on game status
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-6">
-        <header className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Heart Songs</h1>
-            <div className="flex items-center mt-1">
-              <span className="text-sm text-gray-400 mr-2">Game Code:</span>
-              <span className="text-xl font-bold tracking-wider bg-gray-800 px-3 py-1 rounded-lg text-yellow-400 font-mono">{game.gameCode}</span>
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+      <Header gameCode={game.gameCode} />
+      <div className="container mx-auto px-4 py-6 flex-1">
+        {/* Display game code prominently in waiting status */}
+        {game.status === 'waiting' && (
+          <div className="mb-6 text-center">
+            <div className="bg-gray-800 rounded-lg py-3 px-4 inline-block mx-auto">
+              <p className="text-sm text-gray-400 mb-1">Game Code:</p>
+              <div className="flex items-center justify-center">
+                <p className="text-3xl font-bold tracking-wider bg-gray-700 px-4 py-2 rounded-lg text-yellow-400 font-mono">
+                  {game.gameCode}
+                </p>
+                <button 
+                  onClick={copyGameCode}
+                  className="ml-2 p-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 focus:outline-none"
+                  aria-label="Copy game code"
+                  title="Copy game code"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                  </svg>
+                </button>
+              </div>
+              {copySuccess && (
+                <p className="text-green-400 text-sm mt-1">
+                  Copied to clipboard!
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mt-2">Share this code with friends to let them join</p>
             </div>
           </div>
+        )}
+        
+        <div className="flex justify-end mb-6">
           <button
             onClick={handleLeaveGame}
             className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Leave Game
           </button>
-        </header>
+        </div>
 
         {game.status === 'waiting' && (
           <LobbyScreen 

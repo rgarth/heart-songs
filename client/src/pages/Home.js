@@ -1,11 +1,12 @@
 // client/src/pages/Home.js
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { createGame, joinGame } from '../services/gameService';
+import Header from '../components/Header'; // Import the Header component
 
 const Home = () => {
-  const { user, accessToken, logout } = useContext(AuthContext);
+  const { user, accessToken } = useContext(AuthContext);
   const navigate = useNavigate();
   
   const [gameCode, setGameCode] = useState('');
@@ -88,31 +89,10 @@ const Home = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <header className="flex justify-between items-center mb-12">
-          <h1 className="text-3xl font-bold">Heart Songs</h1>
-          <div className="flex items-center">
-            {user?.profileImage && (
-              <img 
-                src={user.profileImage} 
-                alt={user.displayName || user.username} 
-                className="w-10 h-10 rounded-full mr-3" 
-              />
-            )}
-            <div className="mr-4">
-              <p className="font-medium">{user?.displayName || user?.username}</p>
-              <p className="text-sm text-gray-400">Score: {user?.score || 0}</p>
-            </div>
-            <button 
-              onClick={logout}
-              className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
-        </header>
-        
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+      <Header />
+      
+      <div className="container mx-auto px-4 py-8 flex-1">
         <div className="max-w-xl mx-auto">
           <div className="bg-gray-800 rounded-lg p-6 shadow-lg mb-6">
             <h2 className="text-2xl font-bold mb-6">Create or Join a Game</h2>

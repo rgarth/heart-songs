@@ -172,26 +172,19 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-2 text-center">Waiting for Players</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center">Waiting for Players</h2>
         
-        {/* Game code display - enlarged and highlighted with share button */}
-        <div className="mb-6 text-center">
-          <p className="text-sm text-gray-400 mb-1">Game Code:</p>
-          <div className="flex items-center justify-center gap-2">
-            <p className="text-3xl font-bold tracking-wider bg-gray-700 inline-block px-4 py-2 rounded-lg text-yellow-400 font-mono">
-              {game.gameCode}
-            </p>
-            <button 
-              onClick={handleShareGameCode}
-              className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none"
-              aria-label="Share game code"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Share this code with friends to let them join</p>
+        {/* Share button for game code */}
+        <div className="mb-6 flex justify-center">
+          <button 
+            onClick={handleShareGameCode}
+            className="flex items-center py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+            </svg>
+            Share Game Invite
+          </button>
         </div>
         
         <div className="mb-8">
