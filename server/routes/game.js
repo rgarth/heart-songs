@@ -235,24 +235,30 @@ router.post('/submit', async (req, res) => {
     // Check if user already submitted
     const existingSubmission = game.submissions.find(s => s.player && s.player.toString() === user._id.toString());
     
+    // Check if this is the first submission (fastest player)
+    const isFirstSubmission = game.submissions.length === 0;
+
     if (existingSubmission) {
       // Update existing submission
       existingSubmission.songId = songId;
       existingSubmission.songName = songName;
       existingSubmission.artist = artist;
       existingSubmission.albumCover = albumCover;
+      existingSubmission.submittedAt = new Date(); // Update submission time
     } else {
-      // Create new submission
+      // Create new submission with timestamp and speed bonus if first
       game.submissions.push({
         player: user._id,
         songId,
         songName,
         artist,
         albumCover,
+        submittedAt: new Date(),
+        gotSpeedBonus: isFirstSubmission, // Award speed bonus to first submission
         votes: []
       });
     }
-    
+
     // Add track to our playlist database
     try {
       await saveTrackToPlaylist(
@@ -286,8 +292,10 @@ router.post('/submit', async (req, res) => {
       gameId: game._id,
       status: game.status,
       submissions: game.submissions.length,
-      expectedSubmissions: expectedSubmissionsCount
+      expectedSubmissions: expectedSubmissionsCount,
+      gotSpeedBonus: isFirstSubmission // Return whether this player got the speed bonus
     });
+
   } catch (error) {
     console.error('Error submitting song:', error);
     res.status(500).json({ error: 'Failed to submit song', details: error.message });

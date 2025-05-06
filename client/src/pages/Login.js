@@ -89,9 +89,6 @@ const Login = () => {
       // Login with the returned data
       login(data.user, data.sessionToken);
       
-      // Verify the token was set in localStorage
-      const storedToken = localStorage.getItem('session_token');
-      
       // Navigate based on redirect path
       if (redirectPath && redirectPath.startsWith('/join/')) {
         // If joining a specific game

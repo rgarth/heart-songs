@@ -12,6 +12,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const [duplicateError, setDuplicateError] = useState(null);
+  const [speedBonusEarned, setSpeedBonusEarned] = useState(false);
+
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -92,15 +94,21 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     try {
       setIsSubmitting(true);
       
-      await submitSong(game._id, currentUser.id, selectedSong, accessToken);
+      const response = await submitSong(game._id, currentUser.id, selectedSong, accessToken);
       
       setHasSubmitted(true);
+      
+      // Show speed bonus notification if player got it
+      if (response.gotSpeedBonus) {
+        setSpeedBonusEarned(true); // New state variable to track
+      }
     } catch (error) {
       console.error('Error submitting song:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
+
   
   // Check if user is active in the current round (either all players or specifically included)
   const isUserActive = () => {
@@ -184,13 +192,23 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         
         {hasSubmitted ? (
           <div className="text-center py-10">
-            <div className="mb-4">
-              <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+          <div className="mb-4">
+            <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-medium text-green-500 mb-2">Song Submitted!</h3>
+          {speedBonusEarned && (
+            <div className="bg-yellow-600/30 p-3 rounded-lg inline-block mb-2">
+              <span className="text-yellow-400 font-bold flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                </svg>
+                Speed Bonus Earned! (+1 point)
+              </span>
             </div>
-            <h3 className="text-xl font-medium text-green-500 mb-2">Song Submitted!</h3>
-            <p className="text-gray-300">Waiting for other players to submit their songs...</p>
+          )}
+          <p className="text-gray-300">Waiting for other players to submit their songs...</p>
           </div>
         ) : (
           <>

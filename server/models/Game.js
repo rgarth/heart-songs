@@ -49,6 +49,14 @@ const GameSchema = new mongoose.Schema({
     songName: String,
     artist: String,
     albumCover: String,
+    submittedAt: { // Add timestamp tracking
+      type: Date,
+      default: Date.now
+    },
+    gotSpeedBonus: { // Flag for the speed bonus
+      type: Boolean,
+      default: false
+    },
     votes: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'

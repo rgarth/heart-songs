@@ -174,7 +174,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             
             {localSubmissions.map(submission => {
               const isOwnSubmission = submission.player._id === currentUser.id;
-              
+  
               return (
                 <div 
                   key={submission._id}
@@ -200,16 +200,24 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       />
                     )}
                     <div className="flex-1">
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-wrap gap-2">
                         <p className="font-medium">{submission.songName}</p>
                         {isOwnSubmission && (
-                          <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
+                          <span className="text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
+                        )}
+                        {submission.gotSpeedBonus && (
+                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                            </svg>
+                            Fastest (+1)
+                          </span>
                         )}
                       </div>
                       <p className="text-sm text-gray-400">{submission.artist}</p>
                     </div>
                   </div>
-                  
+
                   {/* Mobile-friendly button layout - stacked below song info */}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {/* "Listen on Spotify" button */}
