@@ -347,8 +347,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           <div className="mb-8 bg-gray-700 p-4 rounded-lg text-sm">
             <p className="mb-2 text-white font-medium">About the M3U Playlist</p>
             <p className="text-gray-300">
-              To import an m3u playlist into spotify, you will need a third party service like 
-              <a href="https://soundiiz.com">https://soundiiz.com</a>
+              To import an m3u playlist into spotify, you will need a third party service like <a href="https://soundiiz.com">https://soundiiz.com</a>
             </p>
           </div>
         )}
