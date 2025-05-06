@@ -169,6 +169,7 @@ const Home = () => {
               <li>Wait for all players to be ready</li>
               <li>A random question will be shown (e.g., "Best song to play at a wedding?")</li>
               <li>Everyone picks a song from Spotify that answers the question</li>
+              <li>Fastest song choice gets a (+1) bonus</li>
               <li>After everyone has chosen, all songs are revealed</li>
               <li>Players vote for their favorite answer (except their own)</li>
               <li>Points are awarded based on votes</li>

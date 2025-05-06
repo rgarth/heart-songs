@@ -427,6 +427,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
           <ol className="list-decimal pl-5 space-y-1 text-gray-300">
             <li>Once everyone is ready, you'll see a random question</li>
             <li>Select a song from Spotify that answers the question</li>
+            <li>Fastest song choice gets a (+1) bonus</li>
             <li>After everyone has chosen, all songs are revealed</li>
             <li>Vote for your favorite answer {game.players.length < 3 ? "(you can vote for your own)" : "(except your own)"}</li>
             <li>Points are awarded based on votes</li>

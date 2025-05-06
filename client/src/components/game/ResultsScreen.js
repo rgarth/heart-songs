@@ -149,6 +149,14 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
                             Winner!
                           </span>
                         )}
+                        {submission.gotSpeedBonus && (
+                          <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                            </svg>
+                            Speed Bonus (+1)
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-400">{submission.artist}</p>
                       <div className="flex items-center mt-1">
@@ -196,32 +204,51 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
             {game.players
               .slice()
               .sort((a, b) => b.score - a.score)
-              .map((player, index) => (
-                <div 
-                  key={player.user._id}
-                  className={`flex items-center justify-between bg-gray-700 p-3 rounded-lg ${
-                    player.user._id === currentUser.id ? 'border border-blue-500' : ''
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <span className="text-lg font-bold mr-3">{index + 1}.</span>
-                    {player.user.profileImage && (
-                      <img 
-                        src={player.user.profileImage} 
-                        alt={player.user.displayName} 
-                        className="w-8 h-8 rounded-full mr-3" 
-                      />
-                    )}
-                    <p className="font-medium">
-                      {player.user.displayName}
-                      {player.user._id === currentUser.id && (
-                        <span className="ml-1 text-blue-400">(You)</span>
+              .map((player, index) => {
+                // Calculate total points for this player in the current round
+                const playerSubmission = sortedSubmissions.find(
+                  sub => sub.player._id === player.user._id
+                );
+                
+                const votesReceived = playerSubmission ? playerSubmission.votes.length : 0;
+                const speedBonus = playerSubmission && playerSubmission.gotSpeedBonus ? 1 : 0;
+                const roundPoints = votesReceived + speedBonus;
+                
+                return (
+                  <div 
+                    key={player.user._id}
+                    className={`flex items-center justify-between bg-gray-700 p-3 rounded-lg ${
+                      player.user._id === currentUser.id ? 'border border-blue-500' : ''
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <span className="text-lg font-bold mr-3">{index + 1}.</span>
+                      {player.user.profileImage && (
+                        <img 
+                          src={player.user.profileImage} 
+                          alt={player.user.displayName} 
+                          className="w-8 h-8 rounded-full mr-3" 
+                        />
                       )}
-                    </p>
+                      <p className="font-medium">
+                        {player.user.displayName}
+                        {player.user._id === currentUser.id && (
+                          <span className="ml-1 text-blue-400">(You)</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      {roundPoints > 0 && (
+                        <span className="text-green-400 text-sm mr-3">
+                          +{roundPoints} this round
+                          {speedBonus > 0 && <span className="text-xs ml-1">(includes speed bonus)</span>}
+                        </span>
+                      )}
+                      <div className="font-bold">{player.score} pts</div>
+                    </div>
                   </div>
-                  <div className="font-bold">{player.score} pts</div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
         

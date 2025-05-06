@@ -371,14 +371,23 @@ router.post('/vote', async (req, res) => {
       
       // Update scores
       game.submissions.forEach(sub => {
-        if (sub.votes.length > 0) {
+        // Base points from votes
+        const votePoints = sub.votes.length;
+        
+        // Add speed bonus point if applicable
+        const speedBonus = sub.gotSpeedBonus ? 1 : 0;
+        
+        // Calculate total points for this submission
+        const totalPoints = votePoints + speedBonus;
+        
+        if (totalPoints > 0) {
           const playerIndex = game.players.findIndex(p => p.user.toString() === sub.player.toString());
           if (playerIndex !== -1) {
-            game.players[playerIndex].score += sub.votes.length;
+            game.players[playerIndex].score += totalPoints;
           }
         }
       });
-      
+
       await game.save();
       
       // Update user scores in the database
