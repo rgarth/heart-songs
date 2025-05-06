@@ -8,6 +8,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [winningTracks, setWinningTracks] = useState([]);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   
   // Add safety checks for undefined or empty arrays
   const hasPlayers = game && game.players && Array.isArray(game.players) && game.players.length > 0;
@@ -31,6 +32,47 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
       return '';
     }
     return `https://open.spotify.com/embed/track/${trackId}`;
+  };
+  
+  // Generate and download M3U playlist file
+  const downloadM3UPlaylist = () => {
+    try {
+      // Create M3U header
+      let m3uContent = "#EXTM3U\n";
+      
+      // Add each song to the playlist
+      winningTracks.forEach((track, index) => {
+        if (!track || !track.songId) return;
+        
+        // Add track info line with duration (-1 means unknown duration)
+        m3uContent += `#EXTINF:-1,${track.artist || 'Unknown Artist'} - ${track.songName || 'Unknown Song'}\n`;
+        
+        // Add Spotify URL for the track
+        m3uContent += `https://open.spotify.com/track/${track.songId}\n`;
+      });
+      
+      // Create a blob and download link
+      const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link and trigger download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `heart-songs-${game.gameCode || 'game'}.m3u`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      // Show success message briefly
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error creating M3U playlist:', error);
+      setError('Failed to create playlist file. Please try again.');
+    }
   };
   
   // Load winning tracks from each round
@@ -201,7 +243,30 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
         
         {/* Winning songs from each round with embedded players */}
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Winning Songs</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Winning Songs</h3>
+            
+            {/* M3U playlist download button */}
+            {winningTracks.length > 0 && (
+              <div className="flex items-center">
+                <button
+                  onClick={downloadM3UPlaylist}
+                  className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Playlist
+                </button>
+                
+                {downloadSuccess && (
+                  <span className="ml-2 text-green-400 text-sm animate-pulse">
+                    Playlist downloaded!
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           
           {winningTracks.length === 0 ? (
             <p className="text-center text-gray-400 py-4">No winning songs found</p>
@@ -276,6 +341,17 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
             </div>
           )}
         </div>
+        
+        {/* Info about M3U playlist */}
+        {winningTracks.length > 0 && (
+          <div className="mb-8 bg-gray-700 p-4 rounded-lg text-sm">
+            <p className="mb-2 text-white font-medium">About the M3U Playlist</p>
+            <p className="text-gray-300">
+              To import an m3u playlist into spotify, you will need a third party service like 
+              <a href="https://soundiiz.com">https://soundiiz.com</a>
+            </p>
+          </div>
+        )}
         
         {error && (
           <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
