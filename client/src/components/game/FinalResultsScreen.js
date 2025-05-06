@@ -8,20 +8,30 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [winningTracks, setWinningTracks] = useState([]);
-  const [exportLoading, setExportLoading] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState(false);
+  
+  // Add safety checks for undefined or empty arrays
+  const hasPlayers = game && game.players && Array.isArray(game.players) && game.players.length > 0;
   
   // Sort players by score (highest first)
-  const sortedPlayers = [...game.players].sort((a, b) => b.score - a.score);
+  const sortedPlayers = hasPlayers ? [...game.players].sort((a, b) => b.score - a.score) : [];
   
   // Determine the winner (player with highest score)
   const winner = sortedPlayers.length > 0 ? sortedPlayers[0] : null;
   
   // Check if current user is the winner
-  const isWinner = winner && winner.user._id === currentUser.id;
+  const isWinner = winner && winner.user && currentUser && winner.user._id === currentUser.id;
   
   // Check if there's a tie for first place
   const isTie = sortedPlayers.length > 1 && sortedPlayers[0].score === sortedPlayers[1].score;
+  
+  // Create a shareable link for all songs
+  const createSpotifyPlayButton = (trackId) => {
+    if (!trackId) {
+      // Return a fallback or empty string if no trackId
+      return '';
+    }
+    return `https://open.spotify.com/embed/track/${trackId}`;
+  };
   
   // Load winning tracks from each round
   useEffect(() => {
@@ -30,31 +40,71 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
         setLoading(true);
         setError(null);
         
+        // Safety checks for game object
+        if (!game) {
+          setError('Game data is not available');
+          setLoading(false);
+          return;
+        }
+        
         // If we have previous rounds data in the game state
-        if (game.previousRounds && game.previousRounds.length > 0) {
+        if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
           // Extract winning songs from previous rounds
           const winningTracksList = game.previousRounds.map(round => {
-            // Find song with most votes in this round
-            const roundWinner = [...round.submissions].sort(
-              (a, b) => b.votes.length - a.votes.length
-            )[0];
+            // Skip rounds with missing or invalid data
+            if (!round || !round.submissions || !Array.isArray(round.submissions) || round.submissions.length === 0) {
+              return null;
+            }
             
-            return roundWinner ? {
-              songId: roundWinner.songId,
-              songName: roundWinner.songName,
-              artist: roundWinner.artist,
-              albumCover: roundWinner.albumCover,
-              player: roundWinner.player,
-              votes: roundWinner.votes.length,
-              question: round.question
-            } : null;
-          }).filter(Boolean);
+            try {
+              // Make a safe copy to avoid mutation errors
+              const sortableSubmissions = [...round.submissions];
+              
+              // Find song with most votes in this round
+              const roundWinner = sortableSubmissions.sort((a, b) => {
+                // Safely handle potential undefined votes arrays
+                const votesA = a && a.votes && Array.isArray(a.votes) ? a.votes.length : 0;
+                const votesB = b && b.votes && Array.isArray(b.votes) ? b.votes.length : 0;
+                return votesB - votesA;
+              })[0];
+              
+              if (!roundWinner || !roundWinner.songId) {
+                return null;
+              }
+              
+              return {
+                songId: roundWinner.songId,
+                songName: roundWinner.songName || 'Unknown Song',
+                artist: roundWinner.artist || 'Unknown Artist',
+                albumCover: roundWinner.albumCover || '',
+                player: roundWinner.player || null,
+                votes: roundWinner.votes && Array.isArray(roundWinner.votes) ? roundWinner.votes.length : 0,
+                question: round.question || null
+              };
+            } catch (error) {
+              console.error('Error processing round:', error);
+              return null;
+            }
+          }).filter(Boolean); // Filter out null entries
           
           setWinningTracks(winningTracksList);
+        } else if (game._id) {
+          try {
+            // Fallback: try to get playlist from server
+            const playlistTracks = await getPlaylistTracks(game._id, accessToken);
+            if (Array.isArray(playlistTracks)) {
+              setWinningTracks(playlistTracks);
+            } else {
+              // Handle case where API returns non-array
+              setWinningTracks([]);
+            }
+          } catch (error) {
+            console.error('Error fetching playlist tracks:', error);
+            setWinningTracks([]);
+          }
         } else {
-          // Fallback: try to get playlist from server
-          const playlistTracks = await getPlaylistTracks(game._id, accessToken);
-          setWinningTracks(playlistTracks);
+          // No game ID available
+          setWinningTracks([]);
         }
       } catch (error) {
         console.error('Error fetching winning tracks:', error);
@@ -67,99 +117,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
     fetchWinningTracks();
   }, [game, accessToken]);
   
-  // Generate Spotify playlist export file
-  const handleExportPlaylist = () => {
-    try {
-      setExportLoading(true);
-      
-      // Create a better playlist content format for Spotify import
-      // This format is more compatible with tools like Soundiiz
-      const playlistContent = {
-        name: `Heart Songs - ${game.gameCode}`,
-        description: `Songs from our Heart Songs game (${game.gameCode}) on ${new Date().toLocaleDateString()}`,
-        tracks: []
-      };
-
-      // Add all winning songs - either from previousRounds or current submissions
-      let tracksToExport = [];
-      
-      // Use previousRounds if available
-      if (game.previousRounds && game.previousRounds.length > 0) {
-        tracksToExport = game.previousRounds.map(round => {
-          // Find song with most votes in this round
-          const roundWinner = [...round.submissions].sort(
-            (a, b) => b.votes.length - a.votes.length
-          )[0];
-          
-          return roundWinner ? {
-            songId: roundWinner.songId,
-            songName: roundWinner.songName,
-            artist: roundWinner.artist,
-            question: round.question?.text || "Question not available"
-          } : null;
-        }).filter(Boolean);
-      } 
-      // If we also have the current round's winning song, add it
-      if (game.submissions && game.submissions.length > 0) {
-        const currentRoundWinner = [...game.submissions].sort(
-          (a, b) => b.votes.length - a.votes.length
-        )[0];
-        
-        if (currentRoundWinner) {
-            tracksToExport.push({
-            songId: currentRoundWinner.songId,
-            songName: currentRoundWinner.songName,
-            artist: currentRoundWinner.artist,
-            question: game.currentQuestion?.text || "Question not available"
-          });
-        }
-      }
-    
-      // Add tracks to playlist content
-      if (tracksToExport.length > 0) {
-        playlistContent.tracks = tracksToExport.map(track => ({
-          uri: `spotify:track:${track.songId}`,
-          name: track.songName,
-          artist: track.artist,
-          note: track.question
-        }));
-      } else if (winningTracks.length > 0) {
-        // Fallback to winningTracks if no other source
-        playlistContent.tracks = winningTracks.map(track => ({
-          uri: `spotify:track:${track.songId}`,
-          name: track.songName,
-          artist: track.artist
-        }));
-      }
-      
-        // Convert to JSON with nice formatting
-        const jsonContent = JSON.stringify(playlistContent, null, 2);
-      
-        // Create a blob and download link
-        const blob = new Blob([jsonContent], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-    
-      // Create a temporary link and trigger download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `heart-songs-${game.gameCode}.json`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error exporting playlist:', error);
-      setError('Failed to export playlist');
-    } finally {
-      setExportLoading(false);
-    }
-  }; 
-
   // Return to home
   const handleReturnHome = () => {
     navigate('/');
@@ -242,111 +199,82 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           </div>
         </div>
         
-        {/* Winning songs from each round */}
+        {/* Winning songs from each round with embedded players */}
         <div className="mb-8">
           <h3 className="text-lg font-medium mb-3">Winning Songs</h3>
           
           {winningTracks.length === 0 ? (
             <p className="text-center text-gray-400 py-4">No winning songs found</p>
           ) : (
-            <div className="space-y-4">
-              {winningTracks.map((track, index) => (
-                <div 
-                  key={`${track.songId}-${index}`}
-                  className="bg-gray-750 rounded-lg overflow-hidden"
-                >
-                  <div className="bg-gray-700 px-4 py-2 font-medium">
-                    <p className="text-yellow-400">
-                      Round {index + 1}: {track.question?.text || "Question not available"}
-                    </p>
-                  </div>
-                  <div className="flex items-center p-4">
-                    {track.albumCover && (
-                      <img 
-                        src={track.albumCover} 
-                        alt={track.songName} 
-                        className="w-16 h-16 rounded mr-4" 
-                      />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">{track.songName}</p>
-                      <p className="text-sm text-gray-400">{track.artist}</p>
-                      {track.player && (
-                        <p className="text-sm mt-1">
-                          Selected by: <span className="font-medium">
-                            {typeof track.player === 'object' 
-                              ? track.player.displayName 
-                              : 'Unknown Player'}
-                          </span>
-                        </p>
-                      )}
+            <div className="space-y-6">
+              {winningTracks.map((track, index) => {
+                if (!track || !track.songId) return null;
+                
+                return (
+                  <div 
+                    key={`${track.songId}-${index}`}
+                    className="bg-gray-750 rounded-lg overflow-hidden"
+                  >
+                    <div className="bg-gray-700 px-4 py-2 font-medium">
+                      <p className="text-yellow-400">
+                        Round {index + 1}: {track.question?.text || "Question not available"}
+                      </p>
                     </div>
-                    <div className="text-center">
-                      <a 
-                        href={`https://open.spotify.com/track/${track.songId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                      >
-                        <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                        </svg>
-                        Open
-                      </a>
+                    <div className="p-4">
+                      <div className="flex items-center mb-4">
+                        {track.albumCover && (
+                          <img 
+                            src={track.albumCover} 
+                            alt={track.songName || 'Album cover'} 
+                            className="w-16 h-16 rounded mr-4" 
+                          />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium">{track.songName || 'Unknown Song'}</p>
+                          <p className="text-sm text-gray-400">{track.artist || 'Unknown Artist'}</p>
+                          {track.player && (
+                            <p className="text-sm mt-1">
+                              Selected by: <span className="font-medium">
+                                {typeof track.player === 'object' && track.player.displayName
+                                  ? track.player.displayName 
+                                  : 'Unknown Player'}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <a 
+                            href={`https://open.spotify.com/track/${track.songId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                          >
+                            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                            </svg>
+                            Open in Spotify
+                          </a>
+                        </div>
+                      </div>
+                      
+                      {/* Embedded Spotify player */}
+                      <div className="w-full">
+                        <iframe 
+                          src={createSpotifyPlayButton(track.songId)}
+                          width="100%" 
+                          height="80" 
+                          frameBorder="0" 
+                          allowtransparency="true" 
+                          allow="encrypted-media"
+                          title={`${track.songName || 'Song'} by ${track.artist || 'Artist'}`}
+                        ></iframe>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
-        
-        {/* Export playlist button */}
-        <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Export Playlist</h3>
-          <div className="bg-gray-750 p-4 rounded-lg">
-            <p className="text-gray-300 mb-4">
-              Want to listen to these songs later? Export the playlist and import it into Spotify.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-3 items-center">
-              <button
-                onClick={handleExportPlaylist}
-                disabled={exportLoading || winningTracks.length === 0}
-                className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center"
-              >
-                {exportLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                    </svg>
-                    Export Spotify Playlist
-                  </>
-                )}
-              </button>
-              
-              {exportSuccess && (
-                <span className="text-green-400 animate-pulse">
-                  Playlist exported successfully!
-                </span>
-              )}
-            </div>
-            
-            <div className="mt-4 text-sm text-gray-400">
-              <p className="mb-2">How to import into Spotify:</p>
-              <ol className="list-decimal pl-5 space-y-1">
-                <li>Download the playlist file</li>
-                <li>Go to <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">open.spotify.com</a></li>
-                <li>Create a new playlist</li>
-                <li>Use a tool like <a href="https://soundiiz.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Soundiiz</a> to import your playlist file</li>
-              </ol>
-            </div>
-          </div>
         </div>
         
         {error && (
