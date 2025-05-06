@@ -9,7 +9,7 @@ const GameSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['waiting', 'selecting', 'voting', 'results'],
+    enum: ['waiting', 'selecting', 'voting', 'results', 'ended'],
     default: 'waiting'
   },
   host: {
@@ -66,6 +66,10 @@ const GameSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  endedAt: {
+    type: Date,
+    default: null
   }
 });
 

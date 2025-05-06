@@ -237,11 +237,35 @@ export const getSpotifyOpenURL = (trackId) => {
   return `https://open.spotify.com/track/${trackId}`;
 };
 
+/**
+ * Get playlist tracks from our database
+ * @param {string} gameId Game ID
+ * @param {string} token Access token
+ * @returns {Promise<Array>} Array of track objects
+ */
+export const getPlaylistTracks = async (gameId, token) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/spotify/playlist/${gameId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting playlist tracks:', error);
+    return []; // Return empty array on error
+  }
+};
+
 // Default export
 const spotifyService = {
   searchTracks,
   getTrack,
   getPlaylist,
+  getPlaylistTracks,
   playTrack,
   pausePlayback,
   getPlaybackState,

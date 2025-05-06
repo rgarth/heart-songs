@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 
-const ResultsScreen = ({ game, currentUser, onNextRound }) => {
+const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
   // Sort submissions by votes (most votes first)
   const sortedSubmissions = [...game.submissions].sort(
     (a, b) => b.votes.length - a.votes.length
@@ -17,7 +17,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
   // Check if this was a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
   
-  // NEW FEATURE: Question preview states
+  // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showQuestionPreview, setShowQuestionPreview] = useState(false);
@@ -25,7 +25,10 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
   const [customQuestion, setCustomQuestion] = useState('');
   const [error, setError] = useState(null);
   
-  // NEW FEATURE: Function to fetch next question preview
+  // New state for End Game confirmation
+  const [showEndGameConfirmation, setShowEndGameConfirmation] = useState(false);
+  
+  // Function to fetch next question preview
   const handleShowNextQuestion = async () => {
     if (!isHost) return;
     
@@ -44,7 +47,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
     }
   };
   
-  // NEW FEATURE: Function to skip to another question
+  // Function to skip to another question
   const handleSkipQuestion = async () => {
     try {
       setLoading(true);
@@ -60,7 +63,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
     }
   };
   
-  // NEW FEATURE: Function to submit custom question
+  // Function to submit custom question
   const handleSubmitCustomQuestion = async () => {
     if (!customQuestion.trim()) {
       setError('Please enter a question');
@@ -87,10 +90,26 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
     }
   };
   
-  // NEW FEATURE: Function to play with selected question
+  // Function to play with selected question
   const handlePlayWithQuestion = () => {
     if (!nextQuestion) return;
     onNextRound(nextQuestion);
+  };
+  
+  // Function to show end game confirmation
+  const handleShowEndGameConfirmation = () => {
+    setShowEndGameConfirmation(true);
+  };
+  
+  // Function to confirm ending the game
+  const handleConfirmEndGame = () => {
+    onEndGame();
+    setShowEndGameConfirmation(false);
+  };
+  
+  // Function to cancel ending the game
+  const handleCancelEndGame = () => {
+    setShowEndGameConfirmation(false);
   };
   
   // Get player by ID
@@ -252,17 +271,26 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
           </div>
         </div>
         
-        {/* NEW FEATURE: Next Round Section with Question Preview */}
+        {/* Next Round Section with Question Preview */}
         {isHost && (
           <div className="text-center">
             {!showQuestionPreview ? (
-              <button
-                onClick={handleShowNextQuestion}
-                disabled={loading}
-                className="py-3 px-8 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
-              >
-                {loading ? 'Loading...' : 'Start Next Round'}
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  onClick={handleShowNextQuestion}
+                  disabled={loading}
+                  className="py-3 px-8 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Loading...' : 'Start Next Round'}
+                </button>
+                
+                <button
+                  onClick={handleShowEndGameConfirmation}
+                  className="py-3 px-8 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+                >
+                  End Game
+                </button>
+              </div>
             ) : (
               <div className="bg-gray-700 p-4 rounded-lg mb-4">
                 <h3 className="text-lg font-medium mb-2">Next Question Preview</h3>
@@ -337,6 +365,32 @@ const ResultsScreen = ({ game, currentUser, onNextRound }) => {
         {!isHost && (
           <div className="text-center text-gray-300">
             Waiting for the host to start the next round...
+          </div>
+        )}
+        
+        {/* End Game Confirmation Modal */}
+        {showEndGameConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-xl font-bold mb-4 text-purple-400">End Game Confirmation</h3>
+              <p className="mb-6">
+                Are you sure you want to end the game? This will show the final scores and winning songs from all rounds.
+              </p>
+              <div className="flex gap-4 justify-end">
+                <button 
+                  onClick={handleCancelEndGame}
+                  className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleConfirmEndGame}
+                  className="py-2 px-4 bg-purple-600 text-white rounded hover:bg-purple-700"
+                >
+                  End Game
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

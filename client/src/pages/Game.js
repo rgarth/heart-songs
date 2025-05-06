@@ -2,11 +2,12 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getGameState, toggleReady, startNewRound, startGame } from '../services/gameService';
+import { getGameState, toggleReady, startNewRound, startGame, endGame } from '../services/gameService';
 import LobbyScreen from '../components/game/LobbyScreen';
 import SelectionScreen from '../components/game/SelectionScreen';
 import VotingScreen from '../components/game/VotingScreen';
 import ResultsScreen from '../components/game/ResultsScreen';
+import FinalResultsScreen from '../components/game/FinalResultsScreen';
 
 // Polling interval in milliseconds
 const POLLING_INTERVAL = 2000;
@@ -22,6 +23,11 @@ const Game = () => {
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  
+  // Add state to track game history for the final results
+  const [gameHistory, setGameHistory] = useState({
+    previousRounds: []
+  });
   
   // Fetch game state with optimized polling
   const fetchGameState = useCallback(async () => {
@@ -91,6 +97,23 @@ const Game = () => {
           hasPlayersChanged ||
           hasActivePlayersChanged
         ) {
+          // If status changed from results to selecting, it means a new round started
+          // Save the previous round data
+          if (prevGame.status === 'results' && gameData.status === 'selecting') {
+            // Add current round data to game history
+            setGameHistory(prev => {
+              const roundData = {
+                question: prevGame.currentQuestion,
+                submissions: [...prevGame.submissions]
+              };
+              
+              return {
+                ...prev,
+                previousRounds: [...prev.previousRounds, roundData]
+              };
+            });
+          }
+          
           return gameData;
         }
         
@@ -128,7 +151,7 @@ const Game = () => {
     
     // Setup polling
     intervalId = setInterval(() => {
-      if (isMounted && !error) {
+      if (isMounted && !error && game?.status !== 'ended') {
         fetchGameState();
       }
     }, POLLING_INTERVAL);
@@ -137,7 +160,7 @@ const Game = () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [fetchGameState, error]);
+  }, [fetchGameState, error, game?.status]);
   
   // Handle ready toggle
   const handleToggleReady = async () => {
@@ -203,7 +226,61 @@ const Game = () => {
     }
   };
   
-  // Go back to home
+  // Improved handleEndGame function for Game.js
+
+// Handle ending the game
+const handleEndGame = async () => {
+  try {
+    if (!user || !user.id) {
+      setError('User information missing. Please login again.');
+      return;
+    }
+    
+    // Get the most up-to-date token
+    const token = accessToken || localStorage.getItem('accessToken');
+    
+    if (!token) {
+      setError('Authentication error. Please login again.');
+      return;
+    }
+    
+    // Store current round data in game history before ending
+    if (game && game.status === 'results' && game.submissions && game.submissions.length > 0) {
+      // Make sure to save the winning song from the current round
+      setGameHistory(prev => {
+        const roundData = {
+          question: game.currentQuestion,
+          submissions: [...game.submissions].sort((a, b) => b.votes.length - a.votes.length)
+        };
+        
+        return {
+          ...prev,
+          previousRounds: [...prev.previousRounds, roundData]
+        };
+      });
+    }
+    
+    // Update game status locally without waiting for server
+    setGame(prevGame => ({
+      ...prevGame,
+      status: 'ended'
+    }));
+    
+    // Call API to end the game on the server
+    const response = await endGame(gameId, token);
+    
+    // If the server response includes playlist data, update our state
+    if (response && response.playlist) {
+      console.log('Received playlist data from server:', response.playlist.length, 'tracks');
+    }
+    
+  } catch (error) {
+    console.error('Error ending game:', error);
+    setError('Failed to end game. Please try again.');
+  }
+};
+
+// Go back to home
   const handleLeaveGame = () => {
     navigate('/');
   };
@@ -311,13 +388,12 @@ const Game = () => {
         )}
         
         {game.status === 'voting' && (
-
-        <VotingScreen 
-          game={game}
-          currentUser={user}
-          accessToken={accessToken}
-          sessionToken={accessToken} // Updated: Pass accessToken as sessionToken
-        />
+          <VotingScreen 
+            game={game}
+            currentUser={user}
+            accessToken={accessToken}
+            sessionToken={accessToken} // Updated: Pass accessToken as sessionToken
+          />
         )}
         
         {game.status === 'results' && (
@@ -329,6 +405,21 @@ const Game = () => {
             }}
             accessToken={accessToken || localStorage.getItem('accessToken')}
             onNextRound={handleNextRound}
+            onEndGame={handleEndGame}
+          />
+        )}
+        
+        {game.status === 'ended' && (
+          <FinalResultsScreen 
+            game={{
+              ...game,
+              previousRounds: gameHistory.previousRounds
+            }}
+            currentUser={{
+              ...user,
+              accessToken: accessToken || localStorage.getItem('accessToken')
+            }}
+            accessToken={accessToken || localStorage.getItem('accessToken')}
           />
         )}
       </div>

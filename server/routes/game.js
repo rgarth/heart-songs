@@ -695,4 +695,69 @@ router.post('/start', async (req, res) => {
   }
 });
 
+// End game (host only)
+router.post('/end', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    // Important: Use req.user provided by the middleware instead of finding by userId
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can end the game' });
+    }
+    
+    // Change game status to ended and set the end timestamp
+    game.status = 'ended';
+    game.endedAt = new Date();
+    
+    await game.save();
+    
+    // Get all tracks from playlist for this game
+    let playlist = null;
+    try {
+      playlist = await Playlist.findOne({ gameId: game._id });
+    } catch (playlistError) {
+      console.error('Error fetching playlist:', playlistError);
+      // Continue even if there's an error with the playlist
+    }
+    
+    // Populate game data
+    await game.populate('host', 'displayName');
+    await game.populate('players.user', 'displayName score');
+    
+    res.json({
+      _id: game._id,
+      gameId: game._id,
+      gameCode: game.code,
+      status: game.status,
+      host: game.host,
+      players: game.players,
+      playlist: playlist ? playlist.tracks : [],
+      endedAt: game.endedAt
+    });
+  } catch (error) {
+    console.error('Error ending game:', error);
+    res.status(500).json({ error: 'Failed to end game' });
+  }
+});
+
 module.exports = router;

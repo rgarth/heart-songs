@@ -283,6 +283,28 @@ export const startNewRound = async (gameId, questionData, token) => {
   }
 };
 
+export const endGame = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for ending game:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/end`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'ending game');
+  }
+};
+
 // Get game state
 export const getGameState = async (gameId, token) => {
   try {
