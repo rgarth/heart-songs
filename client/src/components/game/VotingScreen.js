@@ -300,7 +300,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               ></iframe>
             </div>
             
-            <div className="flex justify-between">
+            <div className="flex flex-wrap gap-2 mt-2">
               <a 
                 href={`spotify:track:${currentSpotifyTrack}`}
                 className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
@@ -310,17 +310,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 </svg>
                 Open in Spotify App
               </a>
-              <a 
-                href={`https://open.spotify.com/track/${currentSpotifyTrack}`} 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
-              >
-                Open in Browser
-              </a>
-            </div>
-            
-            <div className="text-center mt-4">
               <button
                 onClick={() => setShowSpotifyPlayer(false)}
                 className="py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -328,6 +317,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 Back to Game
               </button>
             </div>
+            
           </div>
         </div>
       )}
