@@ -1,6 +1,5 @@
 // client/src/components/game/VotingScreen.js
 import React, { useState, useEffect } from 'react';
-import { getSpotifyOpenURL } from '../../services/spotifyService';
 import { voteForSong } from '../../services/gameService';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
