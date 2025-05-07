@@ -9,10 +9,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [hasVoted, setHasVoted] = useState(false);
   const [error, setError] = useState(null);
   
-  // Add state for Spotify player modal
-  const [showSpotifyPlayer, setShowSpotifyPlayer] = useState(false);
-  const [currentSpotifyTrack, setCurrentSpotifyTrack] = useState(null);
-  
   // Add state to track if we've already loaded data
   const [dataLoaded, setDataLoaded] = useState(false);
   const [localSubmissions, setLocalSubmissions] = useState([]);
@@ -52,12 +48,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     setLoading(false);
   }, [game.submissions, dataLoaded]);
   
-  // Open song in Spotify modal
-  const openInSpotify = (trackId) => {
-    setCurrentSpotifyTrack(trackId);
-    setShowSpotifyPlayer(true);
-  };
-  
   // Handle vote
   const handleVote = async () => {
     if (!selectedSubmission) return;
@@ -92,6 +82,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     0
   );
   const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
+  
+  // Generate Spotify embed URL from track ID
+  const getSpotifyEmbedUrl = (trackId) => {
+    return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
+  };
   
   // Early return when data is still being initially loaded
   if (loading && !dataLoaded) {
@@ -129,10 +124,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           <p className="text-sm text-gray-400">
             {votedCount} of {totalPlayers} voted
           </p>
-        </div>
-        
-        <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-          <p><strong>Note:</strong> Click "Listen on Spotify" to preview songs without leaving the game.</p>
         </div>
         
         {isSmallGame && (
@@ -173,7 +164,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             
             {localSubmissions.map(submission => {
               const isOwnSubmission = submission.player._id === currentUser.id;
-  
+              
               return (
                 <div 
                   key={submission._id}
@@ -182,7 +173,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   } transition-colors ${
                     selectedSubmission === submission._id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
                   } ${
-                    isOwnSubmission ? 'border-l-4 border-l-yellow-500' : ''
+                    isOwnSubmission ? 'relative border-t-4 border-t-yellow-500' : ''
                   }`}
                   onClick={() => {
                     if (!hasVoted && (isSmallGame || !isOwnSubmission)) {
@@ -190,65 +181,69 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     }
                   }}
                 >
-                  <div className="flex items-center mb-3">
-                    {submission.albumCover && (
-                      <img 
-                        src={submission.albumCover} 
-                        alt={submission.songName} 
-                        className="w-16 h-16 rounded mr-4" 
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center flex-wrap gap-2">
+                  {isOwnSubmission && (
+                    <div className="absolute top-0 left-4 -mt-2 bg-yellow-600 text-white text-xs px-2 py-px rounded">
+                      Your Pick
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    {/* Spotify Player Embed */}
+                    <div className="w-full lg:w-1/2">
+                      <iframe 
+                        src={getSpotifyEmbedUrl(submission.songId)} 
+                        width="100%" 
+                        height="80" 
+                        frameBorder="0" 
+                        allowFullScreen 
+                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                        loading="lazy"
+                        title={`${submission.songName} by ${submission.artist}`}
+                        className="rounded"
+                      ></iframe>
+                    </div>
+                    
+                    {/* Song Info and Buttons */}
+                    <div className="flex-1 flex items-center justify-between">
+                      <div>
                         <p className="font-medium">{submission.songName}</p>
-                        {isOwnSubmission && (
-                          <span className="text-xs bg-yellow-600 text-white px-2 py-1 rounded">Your Pick</span>
-                        )}
-                        {submission.gotSpeedBonus && (
-                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                            </svg>
-                            Fastest (+1)
-                          </span>
+                        <p className="text-sm text-gray-400">{submission.artist}</p>
+                        <p className="text-xs text-gray-500 mt-1">Submitted by: {submission.player.displayName}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {/* Open in Spotify button */}
+                        <a 
+                          href={`https://open.spotify.com/track/${submission.songId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="py-2 px-3 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-sm"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          Open in Spotify
+                        </a>
+                        
+                        {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
+                        {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSubmission(submission._id);
+                            }}
+                            className={`py-2 px-4 rounded ${
+                              selectedSubmission === submission._id
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-600 text-white hover:bg-gray-500'
+                            }`}
+                          >
+                            {selectedSubmission === submission._id ? 'Selected' : 'Select'}
+                          </button>
                         )}
                       </div>
-                      <p className="text-sm text-gray-400">{submission.artist}</p>
                     </div>
-                  </div>
-
-                  {/* Mobile-friendly button layout - stacked below song info */}
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {/* "Listen on Spotify" button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openInSpotify(submission.songId);
-                      }}
-                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
-                      Listen on Spotify
-                    </button>
-                    
-                    {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
-                    {!hasVoted && (isSmallGame || !isOwnSubmission) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSubmission(submission._id);
-                        }}
-                        className={`py-2 px-4 rounded ${
-                          selectedSubmission === submission._id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-600 text-white hover:bg-gray-500'
-                        }`}
-                      >
-                        {selectedSubmission === submission._id ? 'Selected' : 'Select'}
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -271,56 +266,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           )}
         </div>
       </div>
-
-      {/* Spotify Player Modal */}
-      {showSpotifyPlayer && currentSpotifyTrack && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 p-4 rounded-lg max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Spotify Preview</h3>
-              <button 
-                onClick={() => setShowSpotifyPlayer(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <iframe
-                src={`https://open.spotify.com/embed/track/${currentSpotifyTrack}`}
-                width="100%" 
-                height="80" 
-                frameBorder="0" 
-                allowtransparency="true" 
-                allow="encrypted-media"
-                title={`${currentSpotifyTrack.songName || 'Song'} by ${currentSpotifyTrack.artist || 'Artist'}`}
-              ></iframe>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 mt-2">
-              <a 
-                href={`spotify:track:${currentSpotifyTrack}`}
-                className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                Open in Spotify App
-              </a>
-              <button
-                onClick={() => setShowSpotifyPlayer(false)}
-                className="py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Back to Game
-              </button>
-            </div>
-            
-          </div>
-        </div>
-      )}
     </div>
   );
 };
