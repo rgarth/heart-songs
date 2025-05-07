@@ -1,0 +1,29 @@
+name: Keep Render App Alive
+
+on:
+  schedule:
+    # Run every 12 minutes
+    - cron: '*/12 * * * *'
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      
+      - name: Install dependencies
+        run: npm install axios dotenv
+      
+      - name: Create .env file
+        run: echo "API_URI=${{ secrets.API_URI }}" > .env
+      
+      - name: Run keep-alive script
+        run: node server/scripts/keepAlive.js

@@ -289,13 +289,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             </div>
             
             <div className="mb-4">
-              <iframe 
+              <iframe
                 src={`https://open.spotify.com/embed/track/${currentSpotifyTrack}`}
                 width="100%" 
                 height="80" 
                 frameBorder="0" 
                 allowtransparency="true" 
                 allow="encrypted-media"
+                title={`${currentSpotifyTrack.songName || 'Song'} by ${currentSpotifyTrack.artist || 'Artist'}`}
               ></iframe>
             </div>
             

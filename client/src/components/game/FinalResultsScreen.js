@@ -289,7 +289,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
 
                       {/* Embedded Spotify player */}
                       <div className="w-full">
-                        <iframe 
+                        <iframe
                           src={createSpotifyPlayButton(track.songId)}
                           width="100%" 
                           height="80" 
