@@ -728,6 +728,9 @@ router.post('/end', async (req, res) => {
     // Change game status to ended and set the end timestamp
     game.status = 'ended';
     game.endedAt = new Date();
+    // set TTL for mongo cleanup
+    game.expiresAt = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)); 
+
     
     await game.save();
     

@@ -70,6 +70,15 @@ const GameSchema = new mongoose.Schema({
   endedAt: {
     type: Date,
     default: null
+  },
+  expiresAt: {
+    type: Date,
+    default: function() {
+      // Default 7 days from creation
+      const date = new Date();
+      date.setDate(date.getDate() + 7);
+      return date;
+    }
   }
 });
 
