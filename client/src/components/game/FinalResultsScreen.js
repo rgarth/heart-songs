@@ -89,12 +89,25 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           return;
         }
         
-        // If we have previous rounds data in the game state
+        console.log('FinalResultsScreen loading - Game data:', JSON.stringify({
+          has_previous_rounds: !!game.previousRounds,
+          previous_rounds_length: game.previousRounds?.length || 0,
+          has_final_round_data: !!game.finalRoundData,
+          game_status: game.status,
+          all_rounds_count: game.allRoundsCount || 0,
+          submissions_count: game.submissions?.length || 0
+        }));
+        
+        // Array to hold all winning tracks
+        let winningTracksList = [];
+        
+        // First check if we have previous rounds data
         if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
           // Extract winning songs from previous rounds
-          const winningTracksList = game.previousRounds.map(round => {
+          winningTracksList = game.previousRounds.map((round, index) => {
             // Skip rounds with missing or invalid data
             if (!round || !round.submissions || !Array.isArray(round.submissions) || round.submissions.length === 0) {
+              console.log(`Round ${index} has invalid data:`, round);
               return null;
             }
             
@@ -111,9 +124,11 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
               })[0];
               
               if (!roundWinner || !roundWinner.songId) {
+                console.log(`Round ${index} has no valid winner:`, roundWinner);
                 return null;
               }
               
+              // Return winning track data
               return {
                 songId: roundWinner.songId,
                 songName: roundWinner.songName || 'Unknown Song',
@@ -121,33 +136,142 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                 albumCover: roundWinner.albumCover || '',
                 player: roundWinner.player || null,
                 votes: roundWinner.votes && Array.isArray(roundWinner.votes) ? roundWinner.votes.length : 0,
-                question: round.question || null
+                question: round.question || null,
+                roundNumber: index + 1
               };
             } catch (error) {
-              console.error('Error processing round:', error);
+              console.error(`Error processing round ${index}:`, error);
               return null;
             }
           }).filter(Boolean); // Filter out null entries
           
-          setWinningTracks(winningTracksList);
-        } else if (game._id) {
+          console.log('Found winning tracks from previousRounds:', winningTracksList.length);
+        }
+        
+        // Check if we have a finalRoundData explicit property (from our enhanced Game.js fix)
+        if (game.finalRoundData && game.finalRoundData.submissions && game.finalRoundData.submissions.length > 0) {
           try {
+            console.log('Found explicit finalRoundData - processing it');
+            
+            // Get the submissions from finalRoundData
+            const finalRoundSubmissions = game.finalRoundData.submissions;
+            
+            // Winners should already be sorted by votes, but let's make sure
+            if (finalRoundSubmissions.length > 0) {
+              const finalRoundWinner = finalRoundSubmissions[0]; // First item should be the winner
+              
+              if (finalRoundWinner && finalRoundWinner.songId) {
+                // Create winning track object for final round
+                const finalWinnerTrack = {
+                  songId: finalRoundWinner.songId,
+                  songName: finalRoundWinner.songName || 'Unknown Song',
+                  artist: finalRoundWinner.artist || 'Unknown Artist',
+                  albumCover: finalRoundWinner.albumCover || '',
+                  player: finalRoundWinner.player || null,
+                  votes: finalRoundWinner.votes && Array.isArray(finalRoundWinner.votes) ? finalRoundWinner.votes.length : 0,
+                  question: game.finalRoundData.question || null,
+                  roundNumber: (winningTracksList.length > 0 ? winningTracksList.length + 1 : 1)
+                };
+                
+                // Add to our tracks list if it doesn't appear to be a duplicate
+                const isDuplicate = winningTracksList.some(track => 
+                  track.songId === finalWinnerTrack.songId && 
+                  track.songName === finalWinnerTrack.songName
+                );
+                
+                if (!isDuplicate) {
+                  winningTracksList.push(finalWinnerTrack);
+                  console.log('Added explicit final round winner:', finalWinnerTrack.songName);
+                } else {
+                  console.log('Skipping duplicate final round track:', finalWinnerTrack.songName);
+                }
+              } else {
+                console.log('Final round has invalid winner:', finalRoundWinner);
+              }
+            } else {
+              console.log('Final round submissions is empty');
+            }
+          } catch (error) {
+            console.error('Error processing finalRoundData:', error);
+          }
+        }
+        // Otherwise check current submissions if we're still missing data
+        else if (game.status === 'ended' && game.submissions && game.submissions.length > 0 &&
+                // Only add if we don't already have this round
+                (winningTracksList.length < (game.allRoundsCount || 0))) {
+          try {
+            console.log('Adding winning track from current submissions');
+            
+            // Sort submissions by votes
+            const sortedSubmissions = [...game.submissions].sort((a, b) => {
+              const votesA = a && a.votes && Array.isArray(a.votes) ? a.votes.length : 0;
+              const votesB = b && b.votes && Array.isArray(b.votes) ? b.votes.length : 0;
+              return votesB - votesA;
+            });
+            
+            // Get the winning submission
+            const winner = sortedSubmissions[0];
+            
+            if (winner && winner.songId) {
+              // Create a winning track object
+              const finalWinner = {
+                songId: winner.songId,
+                songName: winner.songName || 'Unknown Song',
+                artist: winner.artist || 'Unknown Artist',
+                albumCover: winner.albumCover || '',
+                player: winner.player || null,
+                votes: winner.votes && Array.isArray(winner.votes) ? winner.votes.length : 0,
+                question: game.currentQuestion || null,
+                roundNumber: (winningTracksList.length > 0 ? winningTracksList.length + 1 : 1)
+              };
+              
+              // Check if this appears to be a duplicate
+              const isDuplicate = winningTracksList.some(track => 
+                track.songId === finalWinner.songId && 
+                track.songName === finalWinner.songName
+              );
+              
+              if (!isDuplicate) {
+                winningTracksList.push(finalWinner);
+                console.log('Added winner from current submissions');
+              } else {
+                console.log('Skipping duplicate current submission');
+              }
+            } else {
+              console.log('Current submissions has invalid winner:', winner);
+            }
+          } catch (error) {
+            console.error('Error processing current submissions:', error);
+          }
+        }
+        
+        // If we still have no tracks, try the server playlist as a last resort
+        if (winningTracksList.length === 0 && game._id) {
+          try {
+            console.log('No tracks found locally, trying server playlist');
+            
             // Fallback: try to get playlist from server
             const playlistTracks = await getPlaylistTracks(game._id, accessToken);
-            if (Array.isArray(playlistTracks)) {
-              setWinningTracks(playlistTracks);
+            if (Array.isArray(playlistTracks) && playlistTracks.length > 0) {
+              console.log('Fetched playlist tracks from server:', playlistTracks.length);
+              winningTracksList = playlistTracks.map((track, index) => ({
+                ...track,
+                roundNumber: index + 1
+              }));
             } else {
-              // Handle case where API returns non-array
+              console.log('Server returned no playlist tracks');
               setWinningTracks([]);
             }
           } catch (error) {
             console.error('Error fetching playlist tracks:', error);
             setWinningTracks([]);
           }
-        } else {
-          // No game ID available
-          setWinningTracks([]);
         }
+        
+        // Update state with our collected winning tracks
+        console.log('Final winning tracks count:', winningTracksList.length);
+        setWinningTracks(winningTracksList);
+        
       } catch (error) {
         console.error('Error fetching winning tracks:', error);
         setError('Failed to load winning songs');
@@ -159,6 +283,62 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
     fetchWinningTracks();
   }, [game, accessToken]);
   
+  // Simplified fix for missing/duplicate rounds
+  useEffect(() => {
+    // Calculate correct number of rounds
+    // For games with 2 rounds total, we should expect 2 tracks
+    const expectedRounds = (game.previousRounds?.length || 0);
+    
+    console.log(`Verifying correct rounds - winningTracks: ${winningTracks.length}, expectedRounds: ${expectedRounds}`);
+    
+    // First fix case: too few tracks
+    if (winningTracks.length < expectedRounds && game.submissions?.length > 0) {
+      console.log(`Missing track detected - adding final round's winning song`);
+      
+      try {
+        // Get the winning song from the current submissions
+        const sortedSubmissions = [...game.submissions].sort((a, b) => {
+          return (b.votes?.length || 0) - (a.votes?.length || 0);
+        });
+        
+        if (sortedSubmissions.length > 0) {
+          const winner = sortedSubmissions[0];
+          
+          // Check if it's already in the list
+          const isDuplicate = winningTracks.some(track => 
+            track.songId === winner.songId
+          );
+          
+          if (!isDuplicate) {
+            const finalTrack = {
+              songId: winner.songId,
+              songName: winner.songName,
+              artist: winner.artist,
+              albumCover: winner.albumCover,
+              question: game.currentQuestion,
+              roundNumber: winningTracks.length + 1
+            };
+            
+            console.log(`Adding missing song: ${winner.songName}`);
+            setWinningTracks(prev => [...prev, finalTrack]);
+          }
+        }
+      } catch (err) {
+        console.error("Error fixing missing round:", err);
+      }
+    }
+    
+    // Second fix case: too many tracks
+    if (winningTracks.length > expectedRounds && expectedRounds > 0) {
+      console.log(`Too many tracks detected - have ${winningTracks.length}, expected ${expectedRounds}`);
+      
+      // Just take the correct number of tracks
+      const limitedTracks = winningTracks.slice(0, expectedRounds);
+      console.log(`Limiting tracks from ${winningTracks.length} to ${limitedTracks.length}`);
+      setWinningTracks(limitedTracks);
+    }
+  }, [game.previousRounds?.length, game.submissions, game.currentQuestion, winningTracks.length]);
+
   // Return to home
   const handleReturnHome = () => {
     navigate('/');

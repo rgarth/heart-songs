@@ -128,6 +128,12 @@ const Game = () => {
               };
             });
           }
+
+          // If we get finalRoundData from the server, save it
+          if (gameData.finalRoundData) {
+            console.log('Received finalRoundData from server');
+            gameData.finalRoundSubmissions = gameData.finalRoundData.submissions;
+          }
           
           return gameData;
         }
@@ -257,41 +263,103 @@ const Game = () => {
         return;
       }
       
+      console.log('Ending game - current status:', game.status);
+      console.log('Current round question:', game.currentQuestion?.text);
+      console.log('Current submissions count:', game.submissions?.length);
+      
+      // Deep copy the current game state to use for final results
+      const finalGameState = JSON.parse(JSON.stringify(game));
+      
       // Store current round data in game history before ending
-      if (game && game.status === 'results' && game.submissions && game.submissions.length > 0) {
-        // Make sure to save the winning song from the current round
-        setGameHistory(prev => {
-          const roundData = {
-            question: game.currentQuestion,
-            submissions: [...game.submissions].sort((a, b) => b.votes.length - a.votes.length)
+      if (finalGameState && finalGameState.status === 'results' && finalGameState.submissions && finalGameState.submissions.length > 0) {
+        console.log('Adding final round to game history');
+        
+        // Create the roundData for the current final round
+        const roundData = {
+          question: finalGameState.currentQuestion,
+          submissions: [...finalGameState.submissions].sort((a, b) => {
+            const votesA = a?.votes?.length || 0;
+            const votesB = b?.votes?.length || 0;
+            return votesB - votesA;
+          })
+        };
+        
+        console.log('Final round data:', JSON.stringify({
+          question: roundData.question?.text,
+          submissions_count: roundData.submissions?.length
+        }));
+        
+        // Update game history with the final round included
+        const updatedPreviousRounds = [...(gameHistory.previousRounds || []), roundData];
+        console.log('Total rounds in history after update:', updatedPreviousRounds.length);
+        
+        // Update local game history state
+        setGameHistory(prevHistory => ({
+          ...prevHistory,
+          previousRounds: updatedPreviousRounds
+        }));
+        
+        // Call API to end the game on the server
+        console.log('Calling endGame API');
+        const response = await endGame(gameId, token);
+        console.log('API response received:', response?.status || 'No status');
+        
+        // Update game status with all the data we need to render final results
+        setGame(prevGame => {
+          const updatedGame = {
+            ...prevGame,
+            status: 'ended',
+            previousRounds: updatedPreviousRounds, // Add our local copy of all rounds including final round
+            finalRoundData: roundData, // Add the final round explicitly as a separate property
+            allRoundsCount: updatedPreviousRounds.length // Add a count for debugging
           };
-          
-          return {
-            ...prev,
-            previousRounds: [...prev.previousRounds, roundData]
-          };
+          console.log('Updated game state:', JSON.stringify({
+            status: updatedGame.status,
+            rounds_count: updatedGame.previousRounds?.length,
+            has_final_round: !!updatedGame.finalRoundData
+          }));
+          return updatedGame;
         });
+        
+        // If the server response includes playlist data, log it
+        if (response && response.playlist) {
+          console.log('Received playlist data from server:', response.playlist.length, 'tracks');
+        }
+      } else {
+        console.log('No final round data to save or game not in results state');
+        
+        // Call API to end the game on the server
+        const response = await endGame(gameId, token);
+        
+        // Just update the status if no round data to save
+        setGame(prevGame => ({
+          ...prevGame,
+          status: 'ended'
+        }));
       }
-      
-      // Update game status locally without waiting for server
-      setGame(prevGame => ({
-        ...prevGame,
-        status: 'ended'
-      }));
-      
-      // Call API to end the game on the server
-      const response = await endGame(gameId, token);
-      
-      // If the server response includes playlist data, update our state
-      if (response && response.playlist) {
-        console.log('Received playlist data from server:', response.playlist.length, 'tracks');
-      }
-      
     } catch (error) {
       console.error('Error ending game:', error);
       setError('Failed to end game. Please try again.');
     }
   };
+
+  // Add debug logging for game state changes
+  useEffect(() => {
+    // Log game state changes for debugging
+    if (game && game.status) {
+      console.log(`Game state change: ${game.status}`);
+      console.log(`Players: ${game.players?.length || 0}`);
+      console.log(`Submissions: ${game.submissions?.length || 0}`);
+      console.log(`Game history rounds: ${gameHistory.previousRounds?.length || 0}`);
+      
+      if (game.status === 'ended') {
+        console.log('GAME ENDED - Final state:');
+        console.log('previousRounds in gameHistory:', gameHistory.previousRounds?.length || 0);
+        console.log('finalRoundData present:', !!game.finalRoundData);
+        console.log('Current game.submissions:', game.submissions?.length || 0);
+      }
+    }
+  }, [game, gameHistory]);
 
   // Go back to home
   const handleLeaveGame = () => {
@@ -361,6 +429,29 @@ const Game = () => {
         </div>
       </div>
     );
+  }
+
+  // Helper function for debugging
+  const debugCurrentState = () => {
+    console.log('=== DEBUG CURRENT STATE ===');
+    console.log('Game:', game ? {
+      id: game._id,
+      status: game.status,
+      players: game.players?.length || 0,
+      submissions: game.submissions?.length || 0,
+      activePlayers: game.activePlayers?.length || 0,
+      currentQuestion: game.currentQuestion?.text
+    } : 'null');
+    
+    console.log('Game History:', {
+      previousRounds: gameHistory.previousRounds?.length || 0,
+      lastRoundQuestion: gameHistory.previousRounds?.length > 0 
+        ? gameHistory.previousRounds[gameHistory.previousRounds.length - 1]?.question?.text 
+        : 'none'
+    });
+    
+    console.log('User:', user ? { id: user.id, name: user.displayName } : 'null');
+    console.log('========================');
   }
 
   // Render appropriate game screen based on game status
