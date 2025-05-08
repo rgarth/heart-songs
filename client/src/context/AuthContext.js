@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load auth data from localStorage on mount
+  // Load auth data from localStorage on mount and validate with server
   useEffect(() => {
     const loadAuthData = async () => {
       try {
@@ -18,15 +18,22 @@ export const AuthProvider = ({ children }) => {
         const storedAccessToken = localStorage.getItem('accessToken');
         
         if (storedUser && storedAccessToken) {
-          // Parse user data
-          const userData = JSON.parse(storedUser);
+          // Validate session with server first
+          const validationResult = await validateSession(storedAccessToken);
           
-          // Set state
-          setUser(userData);
-          setAccessToken(storedAccessToken);
+          if (validationResult.valid) {
+            // Session is valid, use the user data returned from server
+            // This ensures we have the most up-to-date user data
+            setUser(validationResult.user || JSON.parse(storedUser));
+            setAccessToken(storedAccessToken);
+          } else {
+            // Session is invalid (user might have been deleted on server)
+            console.log('Session invalid or expired, logging out');
+            logout();
+          }
         }
       } catch (error) {
-        console.error('Error loading auth data:', error);
+        console.error('Error loading/validating auth data:', error);
         // Clear potentially corrupted data
         logout();
       } finally {
