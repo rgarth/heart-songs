@@ -19,9 +19,18 @@ function generateGameCode() {
 
 // Get random question
 async function getRandomQuestion() {
-  const count = await Question.countDocuments();
-  const random = Math.floor(Math.random() * count);
-  return Question.findOne().skip(random);
+  const randomQuestions = await Question.aggregate([
+    { $sample: { size: 1 } }
+  ]);
+  
+  // If no questions found (unlikely but possible), fallback to original method
+  if (!randomQuestions || randomQuestions.length === 0) {
+    const count = await Question.countDocuments();
+    const random = Math.floor(Math.random() * count);
+    return Question.findOne().skip(random);
+  }
+  
+  return randomQuestions[0];
 }
 
 // Create a new game
