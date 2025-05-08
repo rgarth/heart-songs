@@ -157,24 +157,102 @@ async function saveTrackToPlaylist(gameId, trackId, trackName, artistName, album
 }
 
 /**
- * Get all tracks in a game's playlist
+ * Get winning tracks from each round of a game (not all submitted tracks)
  * @param {string} gameId Game ID
- * @returns {Promise<Array>} Array of track objects
+ * @returns {Promise<Array>} Array of winning track objects
  */
 async function getPlaylistTracks(gameId) {
   try {
-    const Playlist = require('../models/Playlist');
+    // First get the game to find the winning submissions from each round
+    const Game = require('../models/Game');
     
-    const playlist = await Playlist.findOne({ gameId });
+    // Get game with populated previousRounds data
+    let game = await Game.findById(gameId);
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
     
-    if (!playlist) {
+    if (!game) {
+      console.log(`Game not found with ID: ${gameId}`);
       return [];
     }
     
-    return playlist.tracks;
+    // Initialize array for winning tracks
+    const winningTracks = [];
+    
+    // Check for previous rounds data
+    if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
+      console.log(`Found ${game.previousRounds.length} previous rounds`);
+      
+      // Extract winning songs from each round
+      for (let i = 0; i < game.previousRounds.length; i++) {
+        const round = game.previousRounds[i];
+        
+        if (round && round.submissions && Array.isArray(round.submissions) && round.submissions.length > 0) {
+          // Find song with most votes in this round
+          const sortedSubmissions = [...round.submissions].sort((a, b) => {
+            const votesA = a.votes ? a.votes.length : 0;
+            const votesB = b.votes ? b.votes.length : 0;
+            return votesB - votesA;
+          });
+          
+          const winner = sortedSubmissions[0];
+          
+          if (winner) {
+            winningTracks.push({
+              trackId: winner.songId,
+              trackName: winner.songName,
+              artistName: winner.artist,
+              albumCover: winner.albumCover,
+              question: round.question || null,
+              roundNumber: i + 1
+            });
+            console.log(`Added winning track from round ${i+1}: ${winner.songName}`);
+          }
+        }
+      }
+    } else {
+      console.log('No previous rounds data available');
+    }
+    
+    // Add current round winner if the game is in 'results' or 'ended' status
+    if ((game.status === 'results' || game.status === 'ended') && 
+        game.submissions && Array.isArray(game.submissions) && game.submissions.length > 0) {
+      
+      // Find the song with most votes in current round
+      const sortedSubmissions = [...game.submissions].sort((a, b) => {
+        const votesA = a.votes ? a.votes.length : 0;
+        const votesB = b.votes ? b.votes.length : 0;
+        return votesB - votesA;
+      });
+      
+      const currentWinner = sortedSubmissions[0];
+      
+      if (currentWinner) {
+        // Check if this is a duplicate of any song already in the list
+        const isDuplicate = winningTracks.some(track => track.trackId === currentWinner.songId);
+        
+        if (!isDuplicate) {
+          winningTracks.push({
+            trackId: currentWinner.songId,
+            trackName: currentWinner.songName,
+            artistName: currentWinner.artist,
+            albumCover: currentWinner.albumCover,
+            question: game.currentQuestion || null,
+            roundNumber: winningTracks.length + 1
+          });
+          console.log(`Added current round winner: ${currentWinner.songName}`);
+        } else {
+          console.log(`Current winner is a duplicate, not adding: ${currentWinner.songName}`);
+        }
+      }
+    }
+    
+    console.log(`Returning ${winningTracks.length} winning tracks`);
+    return winningTracks;
   } catch (error) {
-    console.error('Error getting playlist tracks:', error);
-    throw new Error('Failed to get playlist tracks');
+    console.error('Error getting winning tracks:', error);
+    return [];
   }
 }
 

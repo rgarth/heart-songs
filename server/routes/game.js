@@ -703,7 +703,7 @@ router.post('/end', async (req, res) => {
     const user = req.user;
     
     if (!user) {
-      console.log('Authentication failed - no user attached to request');
+      console.error('Authentication failed - no user attached to request');
       return res.status(401).json({ error: 'Authentication required' });
     }
     
@@ -718,12 +718,9 @@ router.post('/end', async (req, res) => {
     }
     
     if (!game) {
-      console.log(`Game not found: ${gameId}`);
+      console.error(`Game not found: ${gameId}`);
       return res.status(404).json({ error: 'Game not found' });
     }
-    
-    console.log(`Processing end game for ${game.code}, host: ${game.host}, user: ${user._id}`);
-    console.log(`Game current status: ${game.status}, submissions: ${game.submissions?.length || 0}`);
     
     // Check if user is the host
     if (game.host.toString() !== user._id.toString()) {
@@ -741,9 +738,6 @@ router.post('/end', async (req, res) => {
     const finalRoundSubmissions = JSON.parse(JSON.stringify(game.submissions || []));
     const currentQuestion = JSON.parse(JSON.stringify(game.currentQuestion || {}));
     
-    console.log(`Saved ${finalRoundSubmissions.length} submissions for final round`);
-    console.log(`Final round question: ${currentQuestion.text || 'None'}`);
-    
     // Change game status to ended and set the end timestamp
     game.status = 'ended';
     game.endedAt = new Date();
@@ -751,13 +745,11 @@ router.post('/end', async (req, res) => {
     game.expiresAt = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)); 
     
     await game.save();
-    console.log(`Game status updated to 'ended'`);
     
     // Get all tracks from playlist for this game
     let playlist = null;
     try {
       playlist = await Playlist.findOne({ gameId: game._id });
-      console.log(`Found playlist with ${playlist?.tracks?.length || 0} tracks`);
     } catch (playlistError) {
       console.error('Error fetching playlist:', playlistError);
       // Continue even if there's an error with the playlist
@@ -785,7 +777,6 @@ router.post('/end', async (req, res) => {
       endedAt: game.endedAt
     };
     
-    console.log(`Sending response with ${response.submissions.length} final submissions`);
     res.json(response);
   } catch (error) {
     console.error('Error ending game:', error);
