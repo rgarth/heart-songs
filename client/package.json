@@ -11,7 +11,6 @@
         "react-dom": "^18.2.0",
         "react-router-dom": "^6.30.0",
         "react-scripts": "5.0.1",
-        "spotify-url-info": "^3.2.18",
         "web-vitals": "^3.3.1"
     },
     "scripts": {

@@ -13,6 +13,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchError, setSearchError] = useState(null);
   const [duplicateError, setDuplicateError] = useState(null);
   const [speedBonusEarned, setSpeedBonusEarned] = useState(false);
+  const [error, setError] = useState(null);
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
