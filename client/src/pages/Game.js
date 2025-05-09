@@ -3,7 +3,8 @@ import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getGameState, toggleReady, startNewRound, startGame, endGame } from '../services/gameService';
-import Header from '../components/Header'; // Import the Header component
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 import LobbyScreen from '../components/game/LobbyScreen';
 import SelectionScreen from '../components/game/SelectionScreen';
 import VotingScreen from '../components/game/VotingScreen';
@@ -558,6 +559,7 @@ const Game = () => {
           />
         )}
       </div>
+      <Footer />
     </div>
   );
 };

@@ -3,7 +3,8 @@ import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { createGame, joinGame } from '../services/gameService';
-import Header from '../components/Header'; // Import the Header component
+import Header from '../components/Header';
+import Footer from '../components/Footer'; // Import the Footer component
 
 const Home = () => {
   const { user, accessToken } = useContext(AuthContext);
@@ -148,7 +149,7 @@ const Home = () => {
               <li>Create a new game or join with a code</li>
               <li>Wait for all players to be ready</li>
               <li>A random question will be shown (e.g., "Best song to play at a wedding?")</li>
-              <li>Everyone picks a song from Spotify that answers the question</li>
+              <li>Everyone picks a song that answers the question</li>
               <li>Fastest song choice gets a (+1) bonus</li>
               <li>After everyone has chosen, all songs are revealed</li>
               <li>Players vote for their favorite answer (except their own)</li>
@@ -158,6 +159,9 @@ const Home = () => {
           </div>
         </div>
       </div>
+      
+      {/* Add the Footer component */}
+      <Footer />
     </div>
   );
 };
