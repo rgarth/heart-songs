@@ -1,21 +1,23 @@
 # Heart Songs
 
-A cooperative multiplayer game where players select songs from Spotify to answer random questions, then vote for their favorites.
+A cooperative multiplayer game where players select songs to answer random questions, then vote for their favorites. Songs are discovered through Last.fm and played via YouTube.
 
 ## Features
 
 - **No Login Required**: Play instantly with fun temporary usernames
-- Spotify search for finding the perfect songs
+- Global song search powered by Last.fm and YouTube
 - Real-time game state management
 - Multiple rounds with different questions
 - Voting system with score tracking
-- "Open in Spotify" links for listening to song selections
+- YouTube video playback for all songs
+- Speed bonus for the first player to submit each round
 
 ## Prerequisites
 
 - Node.js and npm
 - MongoDB
-- Spotify Developer Account (for API access only)
+- Last.fm API key
+- YouTube Data API key
 
 ## Setup
 
@@ -26,12 +28,19 @@ git clone https://github.com/yourusername/heart-songs-game.git
 cd heart-songs-game
 ```
 
-### 2. Set Up Spotify Developer Account
+### 2. Set Up API Keys
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
-2. Log in with your Spotify account
-3. Create a new application
-4. Note your Client ID and Client Secret
+1. **Last.fm API Key**
+   - Go to [Last.fm API](https://www.last.fm/api/account/create)
+   - Create an API account
+   - Copy your API key
+
+2. **YouTube Data API Key**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project
+   - Enable the YouTube Data API v3
+   - Create API credentials
+   - Copy your API key
 
 ### 3. Configure Environment Variables
 
@@ -42,8 +51,9 @@ PORT=5050
 NODE_ENV=development
 MONGODB_URI=mongodb://127.0.0.1:27017/heart-songs-game
 
-SPOTIFY_CLIENT_ID=your_spotify_client_id
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+# API Keys
+LASTFM_API_KEY=your_lastfm_api_key
+YOUTUBE_API_KEY=your_youtube_api_key
 ```
 
 ### 4. Install Dependencies
@@ -88,7 +98,7 @@ The application should now be running at [http://127.0.0.1:3000](http://127.0.0.
 3. Wait for all players to mark themselves as ready
 4. When the game starts, a random question will be displayed
 5. Search for and select a song that best answers the question
-6. After all players have submitted their songs, you'll see all submissions
+6. After all players have submitted their songs, you'll see all submissions with YouTube players
 7. Vote for your favorite answer (you cannot vote for your own in games with 3+ players)
 8. Scores are tallied based on votes received
 9. A new round begins with a different question
@@ -98,12 +108,14 @@ The application should now be running at [http://127.0.0.1:3000](http://127.0.0.
 ### Backend
 - Node.js & Express
 - MongoDB & Mongoose
-- Spotify Web API (Client Credentials flow)
+- Last.fm API (for song metadata)
+- YouTube Data API (for video playback)
 
 ### Frontend
 - React
 - React Router
 - Tailwind CSS
+- YouTube embeds
 
 ## Project Structure
 
@@ -123,20 +135,33 @@ heart-songs-game/
 │   ├── models/           # MongoDB models
 │   ├── routes/           # API routes
 │   ├── scripts/          # Utility scripts
-│   ├── services/         # Business logic
+│   ├── services/         # Music API integrations
 │   └── utils/            # Helper functions
 ├── .env                  # Environment variables
 └── package.json
 ```
 
-## Why No Spotify Login?
+## Why No Login Required?
 
-Heart Songs was designed to be easily accessible to everyone. By removing the Spotify login requirement:
+Heart Songs was designed to be easily accessible to everyone. By removing login requirements:
 
 - Players can join instantly without creating accounts
 - Games can be started quickly with friends
 - The experience works consistently across all devices
-- Compliance with Spotify API terms is maintained
+- No dependency on third-party authentication
+
+## Music Integration
+
+Heart Songs uses a combination of two APIs for a seamless music experience:
+
+1. **Last.fm API** provides song metadata, artist information, and album artwork
+2. **YouTube Data API** provides matching videos for song playback
+
+This integration offers several advantages:
+- No authentication required
+- Full song playback (not just previews)
+- Visual experience with music videos
+- Broader song catalog availability
 
 ## Future Plans
 
@@ -144,6 +169,7 @@ Heart Songs was designed to be easily accessible to everyone. By removing the Sp
 - Custom game themes and question packs
 - Enhanced mobile experience
 - Support for longer gaming sessions
+- Playlist export functionality
 
 ## License
 
@@ -151,4 +177,5 @@ MIT
 
 ## Acknowledgements
 
-- [Spotify Web API](https://developer.spotify.com/documentation/web-api/)
+- [Last.fm API](https://www.last.fm/api)
+- [YouTube Data API](https://developers.google.com/youtube/v3)

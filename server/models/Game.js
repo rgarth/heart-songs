@@ -49,6 +49,7 @@ const GameSchema = new mongoose.Schema({
     songName: String,
     artist: String,
     albumCover: String,
+    youtubeId: String, // Added for YouTube integration
     submittedAt: { // Add timestamp tracking
       type: Date,
       default: Date.now
@@ -60,6 +61,28 @@ const GameSchema = new mongoose.Schema({
     votes: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
+    }]
+  }],
+  previousRounds: [{
+    question: {
+      text: String,
+      category: String
+    },
+    submissions: [{
+      player: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      songId: String,
+      songName: String,
+      artist: String,
+      albumCover: String,
+      youtubeId: String, // Added for YouTube
+      gotSpeedBonus: Boolean,
+      votes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }]
     }]
   }],
   playlistId: String,

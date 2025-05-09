@@ -1,7 +1,7 @@
 // client/src/components/game/SelectionScreen.js
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchTracks } from '../../services/spotifyService';
+import { searchSongs, formatSongForSubmission } from '../../services/musicService';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +14,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [duplicateError, setDuplicateError] = useState(null);
   const [speedBonusEarned, setSpeedBonusEarned] = useState(false);
 
-  
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
   
@@ -46,23 +45,22 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      // FIXED: Don't pass the accessToken to searchTracks function
-      // The searchTracks function doesn't need authentication
-      const results = await searchTracks(searchQuery);
+      // Use the new musicService to search Last.fm + YouTube
+      const results = await searchSongs(searchQuery);
       setSearchResults(results);
       
     } catch (error) {
-      console.error('Error searching tracks:', error);
-      setSearchError('Failed to search tracks. Please try again.');
+      console.error('Error searching songs:', error);
+      setSearchError('Failed to search for songs. Please try again.');
     } finally {
       setSearchLoading(false);
     }
   };
   
   // Check if song is already selected by another player
-  const isSongAlreadySelected = (trackId) => {
+  const isSongAlreadySelected = (songId) => {
     return game.submissions.some(submission => 
-      submission.songId === trackId && submission.player._id !== currentUser.id
+      submission.songId === songId && submission.player._id !== currentUser.id
     );
   };
   
@@ -81,34 +79,50 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   };
   
   // Handle song submission
-  const handleSubmit = async () => {
-    if (!selectedSong) return;
-    
-    // Double-check for duplicate before submitting
-    if (isSongAlreadySelected(selectedSong.id)) {
-      setDuplicateError(`"${selectedSong.name}" has already been selected by another player. Please choose a different song.`);
-      setSelectedSong(null);
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      const response = await submitSong(game._id, currentUser.id, selectedSong, accessToken);
-      
-      setHasSubmitted(true);
-      
-      // Show speed bonus notification if player got it
-      if (response.gotSpeedBonus) {
-        setSpeedBonusEarned(true); // New state variable to track
-      }
-    } catch (error) {
-      console.error('Error submitting song:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // client/src/components/game/SelectionScreen.js - Fixed handleSubmit function
 
+// Handle song submission
+const handleSubmit = async () => {
+  if (!selectedSong) return;
+  
+  // Double-check for duplicate before submitting
+  if (isSongAlreadySelected(selectedSong.id)) {
+    setDuplicateError(`"${selectedSong.name}" has already been selected by another player. Please choose a different song.`);
+    setSelectedSong(null);
+    return;
+  }
+  
+  try {
+    setIsSubmitting(true);
+    
+    // Format the song data properly for submission
+    const formattedSong = {
+      id: selectedSong.id,
+      name: selectedSong.name,
+      artist: selectedSong.artist, // Already in the correct format
+      albumCover: selectedSong.albumArt || '',
+      youtubeId: selectedSong.youtubeId || null
+    };
+    
+    console.log("Submitting song:", formattedSong);
+    
+    const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
+    
+    setHasSubmitted(true);
+    
+    // Show speed bonus notification if player got it
+    if (response.gotSpeedBonus) {
+      setSpeedBonusEarned(true);
+    }
+  } catch (error) {
+    console.error('Error submitting song:', error);
+    
+    // Show a more user-friendly error message
+    setError('Failed to submit your song. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   
   // Check if user is active in the current round (either all players or specifically included)
   const isUserActive = () => {
@@ -247,9 +261,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3">Selected Song</h3>
                 <div className="flex items-center bg-gray-700 p-3 rounded-lg">
-                  {selectedSong.album.images[0] && (
+                  {selectedSong.albumArt && (
                     <img 
-                      src={selectedSong.album.images[0].url} 
+                      src={selectedSong.albumArt} 
                       alt={selectedSong.name} 
                       className="w-16 h-16 rounded mr-4" 
                     />
@@ -257,11 +271,13 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                   <div className="flex-1">
                     <p className="font-medium">{selectedSong.name}</p>
                     <p className="text-sm text-gray-400">
-                      {selectedSong.artists.map(artist => artist.name).join(', ')}
+                      {selectedSong.artist}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {selectedSong.album.name}
-                    </p>
+                    {selectedSong.album && (
+                      <p className="text-xs text-gray-500">
+                        {selectedSong.album}
+                      </p>
+                    )}
                   </div>
                   <button 
                     onClick={handleSubmit}
@@ -292,9 +308,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                               : 'bg-gray-750 cursor-pointer hover:bg-gray-700'
                         }`}
                       >
-                        {track.album.images[0] && (
+                        {track.albumArt && (
                           <img 
-                            src={track.album.images[0].url} 
+                            src={track.albumArt} 
                             alt={track.name} 
                             className="w-12 h-12 rounded mr-3" 
                           />
@@ -302,14 +318,27 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                         <div className="flex-1">
                           <p className="font-medium">{track.name}</p>
                           <p className="text-sm text-gray-400">
-                            {track.artists.map(artist => artist.name).join(', ')}
+                            {track.artist}
                           </p>
+                          {track.album && (
+                            <p className="text-xs text-gray-500">
+                              {track.album}
+                            </p>
+                          )}
                           {isAlreadySelected && (
                             <p className="text-xs text-yellow-500 mt-1">
                               Already selected by another player
                             </p>
                           )}
                         </div>
+                        {track.youtubeId && (
+                          <div className="flex items-center text-xs bg-red-600 px-2 py-1 rounded">
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                            </svg>
+                            YouTube
+                          </div>
+                        )}
                       </div>
                     );
                   })}

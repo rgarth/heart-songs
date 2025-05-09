@@ -15,6 +15,7 @@ function App() {
         <div className="app">
           <Routes>
             <Route path="/login" element={<Login />} />
+            
             <Route 
               path="/" 
               element={
@@ -23,6 +24,7 @@ function App() {
                 </PrivateRoute>
               } 
             />
+            
             <Route 
               path="/game/:gameId" 
               element={
@@ -31,6 +33,7 @@ function App() {
                 </PrivateRoute>
               } 
             />
+            
             {/* Route for joining games with a code */}
             <Route 
               path="/join/:gameCode" 
@@ -40,6 +43,8 @@ function App() {
                 </PrivateRoute>
               } 
             />
+            
+            {/* Redirect all other routes to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

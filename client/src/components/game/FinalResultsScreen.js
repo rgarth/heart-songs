@@ -1,14 +1,12 @@
 // client/src/components/game/FinalResultsScreen.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPlaylistTracks } from '../../services/spotifyService';
 
 const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [winningTracks, setWinningTracks] = useState([]);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
   
   // Add safety checks for undefined or empty arrays
   const hasPlayers = game && game.players && Array.isArray(game.players) && game.players.length > 0;
@@ -25,59 +23,9 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   // Check if there's a tie for first place
   const isTie = sortedPlayers.length > 1 && sortedPlayers[0].score === sortedPlayers[1].score;
   
-  // Create a shareable link for all songs
-  const createSpotifyPlayButton = (trackId) => {
-    if (!trackId) {
-      // Return a fallback or empty string if no trackId
-      return '';
-    }
-    return `https://open.spotify.com/embed/track/${trackId}`;
-  };
-  
-  // Generate and download M3U playlist file
-  const downloadM3UPlaylist = () => {
-    try {
-      // Create M3U header
-      let m3uContent = "#EXTM3U\n";
-      
-      // Add each song to the playlist
-      winningTracks.forEach((track, index) => {
-        if (!track || !track.songId) return;
-        
-        // Add track info line with duration (-1 means unknown duration)
-        m3uContent += `#EXTINF:-1,${track.artist || 'Unknown Artist'} - ${track.songName || 'Unknown Song'}\n`;
-        
-        // Add Spotify URL for the track
-        m3uContent += `https://open.spotify.com/track/${track.songId}\n`;
-      });
-      
-      // Create a blob and download link
-      const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create a temporary link and trigger download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `heart-songs-${game.gameCode || 'game'}.m3u`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      // Show success message briefly
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error creating M3U playlist:', error);
-      setError('Failed to create playlist file. Please try again.');
-    }
-  };
-  
-  // Load winning tracks directly from server for all users
+  // Process the winning tracks from each round
   useEffect(() => {
-    const fetchWinningTracks = async () => {
+    const processWinningTracks = () => {
       try {
         setLoading(true);
         setError(null);
@@ -88,8 +36,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           setLoading(false);
           return;
         }
-        
-        console.log('FinalResultsScreen: Getting winning tracks');
         
         // Initialize winning tracks list
         let winningTracksList = [];
@@ -124,6 +70,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                 songName: winner.songName || 'Unknown Song',
                 artist: winner.artist || 'Unknown Artist',
                 albumCover: winner.albumCover || '',
+                youtubeId: winner.youtubeId || null,
                 question: round.question || null,
                 roundNumber: index + 1
               };
@@ -159,6 +106,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                 songName: currentWinner.songName || 'Unknown Song',
                 artist: currentWinner.artist || 'Unknown Artist',
                 albumCover: currentWinner.albumCover || '',
+                youtubeId: currentWinner.youtubeId || null,
                 question: game.currentQuestion || null,
                 roundNumber: winningTracksList.length + 1
               };
@@ -178,33 +126,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           }
         }
         
-        // If we still don't have any winning tracks, try fetching from server as fallback
-        if (winningTracksList.length === 0 && game._id) {
-          try {
-            console.log('No winning tracks found locally, trying server');
-            
-            const serverTracks = await getPlaylistTracks(game._id, accessToken);
-            
-            if (Array.isArray(serverTracks) && serverTracks.length > 0) {
-              console.log(`Received ${serverTracks.length} tracks from server`);
-              
-              // Process tracks to ensure consistent naming
-              winningTracksList = serverTracks.map((track, index) => ({
-                songId: track.trackId || track.songId,
-                songName: track.trackName || track.songName || 'Unknown Song',
-                artist: track.artistName || track.artist || 'Unknown Artist',
-                albumCover: track.albumCover || '',
-                question: track.question || null,
-                roundNumber: track.roundNumber || (index + 1)
-              }));
-            } else {
-              console.log('No tracks returned from server');
-            }
-          } catch (error) {
-            console.error('Error fetching tracks from server:', error);
-          }
-        }
-        
         // Remove any potential duplicates before setting state
         const uniqueTracks = [];
         const seenIds = new Set();
@@ -218,17 +139,22 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
         
         console.log(`Final winning tracks count: ${uniqueTracks.length}`);
         setWinningTracks(uniqueTracks);
-    
       } catch (error) {
-        console.error('Error fetching winning tracks:', error);
-        setError('Failed to load winning songs');
+        console.error('Error processing winning tracks:', error);
+        setError('Failed to process winning songs');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchWinningTracks();
-  }, [game, accessToken]);
+    processWinningTracks();
+  }, [game]);
+
+  // Generate YouTube embed URL
+  const getYouTubeEmbedUrl = (youtubeId) => {
+    if (!youtubeId) return null;
+    return `https://www.youtube.com/embed/${youtubeId}`;
+  };
 
   // Return to home
   const handleReturnHome = () => {
@@ -268,10 +194,10 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           ) : (
             <div>
               <h3 className="text-xl font-medium text-yellow-400 mb-2">
-                {isWinner ? 'You Won!' : `${winner.user.displayName} Wins!`}
+                {isWinner ? 'You Won!' : `${winner?.user?.displayName || 'Someone'} Wins!`}
               </h3>
               <p className="text-gray-300">
-                With a total of {winner.score} points
+                With a total of {winner?.score || 0} points
               </p>
             </div>
           )}
@@ -312,31 +238,10 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           </div>
         </div>
         
-        {/* Winning songs from each round with embedded players */}
+        {/* Winning songs from each round with embedded YouTube players */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium">Winning Songs</h3>
-            
-            {/* M3U playlist download button */}
-            {winningTracks.length > 0 && (
-              <div className="flex items-center">
-                <button
-                  onClick={downloadM3UPlaylist}
-                  className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download Playlist
-                </button>
-                
-                {downloadSuccess && (
-                  <span className="ml-2 text-green-400 text-sm animate-pulse">
-                    Playlist downloaded!
-                  </span>
-                )}
-              </div>
-            )}
           </div>
           
           {winningTracks.length === 0 ? (
@@ -357,18 +262,52 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                       </p>
                     </div>
                     <div className="p-4">
-
-                      {/* Embedded Spotify player */}
                       <div className="w-full">
-                        <iframe
-                          src={createSpotifyPlayButton(track.songId)}
-                          width="100%" 
-                          height="80" 
-                          frameBorder="0" 
-                          allowtransparency="true" 
-                          allow="encrypted-media"
-                          title={`${track.songName || 'Song'} by ${track.artist || 'Artist'}`}
-                        ></iframe>
+                        {/* YouTube Embed */}
+                        {track.youtubeId ? (
+                          <iframe
+                            src={getYouTubeEmbedUrl(track.youtubeId)}
+                            width="100%" 
+                            height="300" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                            title={`${track.songName || 'Song'} by ${track.artist || 'Artist'}`}
+                            className="rounded mb-4"
+                          ></iframe>
+                        ) : (
+                          <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
+                            <p className="text-gray-400 text-sm">No video available</p>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center">
+                          {track.albumCover && (
+                            <img 
+                              src={track.albumCover} 
+                              alt={track.songName} 
+                              className="w-16 h-16 rounded mr-3" 
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium">{track.songName}</p>
+                            <p className="text-sm text-gray-400">{track.artist}</p>
+                          </div>
+                          
+                          {track.youtubeId && (
+                            <a 
+                              href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-auto py-2 px-3 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-sm"
+                            >
+                              <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                              </svg>
+                              Watch on YouTube
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -377,16 +316,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
             </div>
           )}
         </div>
-        
-        {/* Info about M3U playlist */}
-        {winningTracks.length > 0 && (
-          <div className="mb-8 bg-gray-700 p-4 rounded-lg text-sm">
-            <p className="mb-2 text-white font-medium">About the M3U Playlist</p>
-            <p className="text-gray-300">
-              To import an m3u playlist into spotify, you will need a third party service like <a href="https://soundiiz.com">https://soundiiz.com</a>
-            </p>
-          </div>
-        )}
         
         {error && (
           <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">

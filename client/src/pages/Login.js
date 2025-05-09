@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { registerAnonymous, checkUsernameAvailability } from '../services/AuthService';
 import { generateUsername, isValidUsername } from '../utils/usernameGenerator';
-// Logo is loaded directly from public folder
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -116,10 +115,7 @@ const Login = () => {
         
         <h1 className="text-3xl font-bold text-white mb-6">Heart Songs</h1>
         <p className="text-gray-300 mb-8">
-          Welcome to Heart Songs.
-        </p>
-        <p className="text-gray-300 mb-8">
-          The Game where your music choice reveals you personality!
+          Where your music choices reveal your personality!
         </p>
         
         {redirectPath && redirectPath.startsWith('/join/') && (

@@ -1,4 +1,4 @@
-// server/models/Playlist.js
+// server/models/Playlist.js - Updated for YouTube integration
 const mongoose = require('mongoose');
 
 const PlaylistSchema = new mongoose.Schema({
@@ -21,10 +21,14 @@ const PlaylistSchema = new mongoose.Schema({
       required: true
     },
     albumCover: String,
+    youtubeId: String, // Add YouTube video ID
     addedAt: {
       type: Date,
       default: Date.now
-    }
+    },
+    // Reference to the round/question this track was for
+    roundNumber: Number,
+    questionText: String
   }],
   createdAt: {
     type: Date,

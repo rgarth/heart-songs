@@ -5,7 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
-const spotifyRoutes = require('./routes/spotify');
+const musicRoutes = require('./routes/music'); // New music routes
 
 // Load environment variables
 dotenv.config();
@@ -25,7 +25,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
-app.use('/api/spotify', spotifyRoutes);
+app.use('/api/music', musicRoutes); // Add the new music routes
 
 // Basic health check route
 app.get('/health', (req, res) => {

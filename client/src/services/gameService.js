@@ -150,34 +150,40 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
 };
 
 // Submit song selection
-export const submitSong = async (gameId, userId, songData, token) => {
+export const submitSong = async (gameId, userId, songData, accessToken) => {
   try {
-    if (!gameId || !userId || !songData || !token) {
+    if (!gameId || !userId || !songData) {
       console.error("Missing required parameters for submitting song:", { 
         hasGameId: !!gameId, 
         hasUserId: !!userId, 
-        hasSongData: !!songData, 
-        hasToken: !!token 
+        hasSongData: !!songData
       });
       throw new Error('Missing required parameters for submitting song');
     }
     
+    // Make sure to handle both the new and old formats of songData
+    const payload = { 
+      gameId, 
+      userId, 
+      songId: songData.id,
+      songName: songData.name,
+      artist: songData.artist || songData.artists?.[0]?.name || 'Unknown Artist',
+      albumCover: songData.albumCover || songData.albumArt || songData.album?.images?.[0]?.url || '',
+      youtubeId: songData.youtubeId || null
+    };
+    
+    console.log("Submitting song with payload:", payload);
+    
     const response = await axios.post(
       `${API_URL}/game/submit`, 
-      { 
-        gameId, 
-        userId, 
-        songId: songData.id,
-        songName: songData.name,
-        artist: songData.artists[0].name,
-        albumCover: songData.album.images[0]?.url || ''
-      },
-      createHeaders(token)
+      payload,
+      createHeaders(accessToken)
     );
     
     return response.data;
   } catch (error) {
-    return handleRequestError(error, 'submitting song');
+    console.error('Error submitting song:', error);
+    throw error;
   }
 };
 
