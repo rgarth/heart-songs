@@ -156,6 +156,38 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
     return `https://www.youtube.com/embed/${youtubeId}`;
   };
 
+  // Generate YouTube playlist URL that queues songs properly
+  const getYouTubePlaylistUrl = () => {
+    // Filter tracks with valid YouTube IDs
+    const videosWithIds = winningTracks.filter(track => track.youtubeId);
+    
+    if (videosWithIds.length === 0) return null;
+    
+    // Create a playlist URL using the watch_videos feature
+    const videoIds = videosWithIds.map(track => track.youtubeId);
+    
+    // YouTube's watch_videos format: watch?v=FIRST_ID&list=WLFIRST_ID,SECOND_ID,THIRD_ID
+    const playlistUrl = `https://www.youtube.com/watch_videos?video_ids=${videoIds.join(',')}`;
+    
+    return playlistUrl;
+  };
+
+  // Handle playlist opening
+  const handleOpenPlaylist = () => {
+    const videosWithIds = winningTracks.filter(track => track.youtubeId);
+    
+    if (videosWithIds.length === 0) {
+      alert('No videos available to create a playlist');
+      return;
+    }
+    
+    // Get the proper playlist URL
+    const playlistUrl = getYouTubePlaylistUrl();
+    
+    // Open in new tab
+    window.open(playlistUrl, '_blank');
+  };
+
   // Return to home
   const handleReturnHome = () => {
     navigate('/');
@@ -238,6 +270,27 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           </div>
         </div>
         
+        {/* YouTube Playlist Button */}
+        {winningTracks.filter(track => track.youtubeId).length > 0 && (
+          <div className="mb-8 text-center">
+            <button
+              onClick={handleOpenPlaylist}
+              className="py-3 px-6 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center mx-auto gap-2"
+            >
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+              </svg>
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M2 3h20v14H2V3zm2 2v10h8V5H4zm12 0v10h4V5h-4zM4 19h16v2H4v-2z" />
+              </svg>
+              Play All Winning Songs
+            </button>
+            <p className="text-sm text-gray-400 mt-2">
+              Creates a YouTube playlist with all {winningTracks.filter(track => track.youtubeId).length} winning songs
+            </p>
+          </div>
+        )}
+        
         {/* Winning songs from each round with embedded YouTube players */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
@@ -302,7 +355,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                               className="ml-auto py-2 px-3 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-sm"
                             >
                               <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
                               </svg>
                               Watch on YouTube
                             </a>
