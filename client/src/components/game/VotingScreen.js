@@ -19,6 +19,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Check if this is a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
   
+  // Check if any submission has quota exhausted flag
+  const hasQuotaIssue = localSubmissions.some(s => s.quotaExhausted);
+  
   // Update local submissions whenever game.submissions changes
   useEffect(() => {
     if (game.submissions && game.submissions.length > 0) {
@@ -83,10 +86,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   );
   const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
   
-  // Generate YouTube embed URL from track ID
+  // Generate YouTube embed URL from track ID (same as FinalResultsScreen)
   const getYouTubeEmbedUrl = (youtubeId) => {
     if (!youtubeId) return null;
-    return `https://www.youtube.com/embed/${youtubeId}?autoplay=0`;
+    return `https://www.youtube.com/embed/${youtubeId}`;
   };
   
   // Early return when data is still being initially loaded
@@ -126,6 +129,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {votedCount} of {totalPlayers} voted
           </p>
         </div>
+        
+        {/* YouTube Quota Warning */}
+        {hasQuotaIssue && (
+          <div className="mb-4 p-3 bg-yellow-900/50 text-yellow-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> YouTube video embeds are temporarily unavailable due to daily quota limits. You can still vote and the videos will be available again tomorrow.</p>
+          </div>
+        )}
         
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
@@ -169,10 +179,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               return (
                 <div 
                   key={submission._id}
-                  className={`p-4 rounded-lg ${
+                  className={`bg-gray-750 rounded-lg overflow-hidden ${
                     !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
                   } transition-colors ${
-                    selectedSubmission === submission._id ? 'bg-gray-700 border border-blue-500' : 'bg-gray-750'
+                    selectedSubmission === submission._id ? 'border border-blue-500' : ''
                   } ${
                     isOwnSubmission ? 'relative border-t-4 border-t-yellow-500' : ''
                   }`}
@@ -188,68 +198,79 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     </div>
                   )}
                   
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                    {/* YouTube Player Embed */}
-                    <div className="w-full lg:w-1/2">
+                  <div className="p-4">
+                    <div className="w-full">
+                      {/* YouTube Player Embed - Updated to match FinalResultsScreen */}
                       {submission.youtubeId ? (
                         <iframe 
-                          src={getYouTubeEmbedUrl(submission.youtubeId)} 
+                          src={getYouTubeEmbedUrl(submission.youtubeId)}
                           width="100%" 
-                          height="80" 
+                          height="300"
                           frameBorder="0" 
                           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                           allowFullScreen
                           title={`${submission.songName} by ${submission.artist}`}
-                          className="rounded"
+                          className="rounded mb-4"
                         ></iframe>
                       ) : (
-                        <div className="bg-gray-700 h-20 rounded flex items-center justify-center">
-                          <p className="text-gray-400 text-sm">No video available</p>
+                        <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
+                          <div className="flex flex-col items-center text-center">
+                            <svg className="w-8 h-8 text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10z" clipRule="evenodd" />
+                              <path fillRule="evenodd" d="M8 7v6l4-3-4-3z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-gray-400 text-sm">
+                              {submission.quotaExhausted ? 'Video unavailable (quota)' : 'No video available'}
+                            </p>
+                          </div>
                         </div>
                       )}
-                    </div>
-                    
-                    {/* Song Info and Buttons */}
-                    <div className="flex-1 flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{submission.songName}</p>
-                        <p className="text-sm text-gray-400">{submission.artist}</p>
-                        <p className="text-xs text-gray-500 mt-1">Submitted by: {submission.player.displayName}</p>
-                      </div>
                       
-                      <div className="flex items-center gap-2">
-                        {/* Open in YouTube button */}
-                        {submission.youtubeId && (
-                          <a 
-                            href={`https://www.youtube.com/watch?v=${submission.youtubeId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="py-2 px-3 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-sm"
-                          >
-                            <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
-                            </svg>
-                            Watch on YouTube
-                          </a>
-                        )}
+                      {/* Song Info and Buttons */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{submission.songName}</p>
+                          <p className="text-sm text-gray-400">{submission.artist}</p>
+                          <p className="text-xs text-gray-500 mt-1">Submitted by: {submission.player.displayName}</p>
+                        </div>
                         
-                        {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
-                        {!hasVoted && (isSmallGame || !isOwnSubmission) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedSubmission(submission._id);
-                            }}
-                            className={`py-2 px-4 rounded ${
-                              selectedSubmission === submission._id
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-600 text-white hover:bg-gray-500'
-                            }`}
-                          >
-                            {selectedSubmission === submission._id ? 'Selected' : 'Select'}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {/* Open in YouTube button - show even if no embed available */}
+                          {(submission.youtubeId || submission.songName) && (
+                            <a 
+                              href={submission.youtubeId 
+                                ? `https://www.youtube.com/watch?v=${submission.youtubeId}`
+                                : `https://www.youtube.com/results?search_query=${encodeURIComponent(submission.artist + ' ' + submission.songName)}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="py-2 px-3 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-sm"
+                            >
+                              <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                              </svg>
+                              {submission.youtubeId ? 'Watch on YouTube' : 'Search YouTube'}
+                            </a>
+                          )}
+                          
+                          {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
+                          {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSubmission(submission._id);
+                              }}
+                              className={`py-2 px-4 rounded ${
+                                selectedSubmission === submission._id
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-gray-600 text-white hover:bg-gray-500'
+                              }`}
+                            >
+                              {selectedSubmission === submission._id ? 'Selected' : 'Select'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

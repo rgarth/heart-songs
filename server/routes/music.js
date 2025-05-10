@@ -14,7 +14,7 @@ const apiLimiter = rateLimit({
 // Apply the rate limiter to all music routes
 router.use(apiLimiter);
 
-// Search for tracks with YouTube videos
+// Search for tracks (Last.fm only, no YouTube)
 router.get('/search', async (req, res) => {
   try {
     const { query, limit = 8 } = req.query;
@@ -28,6 +28,23 @@ router.get('/search', async (req, res) => {
   } catch (error) {
     console.error('Error searching songs:', error);
     res.status(500).json({ error: 'Failed to search songs' });
+  }
+});
+
+// Get YouTube data for a specific track (called when user selects a song)
+router.post('/track/youtube', async (req, res) => {
+  try {
+    const { track } = req.body;
+    
+    if (!track || !track.id || !track.name || !track.artist) {
+      return res.status(400).json({ error: 'Valid track data is required' });
+    }
+    
+    const trackWithYoutube = await musicService.addYoutubeDataToTrack(track);
+    res.json(trackWithYoutube);
+  } catch (error) {
+    console.error('Error adding YouTube data:', error);
+    res.status(500).json({ error: 'Failed to add YouTube data' });
   }
 });
 
@@ -70,5 +87,4 @@ router.post('/clear-cache', async (req, res) => {
   }
 });
 
-// Make sure to export the router correctly
 module.exports = router;
