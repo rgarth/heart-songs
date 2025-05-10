@@ -5,7 +5,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
-const musicRoutes = require('./routes/music'); // New music routes
+const musicRoutes = require('./routes/music');
+const cacheRoutes = require('./routes/cache'); // Add cache management routes
 
 // Load environment variables
 dotenv.config();
@@ -25,11 +26,16 @@ mongoose.connect(process.env.MONGODB_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
-app.use('/api/music', musicRoutes); // Add the new music routes
+app.use('/api/music', musicRoutes);
+app.use('/api/cache', cacheRoutes); // Add cache management routes
 
 // Basic health check route
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.0.0' });
+  res.json({ 
+    status: 'ok', 
+    version: '1.0.0',
+    cacheEnabled: true // Indicate cache is enabled
+  });
 });
 
 // Error handling middleware
@@ -44,4 +50,5 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('YouTube cache system enabled');
 });

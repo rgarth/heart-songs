@@ -7,7 +7,12 @@
         "start": "node server/index.js",
         "dev": "nodemon server/index.js",
         "seed": "node server/scripts/seedQuestions.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "cache:cleanup": "node server/scripts/cleanupCache.js",
+        "cache:cleanup:aggressive": "node server/scripts/cleanupCache.js --aggressive",
+        "cache:cleanup:light": "node server/scripts/cleanupCache.js --light",
+        "cache:monitor": "node server/scripts/monitorCache.js",
+        "cache:monitor:continuous": "node server/scripts/monitorCache.js --continuous --interval=30"
     },
     "keywords": [
         "lastfm",

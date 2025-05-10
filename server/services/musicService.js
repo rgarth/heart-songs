@@ -1,9 +1,10 @@
-// server/services/musicService.js
+// server/services/musicService.js - Updated with YouTube cache
 const lastfmService = require('./lastfmService');
 const youtubeService = require('./youtubeService');
+const youtubeCacheService = require('./youtubeCacheService');
 const NodeCache = require('node-cache');
 
-// Create a cache with default TTL of 1 hour
+// Create a cache with default TTL of 1 hour for search results
 const searchCache = new NodeCache({ stdTTL: 3600 });
 
 /**
@@ -47,7 +48,7 @@ async function searchSongs(query, limit = 8) {
 }
 
 /**
- * Add YouTube data to a specific track
+ * Add YouTube data to a specific track using cache
  * @param {Object} track Track object from Last.fm
  * @returns {Promise<Object>} Track with YouTube data
  */
@@ -66,24 +67,23 @@ async function addYoutubeDataToTrack(track) {
     }
     
     try {
-      // Search for YouTube videos matching this track
-      const videos = await youtubeService.searchVideos(`${track.artist} - ${track.name}`, 1);
+      // Get YouTube data from cache or fetch it
+      const youtubeData = await youtubeCacheService.getOrCacheYoutubeData(
+        track.artist, 
+        track.name, 
+        track.id
+      );
       
-      const youtubeData = {
-        youtubeId: videos.length > 0 ? videos[0].id : null,
-        youtubeTitle: videos.length > 0 ? videos[0].title : null,
-        youtubeEmbed: videos.length > 0 ? youtubeService.getEmbedUrl(videos[0].id) : null,
-        youtubeWatch: videos.length > 0 ? youtubeService.getWatchUrl(videos[0].id) : null,
-      };
+      if (!youtubeData) {
+        return {
+          ...track,
+          youtubeId: null,
+          youtubeEmbed: null,
+          youtubeWatch: null
+        };
+      }
       
-      const result = { ...track, ...youtubeData };
-      return result;
-    } catch (error) {
-      console.error('YouTube search error:', error.message);
-      
-      // Check if it's a quota error
-      if (error.message === 'Failed to search videos') {
-        console.warn('YouTube quota exhausted');
+      if (youtubeData.quotaExhausted) {
         return {
           ...track,
           youtubeId: null,
@@ -93,12 +93,27 @@ async function addYoutubeDataToTrack(track) {
         };
       }
       
-      console.warn('YouTube search failed, returning track without video');
+      const result = {
+        ...track,
+        youtubeId: youtubeData.youtubeId,
+        youtubeTitle: youtubeData.youtubeTitle,
+        youtubeEmbed: youtubeService.getEmbedUrl(youtubeData.youtubeId),
+        youtubeWatch: youtubeService.getWatchUrl(youtubeData.youtubeId),
+        youtubeConfidence: youtubeData.confidence,
+        fromCache: youtubeData.fromCache
+      };
+      
+      return result;
+    } catch (error) {
+      console.error('YouTube search error:', error.message);
+      
+      console.warn('YouTube fetch failed, returning track without video');
       return {
         ...track,
         youtubeId: null,
         youtubeEmbed: null,
-        youtubeWatch: null
+        youtubeWatch: null,
+        error: error.message
       };
     }
   } catch (error) {
@@ -157,9 +172,46 @@ function clearCache(cacheKey) {
   searchCache.del(cacheKey);
 }
 
+/**
+ * Get cache statistics including YouTube cache
+ * @returns {Promise<Object>} Combined cache statistics
+ */
+async function getCacheStatistics() {
+  const youtubeStats = await youtubeCacheService.getCacheStats();
+  const memoryStats = searchCache.getStats();
+  
+  return {
+    memory: {
+      hits: memoryStats.hits,
+      misses: memoryStats.misses,
+      keys: memoryStats.keys,
+      ksize: memoryStats.ksize,
+      vsize: memoryStats.vsize
+    },
+    youtube: youtubeStats
+  };
+}
+
+/**
+ * Cleanup YouTube cache (for maintenance)
+ * @param {Object} options Cleanup options
+ * @returns {Promise<Object>} Cleanup results
+ */
+async function performMaintenance(options = {}) {
+  const deletedCount = await youtubeCacheService.cleanupCache(options);
+  const stats = await getCacheStatistics();
+  
+  return {
+    deletedEntries: deletedCount,
+    currentStats: stats
+  };
+}
+
 module.exports = {
   searchSongs,
   addYoutubeDataToTrack,
   getTrackBySearch,
-  clearCache
+  clearCache,
+  getCacheStatistics,
+  performMaintenance
 };
