@@ -41,8 +41,21 @@ async function searchSongs(query, limit = 8) {
             youtubeWatch: videos.length > 0 ? youtubeService.getWatchUrl(videos[0].id) : null,
           };
         } catch (error) {
+          // Check if it's a quota error
+          if (error.message === 'Failed to search videos') {
+            console.warn(`YouTube quota exceeded. Returning track without video for ${track.name}`);
+            // Return the track without YouTube data when quota is exhausted
+            return {
+              ...track,
+              youtubeId: null,
+              youtubeEmbed: null,
+              youtubeWatch: null,
+              quotaExhausted: true // Flag to indicate quota issue
+            };
+          }
+          
           console.error(`Error finding YouTube video for track ${track.name}:`, error);
-          // Return the track without YouTube data
+          // Return the track without YouTube data for other errors
           return {
             ...track,
             youtubeId: null,
@@ -53,13 +66,14 @@ async function searchSongs(query, limit = 8) {
       })
     );
     
-    // Filter out tracks without YouTube videos
-    const filteredTracks = enhancedTracks.filter(track => track.youtubeId);
+    // Don't filter out tracks without YouTube videos when quota is exhausted
+    // Instead, return all tracks and let the frontend handle the missing videos
+    const result = enhancedTracks;
     
     // Cache the results
-    searchCache.set(cacheKey, filteredTracks);
+    searchCache.set(cacheKey, result);
     
-    return filteredTracks;
+    return result;
   } catch (error) {
     console.error('Error in combined search:', error);
     throw new Error('Failed to search for songs with videos');

@@ -19,6 +19,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Check if this is a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
   
+  // Check if any submission has quota exhausted flag
+  const hasQuotaIssue = localSubmissions.some(s => s.quotaExhausted);
+  
   // Update local submissions whenever game.submissions changes
   useEffect(() => {
     if (game.submissions && game.submissions.length > 0) {
@@ -127,6 +130,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </p>
         </div>
         
+        {/* YouTube Quota Warning */}
+        {hasQuotaIssue && (
+          <div className="mb-4 p-3 bg-yellow-900/50 text-yellow-200 rounded-lg text-sm">
+            <p><strong>Note:</strong> YouTube video embeds are temporarily unavailable due to daily quota limits. You can still vote and the videos will be available again tomorrow.</p>
+          </div>
+        )}
+        
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
             <p><strong>Note:</strong> In games with fewer than 3 players, you can vote for your own submission.</p>
@@ -204,7 +214,15 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         ></iframe>
                       ) : (
                         <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
-                          <p className="text-gray-400 text-sm">No video available</p>
+                          <div className="flex flex-col items-center text-center">
+                            <svg className="w-8 h-8 text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10z" clipRule="evenodd" />
+                              <path fillRule="evenodd" d="M8 7v6l4-3-4-3z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-gray-400 text-sm">
+                              {submission.quotaExhausted ? 'Video unavailable (quota)' : 'No video available'}
+                            </p>
+                          </div>
                         </div>
                       )}
                       
@@ -217,10 +235,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {/* Open in YouTube button */}
-                          {submission.youtubeId && (
+                          {/* Open in YouTube button - show even if no embed available */}
+                          {(submission.youtubeId || submission.songName) && (
                             <a 
-                              href={`https://www.youtube.com/watch?v=${submission.youtubeId}`}
+                              href={submission.youtubeId 
+                                ? `https://www.youtube.com/watch?v=${submission.youtubeId}`
+                                : `https://www.youtube.com/results?search_query=${encodeURIComponent(submission.artist + ' ' + submission.songName)}`
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
@@ -229,7 +250,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                               <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
                               </svg>
-                              Watch on YouTube
+                              {submission.youtubeId ? 'Watch on YouTube' : 'Search YouTube'}
                             </a>
                           )}
                           
