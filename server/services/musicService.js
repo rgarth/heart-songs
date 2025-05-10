@@ -7,10 +7,11 @@ const NodeCache = require('node-cache');
 const searchCache = new NodeCache({ stdTTL: 3600 });
 
 /**
- * Search for songs and find matching YouTube videos
+ * Search for songs (only Last.fm, no YouTube)
+ * YouTube data will be fetched when a song is selected
  * @param {string} query Search query
  * @param {number} limit Maximum number of results
- * @returns {Promise<Array>} Array of track objects with YouTube data
+ * @returns {Promise<Array>} Array of track objects without YouTube data
  */
 async function searchSongs(query, limit = 8) {
   try {
@@ -22,61 +23,83 @@ async function searchSongs(query, limit = 8) {
       return cachedResults;
     }
     
-    // Get tracks from Last.fm
+    // Get tracks from Last.fm only
     const tracks = await lastfmService.searchTracks(query, limit);
     
-    // For each track, find a matching YouTube video
-    const enhancedTracks = await Promise.all(
-      tracks.map(async track => {
-        try {
-          // Search for YouTube videos matching this track
-          const videos = await youtubeService.searchVideos(`${track.artist} - ${track.name}`, 1);
-          
-          // Attach the first video result to the track
-          return {
-            ...track,
-            youtubeId: videos.length > 0 ? videos[0].id : null,
-            youtubeTitle: videos.length > 0 ? videos[0].title : null,
-            youtubeEmbed: videos.length > 0 ? youtubeService.getEmbedUrl(videos[0].id) : null,
-            youtubeWatch: videos.length > 0 ? youtubeService.getWatchUrl(videos[0].id) : null,
-          };
-        } catch (error) {
-          // Check if it's a quota error
-          if (error.message === 'Failed to search videos') {
-            console.warn(`YouTube quota exceeded. Returning track without video for ${track.name}`);
-            // Return the track without YouTube data when quota is exhausted
-            return {
-              ...track,
-              youtubeId: null,
-              youtubeEmbed: null,
-              youtubeWatch: null,
-              quotaExhausted: true // Flag to indicate quota issue
-            };
-          }
-          
-          console.error(`Error finding YouTube video for track ${track.name}:`, error);
-          // Return the track without YouTube data for other errors
-          return {
-            ...track,
-            youtubeId: null,
-            youtubeEmbed: null,
-            youtubeWatch: null
-          };
-        }
-      })
-    );
-    
-    // Don't filter out tracks without YouTube videos when quota is exhausted
-    // Instead, return all tracks and let the frontend handle the missing videos
-    const result = enhancedTracks;
+    // Return tracks without YouTube data
+    const enhancedTracks = tracks.map(track => ({
+      ...track,
+      youtubeId: null,
+      youtubeTitle: null,
+      youtubeEmbed: null,
+      youtubeWatch: null,
+    }));
     
     // Cache the results
-    searchCache.set(cacheKey, result);
+    searchCache.set(cacheKey, enhancedTracks);
     
-    return result;
+    return enhancedTracks;
   } catch (error) {
-    console.error('Error in combined search:', error);
-    throw new Error('Failed to search for songs with videos');
+    console.error('Error in search:', error);
+    throw new Error('Failed to search for songs');
+  }
+}
+
+/**
+ * Add YouTube data to a specific track
+ * Call this when a user selects a song
+ * @param {Object} track Track object from Last.fm
+ * @returns {Promise<Object>} Track with YouTube data
+ */
+async function addYoutubeDataToTrack(track) {
+  try {
+    // Check cache first
+    const cacheKey = `youtube:${track.id}`;
+    const cachedData = searchCache.get(cacheKey);
+    
+    if (cachedData) {
+      return { ...track, ...cachedData };
+    }
+    
+    try {
+      // Search for YouTube videos matching this track
+      const videos = await youtubeService.searchVideos(`${track.artist} - ${track.name}`, 1);
+      
+      const youtubeData = {
+        youtubeId: videos.length > 0 ? videos[0].id : null,
+        youtubeTitle: videos.length > 0 ? videos[0].title : null,
+        youtubeEmbed: videos.length > 0 ? youtubeService.getEmbedUrl(videos[0].id) : null,
+        youtubeWatch: videos.length > 0 ? youtubeService.getWatchUrl(videos[0].id) : null,
+      };
+      
+      // Cache the YouTube data
+      searchCache.set(cacheKey, youtubeData);
+      
+      return { ...track, ...youtubeData };
+    } catch (error) {
+      // Check if it's a quota error
+      if (error.message === 'Failed to search videos') {
+        console.warn(`YouTube quota may be exhausted. Returning track without video for ${track.name}`);
+        return {
+          ...track,
+          youtubeId: null,
+          youtubeEmbed: null,
+          youtubeWatch: null,
+          quotaExhausted: true
+        };
+      }
+      
+      console.error(`Error finding YouTube video for track ${track.name}:`, error);
+      return {
+        ...track,
+        youtubeId: null,
+        youtubeEmbed: null,
+        youtubeWatch: null
+      };
+    }
+  } catch (error) {
+    console.error('Error adding YouTube data:', error);
+    return track; // Return original track if there's an error
   }
 }
 
@@ -107,10 +130,11 @@ async function getTrackBySearch(artist, track) {
     );
     
     // Get the best match (exact match or first result)
-    const bestMatch = exactMatch || (searchResults.length > 0 ? searchResults[0] : null);
+    let bestMatch = exactMatch || (searchResults.length > 0 ? searchResults[0] : null);
     
-    // Cache the result if found
+    // Add YouTube data to the best match
     if (bestMatch) {
+      bestMatch = await addYoutubeDataToTrack(bestMatch);
       searchCache.set(cacheKey, bestMatch);
     }
     
@@ -131,6 +155,7 @@ function clearCache(cacheKey) {
 
 module.exports = {
   searchSongs,
+  addYoutubeDataToTrack,
   getTrackBySearch,
   clearCache
 };

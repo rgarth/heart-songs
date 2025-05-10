@@ -4,10 +4,10 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 
 /**
- * Search for songs with YouTube embeds
+ * Search for songs (Last.fm only)
  * @param {string} query The search query
  * @param {number} limit Maximum number of results to return
- * @returns {Promise<Array>} Array of song objects with YouTube links
+ * @returns {Promise<Array>} Array of song objects without YouTube data
  */
 export const searchSongs = async (query, limit = 8) => {
   try {
@@ -22,6 +22,23 @@ export const searchSongs = async (query, limit = 8) => {
     return response.data;
   } catch (error) {
     console.error('Error searching songs:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add YouTube data to a track (called when user selects a song)
+ * @param {Object} track The track object from search results
+ * @returns {Promise<Object>} Track object with YouTube data
+ */
+export const addYoutubeDataToTrack = async (track) => {
+  try {
+    const response = await axios.post(`${API_URL}/music/track/youtube`, {
+      track
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding YouTube data:', error);
     throw error;
   }
 };
@@ -85,6 +102,7 @@ export const formatSongForSubmission = (song) => {
 // Default export
 const musicService = {
   searchSongs,
+  addYoutubeDataToTrack,
   getSongDetails,
   getYouTubeEmbedUrl,
   getYouTubeWatchUrl,

@@ -1,7 +1,7 @@
-// client/src/components/game/SelectionScreen.js
+// client/src/components/game/SelectionScreen.js  
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchSongs, formatSongForSubmission } from '../../services/musicService';
+import { searchSongs, addYoutubeDataToTrack, formatSongForSubmission } from '../../services/musicService';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +14,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [duplicateError, setDuplicateError] = useState(null);
   const [speedBonusEarned, setSpeedBonusEarned] = useState(false);
   const [error, setError] = useState(null);
+  const [loadingYoutube, setLoadingYoutube] = useState(false);
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -46,7 +47,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      // Use the new musicService to search Last.fm + YouTube
+      // Use the new musicService to search Last.fm only (no YouTube)
       const results = await searchSongs(searchQuery);
       setSearchResults(results);
       
@@ -65,65 +66,72 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     );
   };
   
-  // Handle track selection
-  const handleSelectTrack = (track) => {
+  // Handle track selection with YouTube data loading
+  const handleSelectTrack = async (track) => {
     setDuplicateError(null);
     
     // Check if this song is already selected by another player
     if (isSongAlreadySelected(track.id)) {
       setDuplicateError(`"${track.name}" has already been selected by another player. Please choose a different song.`);
-      // Don't set the track as selected
       return;
     }
     
-    setSelectedSong(track);
+    try {
+      setLoadingYoutube(true);
+      
+      // Now load YouTube data for the selected track
+      const trackWithYoutube = await addYoutubeDataToTrack(track);
+      
+      setSelectedSong(trackWithYoutube);
+      setLoadingYoutube(false);
+    } catch (error) {
+      console.error('Error loading YouTube data:', error);
+      // Still set the song even if YouTube fails
+      setSelectedSong(track);
+      setLoadingYoutube(false);
+    }
   };
   
   // Handle song submission
-  // client/src/components/game/SelectionScreen.js - Fixed handleSubmit function
-
-// Handle song submission
-const handleSubmit = async () => {
-  if (!selectedSong) return;
-  
-  // Double-check for duplicate before submitting
-  if (isSongAlreadySelected(selectedSong.id)) {
-    setDuplicateError(`"${selectedSong.name}" has already been selected by another player. Please choose a different song.`);
-    setSelectedSong(null);
-    return;
-  }
-  
-  try {
-    setIsSubmitting(true);
+  const handleSubmit = async () => {
+    if (!selectedSong) return;
     
-    // Format the song data properly for submission
-    const formattedSong = {
-      id: selectedSong.id,
-      name: selectedSong.name,
-      artist: selectedSong.artist, // Already in the correct format
-      albumCover: selectedSong.albumArt || '',
-      youtubeId: selectedSong.youtubeId || null
-    };
-    
-    console.log("Submitting song:", formattedSong);
-    
-    const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
-    
-    setHasSubmitted(true);
-    
-    // Show speed bonus notification if player got it
-    if (response.gotSpeedBonus) {
-      setSpeedBonusEarned(true);
+    // Double-check for duplicate before submitting
+    if (isSongAlreadySelected(selectedSong.id)) {
+      setDuplicateError(`"${selectedSong.name}" has already been selected by another player. Please choose a different song.`);
+      setSelectedSong(null);
+      return;
     }
-  } catch (error) {
-    console.error('Error submitting song:', error);
     
-    // Show a more user-friendly error message
-    setError('Failed to submit your song. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    try {
+      setIsSubmitting(true);
+      
+      // Format the song data properly for submission
+      const formattedSong = {
+        id: selectedSong.id,
+        name: selectedSong.name,
+        artist: selectedSong.artist,
+        albumCover: selectedSong.albumArt || '',
+        youtubeId: selectedSong.youtubeId || null
+      };
+      
+      console.log("Submitting song:", formattedSong);
+      
+      const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
+      
+      setHasSubmitted(true);
+      
+      // Show speed bonus notification if player got it
+      if (response.gotSpeedBonus) {
+        setSpeedBonusEarned(true);
+      }
+    } catch (error) {
+      console.error('Error submitting song:', error);
+      setError('Failed to submit your song. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   // Check if user is active in the current round (either all players or specifically included)
   const isUserActive = () => {
@@ -207,23 +215,23 @@ const handleSubmit = async () => {
         
         {hasSubmitted ? (
           <div className="text-center py-10">
-          <div className="mb-4">
-            <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium text-green-500 mb-2">Song Submitted!</h3>
-          {speedBonusEarned && (
-            <div className="bg-yellow-600/30 p-3 rounded-lg inline-block mb-2">
-              <span className="text-yellow-400 font-bold flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                </svg>
-                Speed Bonus Earned! (+1 point)
-              </span>
+            <div className="mb-4">
+              <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-          )}
-          <p className="text-gray-300">Waiting for other players to submit their songs...</p>
+            <h3 className="text-xl font-medium text-green-500 mb-2">Song Submitted!</h3>
+            {speedBonusEarned && (
+              <div className="bg-yellow-600/30 p-3 rounded-lg inline-block mb-2">
+                <span className="text-yellow-400 font-bold flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                  </svg>
+                  Speed Bonus Earned! (+1 point)
+                </span>
+              </div>
+            )}
+            <p className="text-gray-300">Waiting for other players to submit their songs...</p>
           </div>
         ) : (
           <>
@@ -261,33 +269,45 @@ const handleSubmit = async () => {
             {selectedSong && (
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3">Selected Song</h3>
-                <div className="flex items-center bg-gray-700 p-3 rounded-lg">
-                  {selectedSong.albumArt && (
-                    <img 
-                      src={selectedSong.albumArt} 
-                      alt={selectedSong.name} 
-                      className="w-16 h-16 rounded mr-4" 
-                    />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium">{selectedSong.name}</p>
-                    <p className="text-sm text-gray-400">
-                      {selectedSong.artist}
-                    </p>
-                    {selectedSong.album && (
-                      <p className="text-xs text-gray-500">
-                        {selectedSong.album}
-                      </p>
-                    )}
+                {loadingYoutube ? (
+                  <div className="flex items-center justify-center bg-gray-700 p-6 rounded-lg">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+                    <span className="text-gray-300">Loading YouTube data...</span>
                   </div>
-                  <button 
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Confirm'}
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                    {selectedSong.albumArt && (
+                      <img 
+                        src={selectedSong.albumArt} 
+                        alt={selectedSong.name} 
+                        className="w-16 h-16 rounded mr-4" 
+                      />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium">{selectedSong.name}</p>
+                      <p className="text-sm text-gray-400">
+                        {selectedSong.artist}
+                      </p>
+                      {selectedSong.album && (
+                        <p className="text-xs text-gray-500">
+                          {selectedSong.album}
+                        </p>
+                      )}
+                      {selectedSong.youtubeId ? (
+                        <p className="text-xs text-green-400 mt-1">YouTube video found</p>
+                      ) : (
+                        <p className="text-xs text-orange-400 mt-1">No YouTube video found</p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Confirm'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             
@@ -332,18 +352,21 @@ const handleSubmit = async () => {
                             </p>
                           )}
                         </div>
-                        {track.youtubeId && (
-                          <div className="flex items-center text-xs bg-red-600 px-2 py-1 rounded">
-                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
-                            </svg>
-                            YouTube
-                          </div>
-                        )}
+                        <div className="flex items-center text-xs">
+                          <span className="bg-gray-600 px-2 py-1 rounded text-gray-300">
+                            {track.youtubeId ? 'Video Available' : 'No Video Yet'}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="mt-4 bg-red-500 text-white p-3 rounded">
+                {error}
               </div>
             )}
           </>
