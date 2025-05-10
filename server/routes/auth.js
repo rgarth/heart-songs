@@ -113,4 +113,45 @@ router.post('/validate-session', async (req, res) => {
   }
 });
 
+// Validate session token
+router.post('/validate-session', async (req, res) => {
+  try {
+    const { sessionToken } = req.body;
+    
+    if (!sessionToken) {
+      return res.json({ valid: false });
+    }
+    
+    // Find user by session token
+    const user = await User.findOne({ anonId: sessionToken });
+    
+    if (!user) {
+      return res.json({ valid: false });
+    }
+    
+    // Check if token is expired
+    const now = new Date();
+    if (user.tokenExpiry < now) {
+      return res.json({ valid: false, reason: 'Token expired' });
+    }
+    
+    // Update user's score from database (in case it changed)
+    const upToDateUser = await User.findById(user._id);
+    
+    // Return valid status and FRESH user data
+    res.json({
+      valid: true,
+      user: {
+        id: upToDateUser._id,
+        displayName: upToDateUser.displayName,
+        score: upToDateUser.score,
+        isAnonymous: true
+      }
+    });
+  } catch (error) {
+    console.error('Error validating session:', error);
+    res.status(500).json({ error: 'Failed to validate session' });
+  }
+});
+
 module.exports = router;

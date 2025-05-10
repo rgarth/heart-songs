@@ -1,5 +1,6 @@
 // client/src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
+import { validateSession } from '../services/AuthService';
 
 export const AuthContext = createContext();
 
@@ -20,9 +21,23 @@ export const AuthProvider = ({ children }) => {
           // Parse user data
           const userData = JSON.parse(storedUser);
           
-          // Set state
-          setUser(userData);
-          setAccessToken(storedAccessToken);
+          // Validate the session with the server
+          const validation = await validateSession(storedAccessToken);
+          
+          if (validation.valid && validation.user) {
+            // Session is valid, update with fresh user data
+            setUser(validation.user);
+            setAccessToken(storedAccessToken);
+            
+            // Update localStorage with fresh user data
+            localStorage.setItem('user', JSON.stringify(validation.user));
+          } else {
+            // Session is invalid or expired
+            console.error('Session validation failed:', validation);
+            
+            // Clear stored data
+            logout();
+          }
         }
       } catch (error) {
         console.error('Error loading auth data:', error);
@@ -56,6 +71,35 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
   };
 
+  // Function to manually validate session (can be called from other components)
+  const validateUserSession = async () => {
+    const token = accessToken || localStorage.getItem('accessToken');
+    
+    if (!token) {
+      logout();
+      return false;
+    }
+    
+    try {
+      const validation = await validateSession(token);
+      
+      if (validation.valid && validation.user) {
+        // Update user data with latest from server
+        setUser(validation.user);
+        localStorage.setItem('user', JSON.stringify(validation.user));
+        return true;
+      } else {
+        // Session is invalid
+        logout();
+        return false;
+      }
+    } catch (error) {
+      console.error('Session validation error:', error);
+      logout();
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -63,7 +107,8 @@ export const AuthProvider = ({ children }) => {
         accessToken,
         loading, 
         login, 
-        logout
+        logout,
+        validateUserSession
       }}
     >
       {children}

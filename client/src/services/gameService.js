@@ -1,5 +1,6 @@
 // client/src/services/gameService.js
 import axios from 'axios';
+import { handleAuthError } from './authInterceptor';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 
@@ -23,15 +24,19 @@ const createHeaders = (token) => {
 const handleRequestError = (error, operation) => {
   console.error(`Error ${operation}:`, error);
   
+  // Try to handle auth errors first
+  try {
+    handleAuthError(error);
+  } catch (authError) {
+    // If it was an auth error, it will throw the custom error
+    throw authError;
+  }
+  
+  // If not an auth error, log other details
   if (error.response) {
     console.error('Response data:', error.response.data);
     console.error('Response status:', error.response.status);
     console.error('Response headers:', error.response.headers);
-    
-    // Check if the error is due to authentication
-    if (error.response.status === 401) {
-      console.error('Authentication error. Token may be expired or invalid.');
-    }
   } else if (error.request) {
     console.error('No response received:', error.request);
   } else {
@@ -180,8 +185,7 @@ export const submitSong = async (gameId, userId, songData, accessToken) => {
     
     return response.data;
   } catch (error) {
-    console.error('Error submitting song:', error);
-    throw error;
+    return handleRequestError(error, 'submitting song');
   }
 };
 
