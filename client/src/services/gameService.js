@@ -1,6 +1,6 @@
 // client/src/services/gameService.js
 import axios from 'axios';
-import { handleAuthError } from './authInterceptor';
+import { handleAuthError } from './AuthInterceptor';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 
