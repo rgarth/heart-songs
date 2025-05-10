@@ -1,61 +1,34 @@
-// client/src/services/AuthService.js
-import axios from 'axios';
-import { generateUsername } from '../utils/usernameGenerator';
+// client/src/services/AuthInterceptor.js
+// This function sets up a global handler for authentication errors
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
+let authErrorHandler = null;
 
-// Register anonymously with the game server
-export const registerAnonymous = async (username = null) => {
-  try {
-    // If no username is provided, generate one
-    const playerName = username || generateUsername();
-    
-    const response = await axios.post(`${API_URL}/auth/register-anonymous`, { 
-      username: playerName 
-    });
-    
-    // Validate response data
-    if (!response.data || !response.data.sessionToken) {
-      console.error('Invalid response data - missing sessionToken:', response.data);
-      throw new Error('Server returned invalid data');
-    }
-    
-    return response.data;
-  } catch (error) {
-    console.error('Error in anonymous registration:', error);
-    throw error;
-  }
+// Function to set the auth error handler
+export const setAuthErrorHandler = (handler) => {
+  authErrorHandler = handler;
 };
 
-// Check if username is available
-export const checkUsernameAvailability = async (username) => {
-  try {
-    const response = await axios.post(`${API_URL}/auth/check-username`, { 
-      username 
-    });
+// Function to handle auth errors
+export const handleAuthError = (error) => {
+  // Check if it's an authentication error
+  if (error.response && error.response.status === 401) {
+    console.error('Authentication error detected');
     
-    return response.data.available;
-  } catch (error) {
-    console.error('Error checking username availability:', error);
-    return false; // Assume username is taken if there's an error
-  }
-};
-
-// Validate user session
-export const validateSession = async (sessionToken) => {
-  try {
-    if (!sessionToken) {
-      console.error('No sessionToken provided to validateSession');
-      return { valid: false };
+    // Dispatch a global event
+    window.dispatchEvent(new CustomEvent('sessionExpired'));
+    
+    // Call the auth error handler if it exists
+    if (authErrorHandler) {
+      authErrorHandler();
     }
     
-    const response = await axios.post(`${API_URL}/auth/validate-session`, { 
-      sessionToken 
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Error validating session:', error);
-    return { valid: false };
+    // Create a custom error with auth flag
+    const authError = new Error('Your session has expired. Please log in again.');
+    authError.isAuthError = true;
+    authError.status = 401;
+    throw authError;
   }
+  
+  // If not an auth error, rethrow the original error
+  throw error;
 };
