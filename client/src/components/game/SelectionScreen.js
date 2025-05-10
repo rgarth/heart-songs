@@ -1,7 +1,7 @@
 // client/src/components/game/SelectionScreen.js  
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchSongs, addYoutubeDataToTrack, formatSongForSubmission } from '../../services/musicService';
+import { searchSongs, formatSongForSubmission } from '../../services/musicService';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +14,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [duplicateError, setDuplicateError] = useState(null);
   const [speedBonusEarned, setSpeedBonusEarned] = useState(false);
   const [error, setError] = useState(null);
-  const [loadingYoutube, setLoadingYoutube] = useState(false);
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -47,7 +46,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       setSearchError(null);
       setDuplicateError(null);
       
-      // Use the new musicService to search Last.fm only (no YouTube)
+      // Search only Last.fm - no YouTube data needed
       const results = await searchSongs(searchQuery);
       setSearchResults(results);
       
@@ -66,8 +65,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     );
   };
   
-  // Handle track selection with YouTube data loading
-  const handleSelectTrack = async (track) => {
+  // Handle track selection - no YouTube data needed
+  const handleSelectTrack = (track) => {
     setDuplicateError(null);
     
     // Check if this song is already selected by another player
@@ -76,20 +75,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       return;
     }
     
-    try {
-      setLoadingYoutube(true);
-      
-      // Now load YouTube data for the selected track
-      const trackWithYoutube = await addYoutubeDataToTrack(track);
-      
-      setSelectedSong(trackWithYoutube);
-      setLoadingYoutube(false);
-    } catch (error) {
-      console.error('Error loading YouTube data:', error);
-      // Still set the song even if YouTube fails
-      setSelectedSong(track);
-      setLoadingYoutube(false);
-    }
+    // Just set the track - no YouTube loading
+    setSelectedSong(track);
   };
   
   // Handle song submission
@@ -106,13 +93,13 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     try {
       setIsSubmitting(true);
       
-      // Format the song data properly for submission
+      // Format the song data without YouTube ID (will be fetched during voting)
       const formattedSong = {
         id: selectedSong.id,
         name: selectedSong.name,
         artist: selectedSong.artist,
         albumCover: selectedSong.albumArt || '',
-        youtubeId: selectedSong.youtubeId || null
+        youtubeId: null // Will be fetched during voting
       };
       
       console.log("Submitting song:", formattedSong);
@@ -133,16 +120,13 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     }
   };
   
-  // Check if user is active in the current round (either all players or specifically included)
+  // Check if user is active in the current round
   const isUserActive = () => {
-    // If no activePlayers list exists or it's empty, consider all players active
     if (!game.activePlayers || game.activePlayers.length === 0) {
       return true;
     }
     
-    // Otherwise, check if the current user is in the activePlayers list
     return game.activePlayers.some(player => {
-      // Handle both object and string comparisons
       if (typeof player === 'object' && player._id) {
         return player._id === currentUser.id;
       }
@@ -150,7 +134,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     });
   };
   
-  // Use the function to determine active status
   const userIsActive = isUserActive();
   
   // If user is not active in this round, show a message
@@ -269,45 +252,33 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             {selectedSong && (
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3">Selected Song</h3>
-                {loadingYoutube ? (
-                  <div className="flex items-center justify-center bg-gray-700 p-6 rounded-lg">
-                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
-                    <span className="text-gray-300">Loading YouTube data...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center bg-gray-700 p-3 rounded-lg">
-                    {selectedSong.albumArt && (
-                      <img 
-                        src={selectedSong.albumArt} 
-                        alt={selectedSong.name} 
-                        className="w-16 h-16 rounded mr-4" 
-                      />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">{selectedSong.name}</p>
-                      <p className="text-sm text-gray-400">
-                        {selectedSong.artist}
+                <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                  {selectedSong.albumArt && (
+                    <img 
+                      src={selectedSong.albumArt} 
+                      alt={selectedSong.name} 
+                      className="w-16 h-16 rounded mr-4" 
+                    />
+                  )}
+                  <div className="flex-1">
+                    <p className="font-medium">{selectedSong.name}</p>
+                    <p className="text-sm text-gray-400">
+                      {selectedSong.artist}
+                    </p>
+                    {selectedSong.album && (
+                      <p className="text-xs text-gray-500">
+                        {selectedSong.album}
                       </p>
-                      {selectedSong.album && (
-                        <p className="text-xs text-gray-500">
-                          {selectedSong.album}
-                        </p>
-                      )}
-                      {selectedSong.youtubeId ? (
-                        <p className="text-xs text-green-400 mt-1">YouTube video found</p>
-                      ) : (
-                        <p className="text-xs text-orange-400 mt-1">No YouTube video found</p>
-                      )}
-                    </div>
-                    <button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {isSubmitting ? 'Submitting...' : 'Confirm'}
-                    </button>
+                    )}
                   </div>
-                )}
+                  <button 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Confirm'}
+                  </button>
+                </div>
               </div>
             )}
             
@@ -351,11 +322,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                               Already selected by another player
                             </p>
                           )}
-                        </div>
-                        <div className="flex items-center text-xs">
-                          <span className="bg-gray-600 px-2 py-1 rounded text-gray-300">
-                            {track.youtubeId ? 'Video Available' : 'No Video Yet'}
-                          </span>
                         </div>
                       </div>
                     );

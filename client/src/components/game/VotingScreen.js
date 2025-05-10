@@ -1,6 +1,7 @@
 // client/src/components/game/VotingScreen.js
 import React, { useState, useEffect } from 'react';
 import { voteForSong } from '../../services/gameService';
+import { addYoutubeDataToTrack } from '../../services/musicService';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(true);
@@ -9,9 +10,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [hasVoted, setHasVoted] = useState(false);
   const [error, setError] = useState(null);
   
-  // Add state to track if we've already loaded data
-  const [dataLoaded, setDataLoaded] = useState(false);
+  // State for submissions with YouTube data
   const [localSubmissions, setLocalSubmissions] = useState([]);
+  const [youtubeLoadingStates, setYoutubeLoadingStates] = useState({});
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -22,14 +23,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Check if any submission has quota exhausted flag
   const hasQuotaIssue = localSubmissions.some(s => s.quotaExhausted);
   
-  // Update local submissions whenever game.submissions changes
-  useEffect(() => {
-    if (game.submissions && game.submissions.length > 0) {
-      setLocalSubmissions(game.submissions);
-    }
-  }, [game.submissions]);
-  
-  // Check if user has already voted - only run once per vote change
+  // Check if user has already voted
   useEffect(() => {
     const userVoted = game.submissions.some(s => 
       s.votes.some(v => v._id === currentUser.id)
@@ -40,16 +34,80 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Load submissions only once
+  // Load submissions and fetch YouTube data
   useEffect(() => {
-    if (dataLoaded || !game.submissions || game.submissions.length === 0) {
-      return;
-    }
+    const loadSubmissionsWithYoutube = async () => {
+      if (!game.submissions || game.submissions.length === 0) {
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        
+        // Start with the original submissions
+        const submissionsWithYoutube = [...game.submissions];
+        setLocalSubmissions(submissionsWithYoutube);
+        
+        // For each submission without YouTube data, fetch it
+        for (let i = 0; i < submissionsWithYoutube.length; i++) {
+          const submission = submissionsWithYoutube[i];
+          
+          if (!submission.youtubeId) {
+            // Set loading state for this submission
+            setYoutubeLoadingStates(prev => ({
+              ...prev,
+              [submission._id]: true
+            }));
+            
+            try {
+              // Fetch YouTube data
+              const trackWithYoutube = await addYoutubeDataToTrack({
+                id: submission.songId,
+                name: submission.songName,
+                artist: submission.artist,
+                albumArt: submission.albumCover
+              });
+              
+              // Update the submission with YouTube data
+              submissionsWithYoutube[i] = {
+                ...submission,
+                youtubeId: trackWithYoutube.youtubeId,
+                youtubeTitle: trackWithYoutube.youtubeTitle,
+                quotaExhausted: trackWithYoutube.quotaExhausted
+              };
+              
+              // Update state
+              setLocalSubmissions([...submissionsWithYoutube]);
+              
+            } catch (error) {
+              console.error(`Error loading YouTube for ${submission.songName}:`, error);
+              
+              // Mark as failed to load
+              submissionsWithYoutube[i] = {
+                ...submission,
+                youtubeLoadError: true
+              };
+            } finally {
+              // Remove loading state
+              setYoutubeLoadingStates(prev => {
+                const newState = { ...prev };
+                delete newState[submission._id];
+                return newState;
+              });
+            }
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error loading submissions with YouTube:', error);
+        setError('Failed to load video data. You can still vote!');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    setLocalSubmissions(game.submissions);
-    setDataLoaded(true);
-    setLoading(false);
-  }, [game.submissions, dataLoaded]);
+    loadSubmissionsWithYoutube();
+  }, [game.submissions]);
   
   // Handle vote
   const handleVote = async () => {
@@ -86,14 +144,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   );
   const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
   
-  // Generate YouTube embed URL from track ID (same as FinalResultsScreen)
+  // Generate YouTube embed URL
   const getYouTubeEmbedUrl = (youtubeId) => {
     if (!youtubeId) return null;
     return `https://www.youtube.com/embed/${youtubeId}`;
   };
   
-  // Early return when data is still being initially loaded
-  if (loading && !dataLoaded) {
+  // Loading state
+  if (loading) {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -105,7 +163,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           
           <div className="text-center py-10">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-300 mt-4">Loading submissions...</p>
+            <p className="text-gray-300 mt-4">Loading videos...</p>
           </div>
         </div>
       </div>
@@ -175,6 +233,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             
             {localSubmissions.map(submission => {
               const isOwnSubmission = submission.player._id === currentUser.id;
+              const isLoadingYoutube = youtubeLoadingStates[submission._id];
               
               return (
                 <div 
@@ -200,8 +259,15 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   
                   <div className="p-4">
                     <div className="w-full">
-                      {/* YouTube Player Embed - Updated to match FinalResultsScreen */}
-                      {submission.youtubeId ? (
+                      {/* YouTube Player Embed */}
+                      {isLoadingYoutube ? (
+                        <div className="h-72 bg-gray-700 rounded flex items-center justify-center mb-4">
+                          <div className="flex flex-col items-center">
+                            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                            <p className="text-gray-300 text-sm">Loading video...</p>
+                          </div>
+                        </div>
+                      ) : submission.youtubeId ? (
                         <iframe 
                           src={getYouTubeEmbedUrl(submission.youtubeId)}
                           width="100%" 
@@ -220,7 +286,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                               <path fillRule="evenodd" d="M8 7v6l4-3-4-3z" clipRule="evenodd" />
                             </svg>
                             <p className="text-gray-400 text-sm">
-                              {submission.quotaExhausted ? 'Video unavailable (quota)' : 'No video available'}
+                              {submission.quotaExhausted ? 'Video unavailable (quota)' : 
+                               submission.youtubeLoadError ? 'Video failed to load' :
+                               'No video available'}
                             </p>
                           </div>
                         </div>
