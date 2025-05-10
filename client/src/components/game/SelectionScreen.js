@@ -102,8 +102,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         youtubeId: null // Will be fetched during voting
       };
       
-      console.log("Submitting song:", formattedSong);
-      
       const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
       
       setHasSubmitted(true);

@@ -172,8 +172,6 @@ export const submitSong = async (gameId, userId, songData, accessToken) => {
       youtubeId: songData.youtubeId || null
     };
     
-    console.log("Submitting song with payload:", payload);
-    
     const response = await axios.post(
       `${API_URL}/game/submit`, 
       payload,

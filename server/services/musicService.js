@@ -13,25 +13,17 @@ const searchCache = new NodeCache({ stdTTL: 3600 });
  * @returns {Promise<Array>} Array of track objects without YouTube data
  */
 async function searchSongs(query, limit = 8) {
-  console.log('\n===== MUSIC SEARCH DEBUG =====');
-  console.log('Query:', query);
-  console.log('Limit:', limit);
-  
   try {
     // Check cache first
     const cacheKey = `search:${query}:${limit}`;
     const cachedResults = searchCache.get(cacheKey);
     
     if (cachedResults) {
-      console.log('Cache hit! Returning', cachedResults.length, 'cached results');
       return cachedResults;
     }
     
-    console.log('Cache miss. Searching Last.fm...');
-    
     // Get tracks from Last.fm only
     const tracks = await lastfmService.searchTracks(query, limit);
-    console.log('Found', tracks.length, 'tracks from Last.fm');
     
     // Return tracks without YouTube data
     const enhancedTracks = tracks.map(track => ({
@@ -42,10 +34,8 @@ async function searchSongs(query, limit = 8) {
       youtubeWatch: null,
     }));
     
-    console.log('Caching and returning results');
     searchCache.set(cacheKey, enhancedTracks);
     
-    console.log('===== END MUSIC SEARCH =====\n');
     return enhancedTracks;
   } catch (error) {
     console.error('\n===== MUSIC SEARCH ERROR =====');
@@ -62,9 +52,6 @@ async function searchSongs(query, limit = 8) {
  * @returns {Promise<Object>} Track with YouTube data
  */
 async function addYoutubeDataToTrack(track) {
-  console.log('\n===== ADD YOUTUBE DATA =====');
-  console.log('Track:', track.name, 'by', track.artist);
-  
   try {
     // Check if YouTube API key is available
     if (!process.env.YOUTUBE_API_KEY) {
@@ -79,11 +66,8 @@ async function addYoutubeDataToTrack(track) {
     }
     
     try {
-      console.log('Searching YouTube...');
-      
       // Search for YouTube videos matching this track
       const videos = await youtubeService.searchVideos(`${track.artist} - ${track.name}`, 1);
-      console.log('Found', videos.length, 'videos');
       
       const youtubeData = {
         youtubeId: videos.length > 0 ? videos[0].id : null,
@@ -93,7 +77,6 @@ async function addYoutubeDataToTrack(track) {
       };
       
       const result = { ...track, ...youtubeData };
-      console.log('Returning track with YouTube data');
       return result;
     } catch (error) {
       console.error('YouTube search error:', error.message);
@@ -121,8 +104,6 @@ async function addYoutubeDataToTrack(track) {
   } catch (error) {
     console.error('Error in addYoutubeDataToTrack:', error);
     return track;
-  } finally {
-    console.log('===== END YOUTUBE ADD =====\n');
   }
 }
 

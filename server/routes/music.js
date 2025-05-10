@@ -17,23 +17,14 @@ router.use(apiLimiter);
 // Search for tracks (Last.fm only, no YouTube)
 router.get('/search', async (req, res) => {
   try {
-    console.log('=== MUSIC SEARCH DEBUG ===');
-    console.log('Request query params:', req.query);
-    
     const { query, limit = 8 } = req.query;
     
     if (!query) {
-      console.log('ERROR: No query provided');
       return res.status(400).json({ error: 'Search query is required' });
     }
     
-    console.log('Searching for:', query, 'with limit:', limit);
-    console.log('API Keys check:');
-    console.log('  - LASTFM_API_KEY exists:', !!process.env.LASTFM_API_KEY);
-    
     const tracks = await musicService.searchSongs(query, limit);
     
-    console.log('Search successful, returning', tracks.length, 'tracks');
     res.json(tracks);
   } catch (error) {
     console.error('=== SEARCH ERROR ===');
@@ -56,29 +47,16 @@ router.get('/search', async (req, res) => {
 // Get YouTube data for a specific track (called when user selects a song)
 router.post('/track/youtube', async (req, res) => {
   try {
-    console.log('=== ADD YOUTUBE DATA DEBUG ===');
-    console.log('Request body:', req.body);
-    
     const { track } = req.body;
     
     if (!track || !track.id || !track.name || !track.artist) {
-      console.log('ERROR: Invalid track data');
       return res.status(400).json({ error: 'Valid track data is required' });
     }
     
-    console.log('Adding YouTube data for:', track.name, 'by', track.artist);
-    
     const trackWithYoutube = await musicService.addYoutubeDataToTrack(track);
     
-    console.log('YouTube data added successfully');
     res.json(trackWithYoutube);
   } catch (error) {
-    console.error('=== YOUTUBE ERROR ===');
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('==================');
-    
     res.status(500).json({ 
       error: 'Failed to add YouTube data',
       details: error.message

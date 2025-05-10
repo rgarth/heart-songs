@@ -42,7 +42,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
         
         // Check if we should use tracks from previousRounds
         if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
-          console.log(`Found ${game.previousRounds.length} previous rounds to process`);
           
           // Process each round to find the winning song
           winningTracksList = game.previousRounds.map((round, index) => {
@@ -80,7 +79,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
             }
           }).filter(Boolean); // Remove any null entries
           
-          console.log(`Processed ${winningTracksList.length} winning songs from previous rounds`);
         }
 
         // Add current round winner if game is in results or ended state
@@ -88,7 +86,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
             game.submissions && Array.isArray(game.submissions) && game.submissions.length > 0) {
           
           try {
-            console.log('Processing current round submissions');
             
             // Sort by votes
             const sortedSubmissions = [...game.submissions].sort((a, b) => {
@@ -116,9 +113,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
               
               if (!isDuplicate) {
                 winningTracksList.push(finalRoundTrack);
-                console.log(`Added current round winner: ${currentWinner.songName}`);
-              } else {
-                console.log(`Current winner is duplicate, not adding: ${currentWinner.songName}`);
               }
             }
           } catch (error) {
@@ -137,7 +131,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           }
         }
         
-        console.log(`Final winning tracks count: ${uniqueTracks.length}`);
         setWinningTracks(uniqueTracks);
       } catch (error) {
         console.error('Error processing winning tracks:', error);
