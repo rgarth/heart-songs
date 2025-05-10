@@ -34,21 +34,24 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Load submissions and fetch YouTube data
+  // Load submissions - now much simpler since YouTube data comes from submission
   useEffect(() => {
-    const loadSubmissionsWithYoutube = async () => {
+    const loadSubmissions = async () => {
       if (!game.submissions || game.submissions.length === 0) {
+        setLoading(false);
         return;
       }
       
       try {
         setLoading(true);
         
-        // Start with the original submissions
-        const submissionsWithYoutube = [...game.submissions];
-        setLocalSubmissions(submissionsWithYoutube);
+        // Use the submissions as-is (with YouTube data already included)
+        setLocalSubmissions(game.submissions);
         
-        // For each submission without YouTube data, fetch it
+        // Only fetch YouTube data for submissions that don't have it
+        // This handles edge cases where YouTube data wasn't available during submission
+        const submissionsWithYoutube = [...game.submissions];
+        
         for (let i = 0; i < submissionsWithYoutube.length; i++) {
           const submission = submissionsWithYoutube[i];
           
@@ -99,14 +102,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         }
         
       } catch (error) {
-        console.error('Error loading submissions with YouTube:', error);
+        console.error('Error loading submissions:', error);
         setError('Failed to load video data. You can still vote!');
       } finally {
         setLoading(false);
       }
     };
     
-    loadSubmissionsWithYoutube();
+    loadSubmissions();
   }, [game.submissions]);
   
   // Handle vote
@@ -163,7 +166,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           
           <div className="text-center py-10">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-300 mt-4">Loading videos...</p>
+            <p className="text-gray-300 mt-4">Loading submissions...</p>
           </div>
         </div>
       </div>
