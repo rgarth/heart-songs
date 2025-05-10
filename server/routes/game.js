@@ -203,9 +203,15 @@ router.post('/ready', async (req, res) => {
 });
 
 // Submit song selection - UPDATED to remove Spotify playlist integration
+// Submit song selection - UPDATED to include YouTube data during submission
 router.post('/submit', async (req, res) => {
   try {
     const { gameId, userId, songId, songName, artist, albumCover, youtubeId } = req.body;
+    
+    // Log the request parameters for debugging
+    console.log("Song submission request:", { 
+      gameId, userId, songId, songName, artist, albumCover: albumCover?.substring(0, 20) + '...', youtubeId 
+    });
     
     // Validate required parameters
     if (!gameId || !songId) {
@@ -251,6 +257,33 @@ router.post('/submit', async (req, res) => {
     
     // Check if this is the first submission (fastest player)
     const isFirstSubmission = game.submissions.length === 0;
+    
+    // Try to get YouTube data if not provided
+    let finalYoutubeId = youtubeId;
+    let youtubeTitle = null;
+    
+    if (!finalYoutubeId && songName && artist) {
+      try {
+        // Import the music service
+        const musicService = require('../services/musicService');
+        
+        // Try to get YouTube data for this track
+        const trackWithYoutube = await musicService.addYoutubeDataToTrack({
+          id: songId,
+          name: songName,
+          artist: artist,
+          albumArt: albumCover
+        });
+        
+        if (trackWithYoutube && trackWithYoutube.youtubeId) {
+          finalYoutubeId = trackWithYoutube.youtubeId;
+          youtubeTitle = trackWithYoutube.youtubeTitle;
+        }
+      } catch (youtubeError) {
+        console.error('Error fetching YouTube data during submission:', youtubeError);
+        // Continue without YouTube data - this is not a critical failure
+      }
+    }
 
     if (existingSubmission) {
       // Update existing submission
@@ -258,7 +291,8 @@ router.post('/submit', async (req, res) => {
       existingSubmission.songName = songName;
       existingSubmission.artist = artist;
       existingSubmission.albumCover = albumCover;
-      existingSubmission.youtubeId = youtubeId; // Add YouTube ID
+      existingSubmission.youtubeId = finalYoutubeId; // Update YouTube ID
+      existingSubmission.youtubeTitle = youtubeTitle; // Add YouTube title
       existingSubmission.submittedAt = new Date(); // Update submission time
     } else {
       // Create new submission with timestamp and speed bonus if first
@@ -268,13 +302,14 @@ router.post('/submit', async (req, res) => {
         songName,
         artist,
         albumCover,
-        youtubeId, // Add YouTube ID
+        youtubeId: finalYoutubeId, // Include YouTube ID
+        youtubeTitle: youtubeTitle, // Include YouTube title
         submittedAt: new Date(),
         gotSpeedBonus: isFirstSubmission, // Award speed bonus to first submission
         votes: []
       });
     }
-    ``
+    
     // Add track to our playlist database
     try {
       await saveTrackToPlaylist(
@@ -283,7 +318,7 @@ router.post('/submit', async (req, res) => {
         songName, 
         artist, 
         albumCover || '',
-        youtubeId || ''
+        finalYoutubeId || ''
       );
     } catch (playlistError) {
       console.error('Error adding track to playlist:', playlistError);
@@ -310,7 +345,8 @@ router.post('/submit', async (req, res) => {
       status: game.status,
       submissions: game.submissions.length,
       expectedSubmissions: expectedSubmissionsCount,
-      gotSpeedBonus: isFirstSubmission // Return whether this player got the speed bonus
+      gotSpeedBonus: isFirstSubmission, // Return whether this player got the speed bonus
+      youtubeId: finalYoutubeId // Return the YouTube ID that was found/used
     });
 
   } catch (error) {
