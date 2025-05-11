@@ -1,4 +1,4 @@
-// server/services/musicService.js - Updated with YouTube cache
+// server/services/musicService.js - Updated with YouTube cache and proper preference passing
 const lastfmService = require('./lastfmService');
 const youtubeService = require('./youtubeService');
 const youtubeCacheService = require('./youtubeCacheService');
@@ -50,10 +50,13 @@ async function searchSongs(query, limit = 8) {
 /**
  * Add YouTube data to a specific track using cache
  * @param {Object} track Track object from Last.fm
+ * @param {boolean} preferVideo Whether to prefer video versions (default: false)
  * @returns {Promise<Object>} Track with YouTube data
  */
-async function addYoutubeDataToTrack(track) {
+async function addYoutubeDataToTrack(track, preferVideo = false) {
   try {
+    console.log(`[MUSIC SERVICE] Processing request for: ${track.name} - ${track.artist} (preferVideo: ${preferVideo})`);
+    
     // Check if YouTube API key is available
     if (!process.env.YOUTUBE_API_KEY) {
       console.warn('YouTube API key not set');
@@ -71,7 +74,8 @@ async function addYoutubeDataToTrack(track) {
       const youtubeData = await youtubeCacheService.getOrCacheYoutubeData(
         track.artist, 
         track.name, 
-        track.id
+        track.id,
+        preferVideo // Pass the preference to the cache service
       );
       
       if (!youtubeData) {
@@ -100,8 +104,12 @@ async function addYoutubeDataToTrack(track) {
         youtubeEmbed: youtubeService.getEmbedUrl(youtubeData.youtubeId),
         youtubeWatch: youtubeService.getWatchUrl(youtubeData.youtubeId),
         youtubeConfidence: youtubeData.confidence,
-        fromCache: youtubeData.fromCache
+        fromCache: youtubeData.fromCache,
+        isVideo: youtubeData.isVideo,
+        preferredType: youtubeData.preferredType
       };
+      
+      console.log(`[MUSIC SERVICE] Returning YouTube data: ${result.youtubeId} (type: ${result.preferredType})`);
       
       return result;
     } catch (error) {
@@ -126,12 +134,13 @@ async function addYoutubeDataToTrack(track) {
  * Get track details by searching and finding the first match
  * @param {string} artist Artist name
  * @param {string} track Track name
+ * @param {boolean} preferVideo Whether to prefer video versions (default: false)
  * @returns {Promise<Object>} Track details with YouTube data
  */
-async function getTrackBySearch(artist, track) {
+async function getTrackBySearch(artist, track, preferVideo = false) {
   try {
     // Check cache first
-    const cacheKey = `track:${artist}:${track}`;
+    const cacheKey = `track:${artist}:${track}:${preferVideo}`;
     const cachedTrack = searchCache.get(cacheKey);
     
     if (cachedTrack) {
@@ -153,7 +162,7 @@ async function getTrackBySearch(artist, track) {
     
     // Add YouTube data to the best match
     if (bestMatch) {
-      bestMatch = await addYoutubeDataToTrack(bestMatch);
+      bestMatch = await addYoutubeDataToTrack(bestMatch, preferVideo);
       searchCache.set(cacheKey, bestMatch);
     }
     

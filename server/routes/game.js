@@ -1,4 +1,4 @@
-// server/routes/game.js - Updated to remove YouTube IDs and fix duplicates
+// server/routes/game.js - Updated to remove YouTube data during submission
 
 const express = require('express');
 const router = express.Router();
@@ -202,15 +202,14 @@ router.post('/ready', async (req, res) => {
   }
 });
 
-// server/routes/game.js
-// server/routes/game.js - Complete submit route with preferVideo support
+// UPDATED: Submit route without YouTube data fetching
 router.post('/submit', async (req, res) => {
   try {
-    const { gameId, userId, songId, songName, artist, albumCover, preferVideo = false } = req.body; // Accept preferVideo
+    const { gameId, userId, songId, songName, artist, albumCover } = req.body; // Removed preferVideo as it's not used in submission
     
     // Log the request parameters for debugging
     console.log("Song submission request:", { 
-      gameId, userId, songId, songName, artist, preferVideo,
+      gameId, userId, songId, songName, artist,
       albumCover: albumCover?.substring(0, 20) + '...'
     });
     
@@ -259,39 +258,7 @@ router.post('/submit', async (req, res) => {
     // Check if this is the first submission (fastest player)
     const isFirstSubmission = game.submissions.length === 0;
 
-    // CACHE YOUTUBE DATA IMMEDIATELY DURING SUBMISSION
-    let finalYoutubeId = null;
-    let youtubeTitle = null;
-    let trackWithYoutube = null;
-    let isVideoResult = false;
-    
-    if (songName && artist) {
-      try {
-        // Import the music service
-        const musicService = require('../services/musicService');
-        
-        // Try to get YouTube data for this track (will cache for future use)
-        trackWithYoutube = await musicService.addYoutubeDataToTrack({
-          id: songId,
-          name: songName,
-          artist: artist,
-          albumArt: albumCover
-        }, preferVideo); // Pass the preference to the service
-        
-        if (trackWithYoutube && trackWithYoutube.youtubeId) {
-          finalYoutubeId = trackWithYoutube.youtubeId;
-          youtubeTitle = trackWithYoutube.youtubeTitle;
-          isVideoResult = trackWithYoutube.isVideo || false;
-          
-          console.log(`[CACHE] ${trackWithYoutube.fromCache ? 'Cache hit' : 'New cache entry'} for: ${songName} - ${artist} (${preferVideo ? 'video' : 'audio'})`);
-        }
-      } catch (youtubeError) {
-        console.error('Error fetching YouTube data during submission:', youtubeError);
-        // Don't fail the submission if YouTube lookup fails
-      }
-    }
-
-    // Create or update submission with the YouTube data and preferences
+    // Create submission data WITHOUT YouTube data - it will be fetched during voting
     const submissionData = {
       player: userId,
       songId,
@@ -301,14 +268,8 @@ router.post('/submit', async (req, res) => {
       submittedAt: new Date(),
       gotSpeedBonus: isFirstSubmission,
       votes: []
+      // No YouTube data is stored during submission
     };
-    
-    // If YouTube data was successfully fetched, include it
-    if (finalYoutubeId) {
-      submissionData.youtubeId = finalYoutubeId;
-      submissionData.isVideo = isVideoResult;
-      submissionData.preferredType = preferVideo ? 'video' : 'audio';
-    }
 
     if (existingSubmission) {
       // Update existing submission
@@ -319,7 +280,7 @@ router.post('/submit', async (req, res) => {
       game.submissions.push(submissionData);
     }
     
-    // Add track to our playlist database
+    // Add track to our playlist database (without YouTube ID)
     try {
       await saveTrackToPlaylist(
         game._id.toString(), 
@@ -327,7 +288,7 @@ router.post('/submit', async (req, res) => {
         songName, 
         artist, 
         albumCover || '',
-        finalYoutubeId // Include YouTube ID in playlist if we have it
+        null // No YouTube ID during submission
       );
     } catch (playlistError) {
       console.error('Error adding track to playlist:', playlistError);
@@ -354,11 +315,7 @@ router.post('/submit', async (req, res) => {
       status: game.status,
       submissions: game.submissions.length,
       expectedSubmissions: expectedSubmissionsCount,
-      gotSpeedBonus: isFirstSubmission,
-      youtubeId: finalYoutubeId,
-      youtubeCached: !!(trackWithYoutube && trackWithYoutube.fromCache),
-      isVideo: isVideoResult,
-      preferredType: preferVideo ? 'video' : 'audio'
+      gotSpeedBonus: isFirstSubmission
     });
 
   } catch (error) {

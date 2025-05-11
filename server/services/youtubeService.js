@@ -1,4 +1,4 @@
-// server/services/youtubeService.js
+// server/services/youtubeService.js - Updated with proper video/audio preference handling
 const axios = require('axios');
 const dotenv = require('dotenv');
 
@@ -16,10 +16,11 @@ let quotaResetTime = null;
 /**
  * Search for videos related to a song
  * @param {string} query Search query (artist + track name)
+ * @param {boolean} preferVideo Whether to prefer music videos over audio versions (default: false)
  * @param {number} maxResults Maximum number of results (1-5)
  * @returns {Promise<Array>} Array of video objects
  */
-async function searchVideos(query, maxResults = 3) {
+async function searchVideos(query, preferVideo = false, maxResults = 3) {
   try {
     // If quota is exhausted and reset time hasn't passed, return empty array
     if (quotaExhausted && quotaResetTime && new Date() < quotaResetTime) {
@@ -30,10 +31,20 @@ async function searchVideos(query, maxResults = 3) {
     // Validate maxResults
     const validMaxResults = Math.min(Math.max(1, maxResults), 5);
     
+    // Adjust search query based on preference
+    let searchQuery = query;
+    if (preferVideo) {
+      searchQuery = `${query} music video official video`;
+    } else {
+      searchQuery = `${query} audio official audio`;
+    }
+    
+    console.log(`[YOUTUBE SERVICE] Searching for: "${searchQuery}" (preferVideo: ${preferVideo})`);
+    
     const response = await axios.get(`${BASE_URL}/search`, {
       params: {
         part: 'snippet',
-        q: query + ' audio',
+        q: searchQuery,
         type: 'video',
         videoEmbeddable: true,
         maxResults: validMaxResults,
@@ -50,7 +61,7 @@ async function searchVideos(query, maxResults = 3) {
     }
     
     // Map results to a simpler format
-    return response.data.items.map(item => ({
+    const results = response.data.items.map(item => ({
       id: item.id.videoId,
       title: item.snippet.title,
       description: item.snippet.description,
@@ -58,6 +69,10 @@ async function searchVideos(query, maxResults = 3) {
       publishedAt: item.snippet.publishedAt,
       channelTitle: item.snippet.channelTitle
     }));
+    
+    console.log(`[YOUTUBE SERVICE] Found ${results.length} results for ${preferVideo ? 'video' : 'audio'} preference`);
+    
+    return results;
   } catch (error) {
     console.error('Error searching YouTube videos:', error.response?.data || error.message);
     

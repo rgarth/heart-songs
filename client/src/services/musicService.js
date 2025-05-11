@@ -1,4 +1,4 @@
-// client/src/services/musicService.js - Updated with audio/video preference
+// client/src/services/musicService.js - Updated with proper audio/video preference passing
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
@@ -34,12 +34,14 @@ export const searchSongs = async (query, limit = 8) => {
  */
 export const addYoutubeDataToTrack = async (track, preferVideo = false) => {
   try {
+    console.log(`[CLIENT] Requesting YouTube data for: ${track.name} - ${track.artist} (preferVideo: ${preferVideo})`);
     
     const response = await axios.post(`${API_URL}/music/track/youtube`, {
       track,
       preferVideo // Pass the preference to the backend
     });
     
+    console.log(`[CLIENT] Received YouTube data: ${response.data.youtubeId} (type: ${response.data.preferredType})`);
     return response.data;
   } catch (error) {
     console.error('Error adding YouTube data:', error);

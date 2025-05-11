@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js - Updated with video preference toggle
+// client/src/components/game/VotingScreen.js - Updated to properly check for cached preferences
 import React, { useState, useEffect } from 'react';
 import { voteForSong } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -56,42 +56,19 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       
       console.log(`Checking cache for ${submissionsWithYoutube.length} songs (${preferVideo ? 'video' : 'audio'} preference)...`);
       
-      // Set loading states for all submissions that might need updating
+      // Set loading states for all submissions
       const loadingStates = {};
       
-      // First pass: check what we already have in cache
-      await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
-        try {
-          // Quick check - do we already have the right preference?
-          if (submission.youtubeId && submission.preferredType === (preferVideo ? 'video' : 'audio')) {
-            // We already have the right preference
-            submissionsWithYoutube[index] = {
-              ...submission,
-              fromCache: true,
-              isVideo: submission.isVideo || false,
-              preferredType: submission.preferredType || 'audio'
-            };
-            return;
-          }
-          
-          // Mark as needing to be checked
-          loadingStates[submission._id] = true;
-        } catch (error) {
-          console.error(`Error checking ${submission.songName}:`, error);
-        }
-      }));
+      submissionsWithYoutube.forEach(submission => {
+        loadingStates[submission._id] = true;
+      });
       
       setYoutubeLoadingStates(loadingStates);
       
-      // Second pass: fetch missing data
+      // Fetch YouTube data for each submission
       await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
-        // Skip if we already have the right data
-        if (!loadingStates[submission._id]) {
-          return;
-        }
-        
         try {
-          // This will check cache with the new preference and fetch if needed
+          // This will check cache with the specified preference and fetch if needed
           const trackWithYoutube = await addYoutubeDataToTrack({
             id: submission.songId,
             name: submission.songName,
@@ -139,14 +116,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       setLocalSubmissions(submissionsWithYoutube);
       
       // Log cache performance summary
-      const alreadyHadCount = submissionsWithYoutube.filter(s => !loadingStates[s._id]).length;
-      const cachedCount = submissionsWithYoutube.filter(s => s.fromCache && loadingStates[s._id]).length;
+      const cachedCount = submissionsWithYoutube.filter(s => s.fromCache).length;
       const newFetchCount = submissionsWithYoutube.filter(s => !s.fromCache && s.youtubeId).length;
       const totalCount = submissionsWithYoutube.length;
       
       console.log(`[DUAL CACHE PERFORMANCE]`);
-      console.log(`- Already had correct preference: ${alreadyHadCount}/${totalCount}`);
-      console.log(`- Found in cache: ${cachedCount}/${totalCount - alreadyHadCount}`);
+      console.log(`- Found in cache: ${cachedCount}/${totalCount}`);
       console.log(`- New API fetches: ${newFetchCount}/${totalCount}`);
       console.log(`- Preference: ${preferVideo ? 'video' : 'audio'}`);
       
@@ -364,7 +339,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           </div>
                         </div>
                       ) : (
-                                                  <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
+                        <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
                           <div className="flex flex-col items-center text-center">
                             <svg className="w-8 h-8 text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10z" clipRule="evenodd" />

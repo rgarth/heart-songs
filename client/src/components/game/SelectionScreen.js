@@ -100,7 +100,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         artist: selectedSong.artist,
         albumCover: selectedSong.albumArt || '',
         youtubeId: null, // Will be fetched during voting
-        preferVideo: false // Default to audio preference for submission
       };
       
       const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
