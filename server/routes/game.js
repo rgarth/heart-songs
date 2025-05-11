@@ -340,7 +340,7 @@ router.post('/submit', async (req, res) => {
   }
 });
 
-// Vote for a song - Updated to handle pass submissions
+// Vote for a song - Updated to correctly handle pass submissions
 router.post('/vote', async (req, res) => {
   try {
     const { gameId, submissionId } = req.body;
@@ -399,23 +399,24 @@ router.post('/vote', async (req, res) => {
     submission.votes.push(user._id);
     await game.save();
     
-    // Check if all ACTIVE players have voted (excluding those who passed)
+    // Check if all ACTIVE players have voted
     const totalVotes = game.submissions.reduce((acc, s) => acc + s.votes.length, 0);
     
-    // Count active players who haven't passed
+    // Count active players - these are ALL players who are participating in the current round
     const activePlayers = game.activePlayers && game.activePlayers.length > 0 
       ? game.activePlayers 
       : game.players.map(p => p.user);
     
-    // Count players who passed
+    // BUGFIX: All active players can vote, regardless of whether they passed or not
+    // The key insight is that passing affects submission, not voting eligibility
+    const expectedVotesCount = activePlayers.length;
+    
+    // Count passed submissions for informational purposes
     const passedSubmissions = game.submissions.filter(s => s.hasPassed);
     const passedPlayerCount = passedSubmissions.length;
     
-    // Calculate expected votes - active players minus those who passed
-    const expectedVotesCount = activePlayers.length - passedPlayerCount;
-    
-    // If all non-passed players have voted or if everyone passed (edge case)
-    const allVoted = totalVotes >= expectedVotesCount || expectedVotesCount <= 0;
+    // Check if all active players have voted
+    const allVoted = totalVotes >= expectedVotesCount;
     
     if (allVoted) {
       game.status = 'results';
