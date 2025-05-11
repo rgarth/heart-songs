@@ -1,7 +1,7 @@
-// client/src/components/game/SelectionScreen.js - Updated with pass button
+// client/src/components/game/SelectionScreen.js - Fixed ESLint warnings
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
-import { searchSongs, formatSongForSubmission } from '../../services/musicService';
+import { searchSongs } from '../../services/musicService';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,11 +19,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
-  
-  // Count of expected submissions
-  const expectedSubmissions = hasActivePlayers 
-    ? game.activePlayers.length 
-    : game.players.length;
   
   // Count of submitted players
   const submittedCount = game.submissions.length;

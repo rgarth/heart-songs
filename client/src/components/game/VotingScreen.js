@@ -1,5 +1,5 @@
-// client/src/components/game/VotingScreen.js - Updated to handle pass submissions
-import React, { useState, useEffect } from 'react';
+// client/src/components/game/VotingScreen.js - Fixed ESLint warning
+import React, { useState, useEffect, useCallback } from 'react';
 import { voteForSong } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VideoPreferenceToggle from './VideoPreferenceToggle';
@@ -42,12 +42,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Load submissions - fetch YouTube data based on user preference
-  useEffect(() => {
-    loadSubmissionsWithPreference();
-  }, [game.submissions, preferVideo]); // Re-fetch when preference changes
-
-  const loadSubmissionsWithPreference = async () => {
+  // Wrap loadSubmissionsWithPreference in useCallback to stabilize its reference
+  const loadSubmissionsWithPreference = useCallback(async () => {
     if (!game.submissions || game.submissions.length === 0) {
       setLoading(false);
       return;
@@ -144,7 +140,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [game.submissions, preferVideo]);
+
+  // Load submissions - fetch YouTube data based on user preference
+  useEffect(() => {
+    loadSubmissionsWithPreference();
+  }, [loadSubmissionsWithPreference]); // Now loadSubmissionsWithPreference is in the dependency array
 
   // Handle vote
   const handleVote = async () => {
