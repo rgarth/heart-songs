@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js
+// client/src/components/game/VotingScreen.js - SIMPLIFIED (expects cached data)
 import React, { useState, useEffect } from 'react';
 import { voteForSong } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -34,7 +34,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Load submissions - now much simpler since YouTube data comes from submission
+  // Load submissions - fetch YouTube data from cache for each
   useEffect(() => {
     const loadSubmissions = async () => {
       if (!game.submissions || game.submissions.length === 0) {
@@ -45,61 +45,71 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       try {
         setLoading(true);
         
-        // Use the submissions as-is (with YouTube data already included)
-        setLocalSubmissions(game.submissions);
-        
-        // Only fetch YouTube data for submissions that don't have it
-        // This handles edge cases where YouTube data wasn't available during submission
+        // Start with the submissions as-is (no YouTube data yet)
         const submissionsWithYoutube = [...game.submissions];
+        setLocalSubmissions(submissionsWithYoutube);
         
-        for (let i = 0; i < submissionsWithYoutube.length; i++) {
-          const submission = submissionsWithYoutube[i];
-          
-          if (!submission.youtubeId) {
-            // Set loading state for this submission
-            setYoutubeLoadingStates(prev => ({
-              ...prev,
-              [submission._id]: true
-            }));
+        // Since YouTube data should already be cached (from submission), 
+        // this should be very fast - mostly cache hits
+        console.log(`Fetching YouTube data for ${submissionsWithYoutube.length} songs (should be cached)...`);
+        
+        // Set loading states for all submissions
+        const loadingStates = {};
+        submissionsWithYoutube.forEach(submission => {
+          loadingStates[submission._id] = true;
+        });
+        setYoutubeLoadingStates(loadingStates);
+        
+        // Fetch YouTube data for all submissions (should hit cache)
+        await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
+          try {
+            // This should almost always be a cache hit
+            const trackWithYoutube = await addYoutubeDataToTrack({
+              id: submission.songId,
+              name: submission.songName,
+              artist: submission.artist,
+              albumArt: submission.albumCover
+            });
             
-            try {
-              // Fetch YouTube data
-              const trackWithYoutube = await addYoutubeDataToTrack({
-                id: submission.songId,
-                name: submission.songName,
-                artist: submission.artist,
-                albumArt: submission.albumCover
-              });
-              
-              // Update the submission with YouTube data
-              submissionsWithYoutube[i] = {
-                ...submission,
-                youtubeId: trackWithYoutube.youtubeId,
-                youtubeTitle: trackWithYoutube.youtubeTitle,
-                quotaExhausted: trackWithYoutube.quotaExhausted
-              };
-              
-              // Update state
-              setLocalSubmissions([...submissionsWithYoutube]);
-              
-            } catch (error) {
-              console.error(`Error loading YouTube for ${submission.songName}:`, error);
-              
-              // Mark as failed to load
-              submissionsWithYoutube[i] = {
-                ...submission,
-                youtubeLoadError: true
-              };
-            } finally {
-              // Remove loading state
-              setYoutubeLoadingStates(prev => {
-                const newState = { ...prev };
-                delete newState[submission._id];
-                return newState;
-              });
+            // Update the submission with YouTube data
+            submissionsWithYoutube[index] = {
+              ...submission,
+              youtubeId: trackWithYoutube.youtubeId,
+              youtubeTitle: trackWithYoutube.youtubeTitle,
+              quotaExhausted: trackWithYoutube.quotaExhausted,
+              fromCache: trackWithYoutube.fromCache
+            };
+            
+            // Log if we had to hit the API (shouldn't happen often)
+            if (!trackWithYoutube.fromCache && trackWithYoutube.youtubeId) {
+              console.warn(`[UNEXPECTED] API call during voting for: ${submission.songName} - ${submission.artist}`);
             }
+            
+          } catch (error) {
+            console.error(`Error loading YouTube for ${submission.songName}:`, error);
+            
+            // Mark as failed to load
+            submissionsWithYoutube[index] = {
+              ...submission,
+              youtubeLoadError: true
+            };
+          } finally {
+            // Remove loading state
+            setYoutubeLoadingStates(prev => {
+              const newState = { ...prev };
+              delete newState[submission._id];
+              return newState;
+            });
           }
-        }
+        }));
+        
+        // Update state with all YouTube data
+        setLocalSubmissions(submissionsWithYoutube);
+        
+        // Log cache performance
+        const cachedCount = submissionsWithYoutube.filter(s => s.fromCache).length;
+        const totalCount = submissionsWithYoutube.length;
+        console.log(`[CACHE PERFORMANCE] ${cachedCount}/${totalCount} submissions loaded from cache`);
         
       } catch (error) {
         console.error('Error loading submissions:', error);
@@ -166,7 +176,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           
           <div className="text-center py-10">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-300 mt-4">Loading submissions...</p>
+            <p className="text-gray-300 mt-4">Loading videos from cache...</p>
+            <p className="text-gray-400 text-sm mt-2">(Should be very fast - all videos should be cached)</p>
           </div>
         </div>
       </div>
@@ -195,6 +206,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         {hasQuotaIssue && (
           <div className="mb-4 p-3 bg-yellow-900/50 text-yellow-200 rounded-lg text-sm">
             <p><strong>Note:</strong> YouTube video embeds are temporarily unavailable due to daily quota limits. You can still vote and the videos will be available again tomorrow.</p>
+          </div>
+        )}
+        
+        {/* Cache Performance Info */}
+        {localSubmissions.length > 0 && (
+          <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded-lg text-sm">
+            <p><strong>Cache Performance:</strong> {localSubmissions.filter(s => s.fromCache).length}/{localSubmissions.length} videos loaded from cache!</p>
           </div>
         )}
         
@@ -267,20 +285,32 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         <div className="h-72 bg-gray-700 rounded flex items-center justify-center mb-4">
                           <div className="flex flex-col items-center">
                             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                            <p className="text-gray-300 text-sm">Loading video...</p>
+                            <p className="text-gray-300 text-sm">Loading from cache...</p>
                           </div>
                         </div>
                       ) : submission.youtubeId ? (
-                        <iframe 
-                          src={getYouTubeEmbedUrl(submission.youtubeId)}
-                          width="100%" 
-                          height="300"
-                          frameBorder="0" 
-                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                          allowFullScreen
-                          title={`${submission.songName} by ${submission.artist}`}
-                          className="rounded mb-4"
-                        ></iframe>
+                        <div className="relative">
+                          <iframe 
+                            src={getYouTubeEmbedUrl(submission.youtubeId)}
+                            width="100%" 
+                            height="300"
+                            frameBorder="0" 
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                            title={`${submission.songName} by ${submission.artist}`}
+                            className="rounded mb-4"
+                          ></iframe>
+                          {submission.fromCache && (
+                            <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                              Cached
+                            </div>
+                          )}
+                          {!submission.fromCache && submission.youtubeId && (
+                            <div className="absolute top-2 right-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded">
+                              Fresh API
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
                           <div className="flex flex-col items-center text-center">

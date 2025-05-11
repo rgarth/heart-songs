@@ -1,12 +1,14 @@
-// client/src/components/game/FinalResultsScreen.js
+// client/src/components/game/FinalResultsScreen.js - SIMPLIFIED (expects cached data)
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { addYoutubeDataToTrack } from '../../services/musicService';
 
 const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [winningTracks, setWinningTracks] = useState([]);
+  const [youtubeLoadingStates, setYoutubeLoadingStates] = useState({});
   
   // Add safety checks for undefined or empty arrays
   const hasPlayers = game && game.players && Array.isArray(game.players) && game.players.length > 0;
@@ -25,7 +27,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   
   // Process the winning tracks from each round
   useEffect(() => {
-    const processWinningTracks = () => {
+    const processWinningTracks = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -69,7 +71,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                 songName: winner.songName || 'Unknown Song',
                 artist: winner.artist || 'Unknown Artist',
                 albumCover: winner.albumCover || '',
-                youtubeId: winner.youtubeId || null,
                 question: round.question || null,
                 roundNumber: index + 1
               };
@@ -103,7 +104,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                 songName: currentWinner.songName || 'Unknown Song',
                 artist: currentWinner.artist || 'Unknown Artist',
                 albumCover: currentWinner.albumCover || '',
-                youtubeId: currentWinner.youtubeId || null,
                 question: game.currentQuestion || null,
                 roundNumber: winningTracksList.length + 1
               };
@@ -132,6 +132,12 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
         }
         
         setWinningTracks(uniqueTracks);
+        
+        // Now fetch YouTube data for each track from cache
+        if (uniqueTracks.length > 0) {
+          await fetchYoutubeDataForTracks(uniqueTracks);
+        }
+        
       } catch (error) {
         console.error('Error processing winning tracks:', error);
         setError('Failed to process winning songs');
@@ -142,6 +148,72 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
     
     processWinningTracks();
   }, [game]);
+  
+  // Fetch YouTube data for all tracks (should be cached from submissions)
+  const fetchYoutubeDataForTracks = async (tracks) => {
+    // Create a copy to work with
+    const tracksWithYoutube = [...tracks];
+    
+    console.log(`Fetching YouTube data for ${tracksWithYoutube.length} winning songs (should be cached)...`);
+    
+    // Set loading states for all tracks
+    const loadingStates = {};
+    tracksWithYoutube.forEach(track => {
+      loadingStates[track.songId] = true;
+    });
+    setYoutubeLoadingStates(loadingStates);
+    
+    // Fetch YouTube data for all tracks (should hit cache)
+    await Promise.all(tracksWithYoutube.map(async (track, index) => {
+      try {
+        // This should almost always be a cache hit
+        const trackWithYoutube = await addYoutubeDataToTrack({
+          id: track.songId,
+          name: track.songName,
+          artist: track.artist,
+          albumArt: track.albumCover
+        });
+        
+        // Update the track with YouTube data
+        tracksWithYoutube[index] = {
+          ...track,
+          youtubeId: trackWithYoutube.youtubeId,
+          youtubeTitle: trackWithYoutube.youtubeTitle,
+          quotaExhausted: trackWithYoutube.quotaExhausted,
+          fromCache: trackWithYoutube.fromCache
+        };
+        
+        // Log if we had to hit the API (shouldn't happen)
+        if (!trackWithYoutube.fromCache && trackWithYoutube.youtubeId) {
+          console.warn(`[UNEXPECTED] API call during final results for: ${track.songName} - ${track.artist}`);
+        }
+        
+      } catch (error) {
+        console.error(`Error loading YouTube for ${track.songName}:`, error);
+        
+        // Mark as failed to load
+        tracksWithYoutube[index] = {
+          ...track,
+          youtubeLoadError: true
+        };
+      } finally {
+        // Remove loading state
+        setYoutubeLoadingStates(prev => {
+          const newState = { ...prev };
+          delete newState[track.songId];
+          return newState;
+        });
+      }
+    }));
+    
+    // Update state with all YouTube data
+    setWinningTracks(tracksWithYoutube);
+    
+    // Log cache performance
+    const cachedCount = tracksWithYoutube.filter(t => t.fromCache).length;
+    const totalCount = tracksWithYoutube.length;
+    console.log(`[CACHE PERFORMANCE] ${cachedCount}/${totalCount} winning tracks loaded from cache`);
+  };
 
   // Generate YouTube embed URL
   const getYouTubeEmbedUrl = (youtubeId) => {
@@ -195,6 +267,7 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           <div className="py-10">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="text-gray-300 mt-4">Loading final results...</p>
+            <p className="text-gray-400 text-sm mt-2">(Should be very fast - all videos should be cached)</p>
           </div>
         </div>
       </div>
@@ -284,6 +357,13 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
           </div>
         )}
         
+        {/* Cache Performance Info */}
+        {winningTracks.length > 0 && (
+          <div className="mb-6 p-3 bg-green-900/50 text-green-200 rounded-lg text-sm text-center">
+            <p><strong>Cache Performance:</strong> {winningTracks.filter(t => t.fromCache).length}/{winningTracks.length} winning tracks loaded from cache!</p>
+          </div>
+        )}
+        
         {/* Winning songs from each round with embedded YouTube players */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
@@ -297,6 +377,8 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
               {winningTracks.map((track, index) => {
                 if (!track || !track.songId) return null;
                 
+                const isLoadingYoutube = youtubeLoadingStates[track.songId];
+                
                 return (
                   <div 
                     key={`${track.songId}-${index}`}
@@ -304,26 +386,49 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
                   >
                     <div className="bg-gray-700 px-4 py-2 font-medium">
                       <p className="text-yellow-400">
-                        Round {index + 1}: {track.question?.text || "Question not available"}
+                        Round {track.roundNumber}: {track.question?.text || "Question not available"}
                       </p>
                     </div>
                     <div className="p-4">
                       <div className="w-full">
                         {/* YouTube Embed */}
-                        {track.youtubeId ? (
-                          <iframe
-                            src={getYouTubeEmbedUrl(track.youtubeId)}
-                            width="100%" 
-                            height="300" 
-                            frameBorder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                            title={`${track.songName || 'Song'} by ${track.artist || 'Artist'}`}
-                            className="rounded mb-4"
-                          ></iframe>
+                        {isLoadingYoutube ? (
+                          <div className="h-72 bg-gray-600 rounded flex items-center justify-center mb-4">
+                            <div className="flex flex-col items-center">
+                              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                              <p className="text-gray-300 text-sm">Loading from cache...</p>
+                            </div>
+                          </div>
+                        ) : track.youtubeId ? (
+                          <div className="relative">
+                            <iframe
+                              src={getYouTubeEmbedUrl(track.youtubeId)}
+                              width="100%" 
+                              height="300" 
+                              frameBorder="0" 
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                              allowFullScreen
+                              title={`${track.songName || 'Song'} by ${track.artist || 'Artist'}`}
+                              className="rounded mb-4"
+                            ></iframe>
+                            {track.fromCache && (
+                              <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                Cached
+                              </div>
+                            )}
+                            {!track.fromCache && track.youtubeId && (
+                              <div className="absolute top-2 right-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded">
+                                Fresh API
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
-                            <p className="text-gray-400 text-sm">No video available</p>
+                            <p className="text-gray-400 text-sm">
+                              {track.quotaExhausted ? 'Video unavailable (quota)' :
+                               track.youtubeLoadError ? 'Video failed to load' :
+                               'No video available'}
+                            </p>
                           </div>
                         )}
                         

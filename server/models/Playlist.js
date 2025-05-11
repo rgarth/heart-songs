@@ -1,4 +1,4 @@
-// server/models/Playlist.js - Updated for YouTube integration
+// server/models/Playlist.js - UPDATED to remove YouTube IDs
 const mongoose = require('mongoose');
 
 const PlaylistSchema = new mongoose.Schema({
@@ -21,7 +21,7 @@ const PlaylistSchema = new mongoose.Schema({
       required: true
     },
     albumCover: String,
-    youtubeId: String, // Add YouTube video ID
+    // REMOVED: youtubeId - will fetch from cache when needed
     addedAt: {
       type: Date,
       default: Date.now

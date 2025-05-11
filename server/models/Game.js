@@ -1,4 +1,4 @@
-// server/models/Game.js
+// server/models/Game.js - Removed YouTube IDs, will fetch from cache
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -49,7 +49,7 @@ const GameSchema = new mongoose.Schema({
     songName: String,
     artist: String,
     albumCover: String,
-    youtubeId: String, // Added for YouTube integration
+    // REMOVED: youtubeId - will fetch from cache when needed
     submittedAt: { // Add timestamp tracking
       type: Date,
       default: Date.now
@@ -77,7 +77,7 @@ const GameSchema = new mongoose.Schema({
       songName: String,
       artist: String,
       albumCover: String,
-      youtubeId: String, // Added for YouTube
+      // REMOVED: youtubeId - will fetch from cache when needed
       gotSpeedBonus: Boolean,
       votes: [{
         type: mongoose.Schema.Types.ObjectId,

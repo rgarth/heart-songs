@@ -12,7 +12,8 @@
         "cache:cleanup:aggressive": "node server/scripts/cleanupCache.js --aggressive",
         "cache:cleanup:light": "node server/scripts/cleanupCache.js --light",
         "cache:monitor": "node server/scripts/monitorCache.js",
-        "cache:monitor:continuous": "node server/scripts/monitorCache.js --continuous --interval=30"
+        "cache:monitor:continuous": "node server/scripts/monitorCache.js --continuous --interval=30",
+	"migrate:youtube": "node server/scripts/migrateYoutubeToCache.js"
     },
     "keywords": [
         "lastfm",

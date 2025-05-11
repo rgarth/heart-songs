@@ -81,7 +81,7 @@ YoutubeCacheSchema.methods.updateAccess = function() {
 // Pre-save hook to set trackKey
 YoutubeCacheSchema.pre('save', function() {
   if (!this.trackKey) {
-    this.trackKey = YoutubeCacheSchema.statics.generateKey(this.artist, this.track);
+    this.trackKey = this.constructor.generateKey(this.artist, this.track);
   }
 });
 

@@ -1,4 +1,4 @@
-// server/routes/game.js - Updated to remove Spotify playlist functions
+// server/routes/game.js - Updated to remove YouTube IDs and fix duplicates
 
 const express = require('express');
 const router = express.Router();
@@ -202,15 +202,15 @@ router.post('/ready', async (req, res) => {
   }
 });
 
-// Submit song selection - UPDATED to remove Spotify playlist integration
-// Submit song selection - UPDATED to include YouTube data during submission
+// Submit song selection - UPDATED to remove YouTube storage
+// server/routes/game.js - Submit song selection (UPDATED to cache YouTube data immediately)
 router.post('/submit', async (req, res) => {
   try {
-    const { gameId, userId, songId, songName, artist, albumCover, youtubeId } = req.body;
+    const { gameId, userId, songId, songName, artist, albumCover } = req.body;
     
     // Log the request parameters for debugging
     console.log("Song submission request:", { 
-      gameId, userId, songId, songName, artist, albumCover: albumCover?.substring(0, 20) + '...', youtubeId 
+      gameId, userId, songId, songName, artist, albumCover: albumCover?.substring(0, 20) + '...'
     });
     
     // Validate required parameters
@@ -257,17 +257,17 @@ router.post('/submit', async (req, res) => {
     
     // Check if this is the first submission (fastest player)
     const isFirstSubmission = game.submissions.length === 0;
-    
-    // Try to get YouTube data if not provided
-    let finalYoutubeId = youtubeId;
+
+    // CACHE YOUTUBE DATA IMMEDIATELY DURING SUBMISSION
+    let finalYoutubeId = null;
     let youtubeTitle = null;
     
-    if (!finalYoutubeId && songName && artist) {
+    if (songName && artist) {
       try {
         // Import the music service
         const musicService = require('../services/musicService');
         
-        // Try to get YouTube data for this track
+        // Try to get YouTube data for this track (will cache for future use)
         const trackWithYoutube = await musicService.addYoutubeDataToTrack({
           id: songId,
           name: songName,
@@ -278,10 +278,12 @@ router.post('/submit', async (req, res) => {
         if (trackWithYoutube && trackWithYoutube.youtubeId) {
           finalYoutubeId = trackWithYoutube.youtubeId;
           youtubeTitle = trackWithYoutube.youtubeTitle;
+          
+          console.log(`[CACHE] ${trackWithYoutube.fromCache ? 'Cache hit' : 'New cache entry'} for: ${songName} - ${artist}`);
         }
       } catch (youtubeError) {
         console.error('Error fetching YouTube data during submission:', youtubeError);
-        // Continue without YouTube data - this is not a critical failure
+        // Don't fail the submission if YouTube lookup fails
       }
     }
 
@@ -291,8 +293,6 @@ router.post('/submit', async (req, res) => {
       existingSubmission.songName = songName;
       existingSubmission.artist = artist;
       existingSubmission.albumCover = albumCover;
-      existingSubmission.youtubeId = finalYoutubeId; // Update YouTube ID
-      existingSubmission.youtubeTitle = youtubeTitle; // Add YouTube title
       existingSubmission.submittedAt = new Date(); // Update submission time
     } else {
       // Create new submission with timestamp and speed bonus if first
@@ -302,8 +302,6 @@ router.post('/submit', async (req, res) => {
         songName,
         artist,
         albumCover,
-        youtubeId: finalYoutubeId, // Include YouTube ID
-        youtubeTitle: youtubeTitle, // Include YouTube title
         submittedAt: new Date(),
         gotSpeedBonus: isFirstSubmission, // Award speed bonus to first submission
         votes: []
@@ -318,7 +316,7 @@ router.post('/submit', async (req, res) => {
         songName, 
         artist, 
         albumCover || '',
-        finalYoutubeId || ''
+        null // Don't store YouTube ID here either
       );
     } catch (playlistError) {
       console.error('Error adding track to playlist:', playlistError);
@@ -346,7 +344,8 @@ router.post('/submit', async (req, res) => {
       submissions: game.submissions.length,
       expectedSubmissions: expectedSubmissionsCount,
       gotSpeedBonus: isFirstSubmission, // Return whether this player got the speed bonus
-      youtubeId: finalYoutubeId // Return the YouTube ID that was found/used
+      youtubeId: finalYoutubeId, // Return the YouTube ID that was found/cached
+      youtubeCached: !!(trackWithYoutube && trackWithYoutube.fromCache)
     });
 
   } catch (error) {
