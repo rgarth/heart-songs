@@ -202,22 +202,23 @@ router.post('/ready', async (req, res) => {
   }
 });
 
-// UPDATED: Submit route without YouTube data fetching
+// UPDATED: Submit route with pass support
 router.post('/submit', async (req, res) => {
   try {
-    const { gameId, userId, songId, songName, artist, albumCover } = req.body; // Removed preferVideo as it's not used in submission
+    const { gameId, userId, songId, songName, artist, albumCover, hasPassed } = req.body;
     
     // Log the request parameters for debugging
     console.log("Song submission request:", { 
       gameId, userId, songId, songName, artist,
-      albumCover: albumCover?.substring(0, 20) + '...'
+      albumCover: albumCover?.substring(0, 20) + '...',
+      hasPassed
     });
     
     // Validate required parameters
-    if (!gameId || !songId) {
+    if (!gameId) {
       return res.status(400).json({ 
         error: 'Missing required parameters',
-        received: { gameId, songId }
+        received: { gameId }
       });
     }
     
@@ -255,21 +256,33 @@ router.post('/submit', async (req, res) => {
     // Check if user already submitted
     const existingSubmission = game.submissions.find(s => s.player && s.player.toString() === userId);
     
-    // Check if this is the first submission (fastest player)
-    const isFirstSubmission = game.submissions.length === 0;
+    // Check if this is the first submission (fastest player) - only for actual song submissions
+    const isFirstSubmission = game.submissions.length === 0 && !hasPassed;
 
-    // Create submission data WITHOUT YouTube data - it will be fetched during voting
+    // Create submission data
     const submissionData = {
       player: userId,
-      songId,
-      songName,
-      artist,
-      albumCover,
+      hasPassed: hasPassed || false,
       submittedAt: new Date(),
       gotSpeedBonus: isFirstSubmission,
       votes: []
-      // No YouTube data is stored during submission
     };
+
+    if (hasPassed) {
+      // For passed submissions, use placeholder values
+      submissionData.songId = 'PASS';
+      submissionData.songName = 'PASS';
+      submissionData.artist = 'PASS';
+      submissionData.albumCover = '';
+      submissionData.youtubeId = null;
+    } else {
+      // For actual song submissions
+      submissionData.songId = songId;
+      submissionData.songName = songName;
+      submissionData.artist = artist;
+      submissionData.albumCover = albumCover;
+      // No YouTube data is stored during submission
+    }
 
     if (existingSubmission) {
       // Update existing submission
@@ -280,19 +293,21 @@ router.post('/submit', async (req, res) => {
       game.submissions.push(submissionData);
     }
     
-    // Add track to our playlist database (without YouTube ID)
-    try {
-      await saveTrackToPlaylist(
-        game._id.toString(), 
-        songId, 
-        songName, 
-        artist, 
-        albumCover || '',
-        null // No YouTube ID during submission
-      );
-    } catch (playlistError) {
-      console.error('Error adding track to playlist:', playlistError);
-      // Continue even if there's an error with the playlist
+    // Add track to our playlist database (only for actual song submissions, not passes)
+    if (!hasPassed) {
+      try {
+        await saveTrackToPlaylist(
+          game._id.toString(), 
+          songId, 
+          songName, 
+          artist, 
+          albumCover || '',
+          null // No YouTube ID during submission
+        );
+      } catch (playlistError) {
+        console.error('Error adding track to playlist:', playlistError);
+        // Continue even if there's an error with the playlist
+      }
     }
     
     await game.save();
@@ -315,7 +330,8 @@ router.post('/submit', async (req, res) => {
       status: game.status,
       submissions: game.submissions.length,
       expectedSubmissions: expectedSubmissionsCount,
-      gotSpeedBonus: isFirstSubmission
+      gotSpeedBonus: isFirstSubmission,
+      hasPassed: hasPassed || false
     });
 
   } catch (error) {
@@ -324,7 +340,7 @@ router.post('/submit', async (req, res) => {
   }
 });
 
-// Vote for a song
+// Vote for a song - Updated to handle pass submissions
 router.post('/vote', async (req, res) => {
   try {
     const { gameId, submissionId } = req.body;
@@ -354,6 +370,11 @@ router.post('/vote', async (req, res) => {
       return res.status(404).json({ error: 'Submission not found' });
     }
     
+    // Cannot vote for passed submissions
+    if (submission.hasPassed) {
+      return res.status(400).json({ error: 'Cannot vote for passed submissions' });
+    }
+    
     // NEW FEATURE: Check player count to determine if players can vote for their own submissions
     const canVoteForSelf = game.players.length < 3;
     
@@ -378,21 +399,32 @@ router.post('/vote', async (req, res) => {
     submission.votes.push(user._id);
     await game.save();
     
-    // Check if all ACTIVE players have voted
+    // Check if all ACTIVE players have voted (excluding those who passed)
     const totalVotes = game.submissions.reduce((acc, s) => acc + s.votes.length, 0);
     
-    // If game was force-started, only count votes from active players
-    const expectedVotesCount = game.activePlayers && game.activePlayers.length > 0 
-      ? game.activePlayers.length 
-      : game.players.length;
+    // Count active players who haven't passed
+    const activePlayers = game.activePlayers && game.activePlayers.length > 0 
+      ? game.activePlayers 
+      : game.players.map(p => p.user);
     
-    const allVoted = totalVotes >= expectedVotesCount;
+    // Count players who passed
+    const passedSubmissions = game.submissions.filter(s => s.hasPassed);
+    const passedPlayerCount = passedSubmissions.length;
+    
+    // Calculate expected votes - active players minus those who passed
+    const expectedVotesCount = activePlayers.length - passedPlayerCount;
+    
+    // If all non-passed players have voted or if everyone passed (edge case)
+    const allVoted = totalVotes >= expectedVotesCount || expectedVotesCount <= 0;
     
     if (allVoted) {
       game.status = 'results';
       
-      // Update scores
+      // Update scores - only for non-passed submissions
       game.submissions.forEach(sub => {
+        // Skip passed submissions for scoring
+        if (sub.hasPassed) return;
+        
         // Base points from votes
         const votePoints = sub.votes.length;
         
@@ -427,7 +459,8 @@ router.post('/vote', async (req, res) => {
       status: game.status,
       submissions: game.submissions,
       expectedVotes: expectedVotesCount,
-      currentVotes: totalVotes
+      currentVotes: totalVotes,
+      passedCount: passedPlayerCount
     });
   } catch (error) {
     console.error('Error voting:', error);

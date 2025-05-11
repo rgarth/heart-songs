@@ -1,4 +1,4 @@
-// server/models/Game.js - Updated with preference fields
+// server/models/Game.js - Updated with hasPassed field
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -60,6 +60,11 @@ const GameSchema = new mongoose.Schema({
       enum: ['audio', 'video'],
       default: 'audio'
     },
+    // NEW: Pass indicator
+    hasPassed: {
+      type: Boolean,
+      default: false
+    },
     submittedAt: {
       type: Date,
       default: Date.now
@@ -97,6 +102,11 @@ const GameSchema = new mongoose.Schema({
         type: String,
         enum: ['audio', 'video'],
         default: 'audio'
+      },
+      // NEW: Pass indicator for previous rounds
+      hasPassed: {
+        type: Boolean,
+        default: false
       },
       gotSpeedBonus: Boolean,
       votes: [{

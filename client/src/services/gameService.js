@@ -1,4 +1,4 @@
-// client/src/services/gameService.js
+// client/src/services/gameService.js - Updated for pass support
 import axios from 'axios';
 import { handleAuthError } from './AuthInterceptor';
 
@@ -10,8 +10,6 @@ const createHeaders = (token) => {
     console.error("No access token provided to createHeaders");
     throw new Error("Authentication token is required");
   }
-  
-  // Only log a preview of the token for security
   
   return {
     headers: {
@@ -154,30 +152,44 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
   }
 };
 
-// Submit song selection
-// Submit song selection
+// Submit song selection - Updated with pass support
 export const submitSong = async (gameId, userId, songData, accessToken) => {
   try {
-    if (!gameId || !userId || !songData) {
+    if (!gameId || !userId) {
       console.error("Missing required parameters for submitting song:", { 
         hasGameId: !!gameId, 
-        hasUserId: !!userId, 
-        hasSongData: !!songData
+        hasUserId: !!userId
       });
       throw new Error('Missing required parameters for submitting song');
     }
     
-    // Make sure to handle both the new and old formats of songData
-    const payload = { 
-      gameId, 
-      userId, 
-      songId: songData.id,
-      songName: songData.name,
-      artist: songData.artist || songData.artists?.[0]?.name || 'Unknown Artist',
-      albumCover: songData.albumCover || songData.albumArt || songData.album?.images?.[0]?.url || '',
-      youtubeId: songData.youtubeId || null,
-      preferVideo: songData.preferVideo || false // Pass the video preference
-    };
+    // Check if this is a pass submission
+    const isPass = songData && songData.hasPassed === true;
+    
+    let payload;
+    
+    if (isPass) {
+      // For passing, only minimal info is needed
+      payload = { 
+        gameId, 
+        userId, 
+        hasPassed: true
+      };
+    } else {
+      // For regular song submission
+      // Make sure to handle both the new and old formats of songData
+      payload = { 
+        gameId, 
+        userId, 
+        songId: songData.id,
+        songName: songData.name,
+        artist: songData.artist || songData.artists?.[0]?.name || 'Unknown Artist',
+        albumCover: songData.albumCover || songData.albumArt || songData.album?.images?.[0]?.url || '',
+        youtubeId: songData.youtubeId || null,
+        preferVideo: songData.preferVideo || false,
+        hasPassed: false
+      };
+    }
     
     const response = await axios.post(
       `${API_URL}/game/submit`, 

@@ -1,4 +1,4 @@
-// client/src/components/game/SelectionScreen.js - Updated with video preference
+// client/src/components/game/SelectionScreen.js - Updated with pass button
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
 import { searchSongs, formatSongForSubmission } from '../../services/musicService';
@@ -14,6 +14,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [duplicateError, setDuplicateError] = useState(null);
   const [speedBonusEarned, setSpeedBonusEarned] = useState(false);
   const [error, setError] = useState(null);
+  const [isPassConfirmShowing, setIsPassConfirmShowing] = useState(false);
+  const [hasPassed, setHasPassed] = useState(false);
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -27,11 +29,12 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const submittedCount = game.submissions.length;
   const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
   
-  // Check if user has already submitted
+  // Check if user has already submitted or passed
   useEffect(() => {
     const userSubmission = game.submissions.find(s => s.player._id === currentUser.id);
     if (userSubmission) {
       setHasSubmitted(true);
+      setHasPassed(userSubmission.hasPassed || false);
     }
   }, [game.submissions, currentUser.id]);
   
@@ -105,6 +108,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
       
       setHasSubmitted(true);
+      setHasPassed(false);
       
       // Show speed bonus notification if player got it
       if (response.gotSpeedBonus) {
@@ -113,6 +117,34 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     } catch (error) {
       console.error('Error submitting song:', error);
       setError('Failed to submit your song. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle pass submission
+  const handlePass = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      // Submit with a special pass indicator
+      const passData = {
+        id: 'PASS',
+        name: 'PASS',
+        artist: 'PASS',
+        albumCover: '',
+        youtubeId: null,
+        hasPassed: true, // Special flag to indicate this is a pass
+      };
+      
+      await submitSong(game._id, currentUser.id, passData, accessToken);
+      
+      setHasSubmitted(true);
+      setHasPassed(true);
+      setIsPassConfirmShowing(false);
+    } catch (error) {
+      console.error('Error submitting pass:', error);
+      setError('Failed to submit your pass. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -187,7 +219,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         
         <div className="mb-4 flex justify-between items-center">
           <p className="text-sm">
-            Pick a song that best answers this question
+            Pick a song that best answers this question or pass
           </p>
           <p className="text-sm text-gray-400">
             {submittedCount} of {totalPlayers} submitted
@@ -197,12 +229,20 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         {hasSubmitted ? (
           <div className="text-center py-10">
             <div className="mb-4">
-              <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              {hasPassed ? (
+                <svg className="w-16 h-16 text-gray-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              ) : (
+                <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
             </div>
-            <h3 className="text-xl font-medium text-green-500 mb-2">Song Submitted!</h3>
-            {speedBonusEarned && (
+            <h3 className="text-xl font-medium text-green-500 mb-2">
+              {hasPassed ? 'Passed!' : 'Song Submitted!'}
+            </h3>
+            {!hasPassed && speedBonusEarned && (
               <div className="bg-yellow-600/30 p-3 rounded-lg inline-block mb-2">
                 <span className="text-yellow-400 font-bold flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -212,10 +252,14 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 </span>
               </div>
             )}
-            <p className="text-gray-300">Waiting for other players to submit their songs...</p>
-            <p className="text-sm text-gray-400 mt-4">
-              Audio will be prioritized during voting to save data
+            <p className="text-gray-300">
+              {hasPassed ? 'You passed on this question.' : 'Waiting for other players to submit their songs...'}
             </p>
+            {!hasPassed && (
+              <p className="text-sm text-gray-400 mt-4">
+                Audio will be prioritized during voting to save data
+              </p>
+            )}
           </div>
         ) : (
           <>
@@ -333,6 +377,40 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 </div>
               </div>
             )}
+            
+            {/* Pass Button and Confirmation */}
+            <div className="mt-6 text-center border-t border-gray-700 pt-4">
+              {isPassConfirmShowing ? (
+                <div className="bg-gray-750 p-4 rounded-lg">
+                  <p className="text-gray-300 mb-4">Are you sure you want to pass on this question?</p>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Note: You won't get a speed bonus and there will be fewer songs to vote for.
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={handlePass}
+                      disabled={isSubmitting}
+                      className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Passing...' : 'Yes, Pass'}
+                    </button>
+                    <button
+                      onClick={() => setIsPassConfirmShowing(false)}
+                      className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsPassConfirmShowing(true)}
+                  className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+                >
+                  Pass on this question
+                </button>
+              )}
+            </div>
             
             {error && (
               <div className="mt-4 bg-red-500 text-white p-3 rounded">

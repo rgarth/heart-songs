@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js - Updated to properly check for cached preferences
+// client/src/components/game/VotingScreen.js - Updated to handle pass submissions
 import React, { useState, useEffect } from 'react';
 import { voteForSong } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -24,6 +24,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   
   // Check if any submission has quota exhausted flag
   const hasQuotaIssue = localSubmissions.some(s => s.quotaExhausted);
+  
+  // Filter out passed submissions for voting
+  const votableSubmissions = localSubmissions.filter(s => !s.hasPassed);
+  
+  // Count passed submissions
+  const passedCount = localSubmissions.filter(s => s.hasPassed).length;
   
   // Check if user has already voted
   useEffect(() => {
@@ -56,17 +62,24 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       
       console.log(`Checking cache for ${submissionsWithYoutube.length} songs (${preferVideo ? 'video' : 'audio'} preference)...`);
       
-      // Set loading states for all submissions
+      // Set loading states only for non-passed submissions
       const loadingStates = {};
       
       submissionsWithYoutube.forEach(submission => {
-        loadingStates[submission._id] = true;
+        if (!submission.hasPassed) {
+          loadingStates[submission._id] = true;
+        }
       });
       
       setYoutubeLoadingStates(loadingStates);
       
-      // Fetch YouTube data for each submission
+      // Fetch YouTube data for each non-passed submission
       await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
+        // Skip passed submissions
+        if (submission.hasPassed) {
+          return;
+        }
+        
         try {
           // This will check cache with the specified preference and fetch if needed
           const trackWithYoutube = await addYoutubeDataToTrack({
@@ -118,7 +131,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       // Log cache performance summary
       const cachedCount = submissionsWithYoutube.filter(s => s.fromCache).length;
       const newFetchCount = submissionsWithYoutube.filter(s => !s.fromCache && s.youtubeId).length;
-      const totalCount = submissionsWithYoutube.length;
+      const totalCount = submissionsWithYoutube.filter(s => !s.hasPassed).length;
       
       console.log(`[DUAL CACHE PERFORMANCE]`);
       console.log(`- Found in cache: ${cachedCount}/${totalCount}`);
@@ -174,6 +187,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     return `https://www.youtube.com/embed/${youtubeId}`;
   };
   
+  // Check if there are no votable submissions (everyone passed)
+  const allPassed = votableSubmissions.length === 0;
+  
   // Loading state
   if (loading) {
     return (
@@ -194,6 +210,38 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     );
   }
   
+  // If everyone passed, show a message
+  if (allPassed) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-2 text-center">Voting Time</h2>
+          
+          <div className="text-center mb-6">
+            <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+          </div>
+          
+          <div className="text-center py-10">
+            <div className="mb-4">
+              <svg className="w-16 h-16 text-gray-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-medium text-gray-400 mb-2">Everyone Passed</h3>
+            <p className="text-gray-300 mb-4">
+              All players passed on this question. Moving to the next round...
+            </p>
+            <div className="bg-gray-700 p-4 rounded-lg inline-block">
+              <p className="text-sm text-gray-400">
+                {passedCount} player{passedCount !== 1 ? 's' : ''} passed on this question
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -203,15 +251,17 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
         </div>
         
-        {/* Video Preference Toggle */}
-        <div className="flex justify-center mb-6">
-          <VideoPreferenceToggle
-            preferVideo={preferVideo}
-            onToggle={() => setPreferVideo(!preferVideo)}
-            disabled={loading}
-            showLabel={true}
-          />
-        </div>
+        {/* Video Preference Toggle - only show if there are votable submissions */}
+        {votableSubmissions.length > 0 && (
+          <div className="flex justify-center mb-6">
+            <VideoPreferenceToggle
+              preferVideo={preferVideo}
+              onToggle={() => setPreferVideo(!preferVideo)}
+              disabled={loading}
+              showLabel={true}
+            />
+          </div>
+        )}
         
         <div className="mb-4 flex justify-between items-center">
           <p className="text-sm">
@@ -222,6 +272,15 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </p>
         </div>
         
+        {/* Pass Information */}
+        {passedCount > 0 && (
+          <div className="mb-4 p-3 bg-gray-750 rounded-lg text-sm">
+            <p className="text-gray-300">
+              <strong>Note:</strong> {passedCount} player{passedCount !== 1 ? 's' : ''} passed on this question.
+            </p>
+          </div>
+        )}
+        
         {/* YouTube Quota Warning */}
         {hasQuotaIssue && (
           <div className="mb-4 p-3 bg-yellow-900/50 text-yellow-200 rounded-lg text-sm">
@@ -230,9 +289,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         )}
         
         {/* Cache Performance Info */}
-        {localSubmissions.length > 0 && (
+        {votableSubmissions.length > 0 && (
           <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded-lg text-sm">
-            <p><strong>Cache Performance:</strong> {localSubmissions.filter(s => s.fromCache).length}/{localSubmissions.length} songs loaded from cache!</p>
+            <p><strong>Cache Performance:</strong> {localSubmissions.filter(s => s.fromCache).length}/{votableSubmissions.length} songs loaded from cache!</p>
             <p className="text-xs mt-1">
               Showing {preferVideo ? 'video' : 'audio'} versions - Toggle above to switch
             </p>
@@ -278,6 +337,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {localSubmissions.map(submission => {
               const isOwnSubmission = submission.player._id === currentUser.id;
               const isLoadingYoutube = youtubeLoadingStates[submission._id];
+              const isPassed = submission.hasPassed;
+              
+              // Don't show passed submissions in the list (they're just informational above)
+              if (isPassed) {
+                return null;
+              }
               
               return (
                 <div 
@@ -405,9 +470,16 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 </div>
               );
             })}
+            
+            {/* Show message if there are no submissions to vote on */}
+            {votableSubmissions.length === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                <p>No submissions to vote on this round.</p>
+              </div>
+            )}
           </div>
           
-          {!hasVoted && (
+          {!hasVoted && votableSubmissions.length > 0 && (
             <div className="text-center">
               <button
                 onClick={handleVote}
