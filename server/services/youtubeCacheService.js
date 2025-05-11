@@ -194,35 +194,36 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo
 function isVideoContent(title) {
   const titleLower = title.toLowerCase();
   
-  // Indicators that it's a music video
+  // Strong indicators of music videos
   const videoIndicators = [
     'music video',
     'official video',
-    'lyrics video',
-    'visualizer'
+    'lyrics video', // Note: might still be mostly static
+    'live performance',
+    'concert',
+    'behind the scenes'
   ];
   
-  // Indicators that it's audio-only
+  // Strong indicators of audio content
   const audioIndicators = [
-    'audio',
     'official audio',
-    'audio only'
+    'audio only',
+    'topic', // YouTube's auto-generated topic channels
+    'official',
+    'full album'
   ];
   
-  const hasVideoIndicator = videoIndicators.some(indicator => titleLower.includes(indicator));
-  const hasAudioIndicator = audioIndicators.some(indicator => titleLower.includes(indicator));
-  
-  // If it explicitly mentions audio, treat as audio
-  if (hasAudioIndicator && !titleLower.includes('video')) {
+  // Check for explicit audio indicators first
+  if (audioIndicators.some(indicator => titleLower.includes(indicator))) {
     return false;
   }
   
-  // If it explicitly mentions video, treat as video
-  if (hasVideoIndicator) {
+  // Check for explicit video indicators
+  if (videoIndicators.some(indicator => titleLower.includes(indicator))) {
     return true;
   }
   
-  // Default to audio for game use
+  // Default to false (audio) if uncertain
   return false;
 }
 
