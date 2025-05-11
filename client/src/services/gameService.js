@@ -155,6 +155,7 @@ export const startGame = async (gameId, userId, token, questionData = null) => {
 };
 
 // Submit song selection
+// Submit song selection
 export const submitSong = async (gameId, userId, songData, accessToken) => {
   try {
     if (!gameId || !userId || !songData) {
@@ -174,7 +175,8 @@ export const submitSong = async (gameId, userId, songData, accessToken) => {
       songName: songData.name,
       artist: songData.artist || songData.artists?.[0]?.name || 'Unknown Artist',
       albumCover: songData.albumCover || songData.albumArt || songData.album?.images?.[0]?.url || '',
-      youtubeId: songData.youtubeId || null
+      youtubeId: songData.youtubeId || null,
+      preferVideo: songData.preferVideo || false // Pass the video preference
     };
     
     const response = await axios.post(

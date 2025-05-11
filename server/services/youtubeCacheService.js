@@ -1,4 +1,4 @@
-// server/services/youtubeCacheService.js - Optimized version
+// server/services/youtubeCacheService.js - Updated for dual preference storage
 const YoutubeCache = require('../models/YoutubeCache');
 const youtubeService = require('./youtubeService');
 
@@ -11,17 +11,19 @@ const RECENT_CACHE_TTL = 30000; // 30 seconds
  * @param {string} artist Artist name
  * @param {string} track Track name
  * @param {string} lastfmId Optional Last.fm track ID
+ * @param {boolean} preferVideo Whether to prefer video versions (default: false)
  * @returns {Promise<Object|null>} YouTube data or null if not found
  */
-async function getOrCacheYoutubeData(artist, track, lastfmId = null) {
+async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo = false) {
   try {
-    // Generate cache key
+    // Generate cache key (no preference needed)
     const cacheKey = YoutubeCache.generateKey(artist, track);
+    const recentCacheKey = `${cacheKey}_${preferVideo ? 'video' : 'audio'}`;
     
-    // Check in-memory recent cache first (prevents concurrent API calls)
-    const recentLookup = recentLookups.get(cacheKey);
+    // Check in-memory recent cache first
+    const recentLookup = recentLookups.get(recentCacheKey);
     if (recentLookup && Date.now() - recentLookup.timestamp < RECENT_CACHE_TTL) {
-      console.log(`Using recent lookup for: ${artist} - ${track}`);
+      console.log(`Using recent lookup for: ${artist} - ${track} (${preferVideo ? 'video' : 'audio'})`);
       return recentLookup.data;
     }
     
@@ -29,56 +31,67 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null) {
     let cachedEntry = await YoutubeCache.findOne({ trackKey: cacheKey });
     
     if (cachedEntry) {
-      // Only return cache entry if it has a valid YouTube ID (not 'NOT_FOUND')
-      if (cachedEntry.youtubeId && cachedEntry.youtubeId !== 'NOT_FOUND') {
+      // Check if we have the requested preference
+      const preferenceData = preferVideo ? cachedEntry.video : cachedEntry.audio;
+      
+      if (preferenceData && preferenceData.youtubeId && preferenceData.youtubeId !== 'NOT_FOUND') {
         // Update access info
-        await cachedEntry.updateAccess();
+        await cachedEntry.updateAccess(preferVideo);
         
         const result = {
-          youtubeId: cachedEntry.youtubeId,
-          youtubeTitle: cachedEntry.youtubeTitle,
-          youtubeThumbnail: cachedEntry.youtubeThumbnail,
-          confidence: cachedEntry.confidence,
+          youtubeId: preferenceData.youtubeId,
+          youtubeTitle: preferenceData.youtubeTitle,
+          youtubeThumbnail: preferenceData.youtubeThumbnail,
+          confidence: preferenceData.confidence,
+          isVideo: preferVideo,
+          preferredType: preferVideo ? 'video' : 'audio',
           fromCache: true
         };
         
         // Store in recent cache
-        recentLookups.set(cacheKey, {
+        recentLookups.set(recentCacheKey, {
           data: result,
           timestamp: Date.now()
         });
         
+        console.log(`[CACHE HIT] Found ${preferVideo ? 'video' : 'audio'} for: ${artist} - ${track}`);
         return result;
-      } else {
-        console.log('Found NOT_FOUND cache entry, will search YouTube again');
       }
+      
+      // We have a cache entry but not for this preference
+      console.log(`[PARTIAL CACHE] Have ${preferVideo ? 'audio' : 'video'} but need ${preferVideo ? 'video' : 'audio'} for: ${artist} - ${track}`);
     }
     
-    // Check if we're already searching for this track
-    if (recentLookups.has(cacheKey + '_searching')) {
-      console.log(`Already searching for: ${artist} - ${track}, waiting...`);
+    // If we didn't find the exact preference, check if we should hit the API
+    console.log(`[CACHE MISS] No ${preferVideo ? 'video' : 'audio'} found for: ${artist} - ${track}, searching YouTube...`);
+    
+    // Check if we're already searching for this track with this preference
+    const searchingKey = `${cacheKey}_${preferVideo ? 'video' : 'audio'}_searching`;
+    if (recentLookups.has(searchingKey)) {
+      console.log(`Already searching for: ${artist} - ${track} (${preferVideo ? 'video' : 'audio'}), waiting...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
       // Try to get from cache again after waiting
-      return getOrCacheYoutubeData(artist, track, lastfmId);
+      return getOrCacheYoutubeData(artist, track, lastfmId, preferVideo);
     }
     
-    // Mark that we're searching for this track
-    recentLookups.set(cacheKey + '_searching', true);
+    // Mark that we're searching for this track with this preference
+    recentLookups.set(searchingKey, true);
     
     try {
-      console.log(`Searching YouTube API for: ${artist} - ${track}`);
-      const videos = await youtubeService.searchVideos(`${artist} - ${track}`, 1);
+      console.log(`Searching YouTube API for: ${artist} - ${track} (${preferVideo ? 'video' : 'audio'})`);
+      
+      // Use the updated search function with preference
+      const videos = await youtubeService.searchVideos(`${artist} - ${track}`, preferVideo, 1);
       
       // Remove the searching flag
-      recentLookups.delete(cacheKey + '_searching');
+      recentLookups.delete(searchingKey);
       
       if (videos.length === 0) {
-        // No videos found - DON'T cache this negative result
-        console.log(`No YouTube video found for: ${artist} - ${track}`);
+        console.log(`No YouTube ${preferVideo ? 'video' : 'audio'} found for: ${artist} - ${track}`);
         const result = null;
         
         // Store in recent cache to prevent immediate retries
-        recentLookups.set(cacheKey, {
+        recentLookups.set(recentCacheKey, {
           data: result,
           timestamp: Date.now()
         });
@@ -88,51 +101,63 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null) {
       
       const video = videos[0];
       
-      // Cache the result only if a video was found
-      let cacheEntry;
-      try {
-        cacheEntry = await YoutubeCache.create({
+      // Determine if this is a video or audio result
+      const isVideo = isVideoContent(video.title);
+      
+      // Update or create cache entry
+      let cacheEntry = cachedEntry;
+      if (!cacheEntry) {
+        // Create new cache entry
+        cacheEntry = new YoutubeCache({
           trackKey: cacheKey,
           artist,
           track,
-          lastfmId,
-          youtubeId: video.id,
-          youtubeTitle: video.title,
-          youtubeThumbnail: video.thumbnail,
-          confidence: calculateConfidence(artist, track, video.title)
+          lastfmId
         });
-      } catch (createError) {
-        if (createError.code === 11000) {
-          // Duplicate key error - another process beat us to it
-          // Let's fetch the existing entry instead
-          cacheEntry = await YoutubeCache.findOne({ trackKey: cacheKey });
-          await cacheEntry.updateAccess();
-        } else {
-          throw createError;
-        }
       }
       
+      // Add the new preference data
+      const preferenceData = {
+        youtubeId: video.id,
+        youtubeTitle: video.title,
+        youtubeThumbnail: video.thumbnail,
+        confidence: calculateConfidence(artist, track, video.title),
+        firstSearched: new Date(),
+        lastAccessed: new Date()
+      };
+      
+      if (preferVideo) {
+        cacheEntry.video = preferenceData;
+      } else {
+        cacheEntry.audio = preferenceData;
+      }
+      
+      await cacheEntry.save();
+      
       const result = {
-        youtubeId: cacheEntry.youtubeId,
-        youtubeTitle: cacheEntry.youtubeTitle,
-        youtubeThumbnail: cacheEntry.youtubeThumbnail,
-        confidence: cacheEntry.confidence,
+        youtubeId: video.id,
+        youtubeTitle: video.title,
+        youtubeThumbnail: video.thumbnail,
+        confidence: preferenceData.confidence,
+        isVideo: isVideo,
+        preferredType: preferVideo ? 'video' : 'audio',
         fromCache: false
       };
       
       // Store in recent cache
-      recentLookups.set(cacheKey, {
+      recentLookups.set(recentCacheKey, {
         data: result,
         timestamp: Date.now()
       });
       
+      console.log(`[NEW CACHE ENTRY] Cached ${preferVideo ? 'video' : 'audio'} for: ${artist} - ${track}`);
       return result;
       
     } catch (youtubeError) {
       console.error('YouTube search error:', youtubeError);
       
       // Remove the searching flag on error
-      recentLookups.delete(cacheKey + '_searching');
+      recentLookups.delete(searchingKey);
       
       // Check if it's a quota error
       if (youtubeError.message === 'Failed to search videos') {
@@ -143,7 +168,7 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null) {
         };
         
         // Store in recent cache with shorter TTL for quota errors
-        recentLookups.set(cacheKey, {
+        recentLookups.set(recentCacheKey, {
           data: result,
           timestamp: Date.now() + (60000 * 5) // 5 minute TTL for quota errors
         });
@@ -159,6 +184,46 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null) {
     console.error('Error in YouTube cache service:', error);
     return null;
   }
+}
+
+/**
+ * Determine if a YouTube result is primarily video content
+ * @param {string} title YouTube video title
+ * @returns {boolean} Whether it's likely video content
+ */
+function isVideoContent(title) {
+  const titleLower = title.toLowerCase();
+  
+  // Indicators that it's a music video
+  const videoIndicators = [
+    'music video',
+    'official video',
+    'lyrics video',
+    'visualizer'
+  ];
+  
+  // Indicators that it's audio-only
+  const audioIndicators = [
+    'audio',
+    'official audio',
+    'audio only'
+  ];
+  
+  const hasVideoIndicator = videoIndicators.some(indicator => titleLower.includes(indicator));
+  const hasAudioIndicator = audioIndicators.some(indicator => titleLower.includes(indicator));
+  
+  // If it explicitly mentions audio, treat as audio
+  if (hasAudioIndicator && !titleLower.includes('video')) {
+    return false;
+  }
+  
+  // If it explicitly mentions video, treat as video
+  if (hasVideoIndicator) {
+    return true;
+  }
+  
+  // Default to audio for game use
+  return false;
 }
 
 /**
@@ -186,65 +251,11 @@ function calculateConfidence(artist, track, youtubeTitle) {
   }
   
   // Check for common patterns
-  if (normalizedTitle.includes('official')) score += 0.1;
-  if (normalizedTitle.includes('music video')) score += 0.1;
+  if (normalizedTitle.includes('official')) score += 0.2;
   if (normalizedTitle.includes('audio')) score += 0.05;
-  if (normalizedTitle.includes('lyrics')) score += 0.05;
+  if (normalizedTitle.includes('music video')) score += 0.15;
   
   return Math.min(score, 1);
-}
-
-/**
- * Manually add an entry to the cache
- * @param {string} artist Artist name
- * @param {string} track Track name
- * @param {string} youtubeId YouTube video ID
- * @param {Object} options Additional options
- * @returns {Promise<Object>} Created cache entry
- */
-async function addToCacheManually(artist, track, youtubeId, options = {}) {
-  const cacheKey = YoutubeCache.generateKey(artist, track);
-  
-  try {
-    const entry = await YoutubeCache.findOneAndUpdate(
-      { trackKey: cacheKey },
-      {
-        trackKey: cacheKey,
-        artist,
-        track,
-        youtubeId,
-        youtubeTitle: options.title || null,
-        youtubeThumbnail: options.thumbnail || null,
-        confidence: options.confidence || 1,
-        lastfmId: options.lastfmId || null,
-        lastAccessed: new Date(), // Update last accessed time
-        $inc: { accessCount: 0 } // Initialize accessCount if it doesn't exist
-      },
-      { 
-        upsert: true, 
-        new: true,
-        setDefaultsOnInsert: true // This ensures default values are set on new documents
-      }
-    );
-    
-    // Clear any recent cache for this key
-    recentLookups.delete(cacheKey);
-    
-    return entry;
-  } catch (error) {
-    if (error.code === 11000) {
-      // Even with findOneAndUpdate, there's a small chance of race condition
-      // Let's try to find the existing entry
-      const existingEntry = await YoutubeCache.findOne({ trackKey: cacheKey });
-      if (existingEntry) {
-        return existingEntry;
-      }
-    }
-    
-    // If it's still failing, log and rethrow
-    console.error('Error in addToCacheManually:', error);
-    throw error;
-  }
 }
 
 /**
@@ -254,19 +265,24 @@ async function addToCacheManually(artist, track, youtubeId, options = {}) {
 async function getCacheStats() {
   const totalEntries = await YoutubeCache.countDocuments();
   
-  // Count valid entries (those with actual YouTube IDs)
-  const entriesWithVideos = await YoutubeCache.countDocuments({ 
-    youtubeId: { $ne: 'NOT_FOUND', $exists: true, $ne: null } 
+  // Count entries with audio or video
+  const entriesWithAudio = await YoutubeCache.countDocuments({ 
+    'audio.youtubeId': { $exists: true, $ne: null, $ne: 'NOT_FOUND' }
   });
   
-  // Count any NOT_FOUND entries (shouldn't be there but let's check)
-  const notFoundEntries = await YoutubeCache.countDocuments({ 
-    youtubeId: 'NOT_FOUND' 
+  const entriesWithVideo = await YoutubeCache.countDocuments({ 
+    'video.youtubeId': { $exists: true, $ne: null, $ne: 'NOT_FOUND' }
+  });
+  
+  // Count entries with both audio AND video
+  const entriesWithBoth = await YoutubeCache.countDocuments({
+    'audio.youtubeId': { $exists: true, $ne: null, $ne: 'NOT_FOUND' },
+    'video.youtubeId': { $exists: true, $ne: null, $ne: 'NOT_FOUND' }
   });
   
   const oldestEntry = await YoutubeCache.findOne()
-    .sort({ firstSearched: 1 })
-    .select('artist track firstSearched');
+    .sort({ createdAt: 1 })
+    .select('artist track createdAt');
     
   const mostAccessed = await YoutubeCache.findOne()
     .sort({ accessCount: -1 })
@@ -277,13 +293,16 @@ async function getCacheStats() {
   
   return {
     totalEntries,
-    entriesWithVideos,
-    notFoundEntries, // This should be 0 with the new approach
+    entriesWithAudio,
+    entriesWithVideo,
+    entriesWithBoth,
+    audioOnlyEntries: entriesWithAudio - entriesWithBoth,
+    videoOnlyEntries: entriesWithVideo - entriesWithBoth,
     recentCacheEntries: recentCacheSize,
     oldestEntry: oldestEntry ? {
       artist: oldestEntry.artist,
       track: oldestEntry.track,
-      firstSearched: oldestEntry.firstSearched
+      createdAt: oldestEntry.createdAt
     } : null,
     mostAccessed: mostAccessed ? {
       artist: mostAccessed.artist,
@@ -317,13 +336,23 @@ async function cleanupCache(options = {}) {
   
   deletedCount += oldEntries.deletedCount;
   
-  // Remove all 'NOT_FOUND' entries (if any exist)
-  const notFoundEntries = await YoutubeCache.deleteMany({
-    youtubeId: 'NOT_FOUND'
+  // Remove entries with no valid data
+  const emptyEntries = await YoutubeCache.deleteMany({
+    $and: [
+      { $or: [
+        { 'audio.youtubeId': { $exists: false } },
+        { 'audio.youtubeId': null },
+        { 'audio.youtubeId': 'NOT_FOUND' }
+      ]},
+      { $or: [
+        { 'video.youtubeId': { $exists: false } },
+        { 'video.youtubeId': null },
+        { 'video.youtubeId': 'NOT_FOUND' }
+      ]}
+    ]
   });
   
-  deletedCount += notFoundEntries.deletedCount;
-  console.log(`Removed ${notFoundEntries.deletedCount} NOT_FOUND entries`);
+  deletedCount += emptyEntries.deletedCount;
   
   // If still over maxEntries, remove least accessed
   const currentCount = await YoutubeCache.countDocuments();
@@ -342,13 +371,6 @@ async function cleanupCache(options = {}) {
     deletedCount += deletedExcess.deletedCount;
   }
   
-  // Remove entries with very low confidence
-  const lowConfidence = await YoutubeCache.deleteMany({
-    confidence: { $lt: minConfidence }
-  });
-  
-  deletedCount += lowConfidence.deletedCount;
-  
   // Clean up recent cache entries older than TTL
   const now = Date.now();
   for (const [key, value] of recentLookups.entries()) {
@@ -362,7 +384,6 @@ async function cleanupCache(options = {}) {
 
 module.exports = {
   getOrCacheYoutubeData,
-  addToCacheManually,
   getCacheStats,
   cleanupCache
 };

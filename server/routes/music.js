@@ -1,4 +1,4 @@
-// server/routes/music.js
+// server/routes/music.js - Updated to handle audio/video preference
 const express = require('express');
 const router = express.Router();
 const musicService = require('../services/musicService');
@@ -44,16 +44,16 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Get YouTube data for a specific track (called when user selects a song)
+// Get YouTube data for a specific track (with audio/video preference)
 router.post('/track/youtube', async (req, res) => {
   try {
-    const { track } = req.body;
+    const { track, preferVideo = false } = req.body; // New: Accept preferVideo parameter
     
     if (!track || !track.id || !track.name || !track.artist) {
       return res.status(400).json({ error: 'Valid track data is required' });
     }
     
-    const trackWithYoutube = await musicService.addYoutubeDataToTrack(track);
+    const trackWithYoutube = await musicService.addYoutubeDataToTrack(track, preferVideo);
     
     res.json(trackWithYoutube);
   } catch (error) {
@@ -64,16 +64,19 @@ router.post('/track/youtube', async (req, res) => {
   }
 });
 
-// Get track details by artist and track name
+// Get track details by artist and track name (with audio/video preference)
 router.get('/track', async (req, res) => {
   try {
-    const { artist, track } = req.query;
+    const { artist, track, preferVideo = false } = req.query; // New: Accept preferVideo parameter
     
     if (!artist || !track) {
       return res.status(400).json({ error: 'Artist and track name are required' });
     }
     
-    const trackDetails = await musicService.getTrackBySearch(artist, track);
+    // Convert preferVideo string to boolean
+    const preferVideoBoolean = preferVideo === 'true' || preferVideo === true;
+    
+    const trackDetails = await musicService.getTrackBySearch(artist, track, preferVideoBoolean);
     
     if (!trackDetails) {
       return res.status(404).json({ error: 'Track not found' });

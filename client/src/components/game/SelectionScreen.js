@@ -1,4 +1,4 @@
-// client/src/components/game/SelectionScreen.js  
+// client/src/components/game/SelectionScreen.js - Updated with video preference
 import React, { useState, useEffect } from 'react';
 import { submitSong } from '../../services/gameService';
 import { searchSongs, formatSongForSubmission } from '../../services/musicService';
@@ -65,7 +65,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     );
   };
   
-  // Handle track selection - no YouTube data needed
+  // Handle track selection - no YouTube data needed during selection
   const handleSelectTrack = (track) => {
     setDuplicateError(null);
     
@@ -75,7 +75,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       return;
     }
     
-    // Just set the track - no YouTube loading
+    // Just set the track - no YouTube loading during selection
     setSelectedSong(track);
   };
   
@@ -99,7 +99,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         name: selectedSong.name,
         artist: selectedSong.artist,
         albumCover: selectedSong.albumArt || '',
-        youtubeId: null // Will be fetched during voting
+        youtubeId: null, // Will be fetched during voting
+        preferVideo: false // Default to audio preference for submission
       };
       
       const response = await submitSong(game._id, currentUser.id, formattedSong, accessToken);
@@ -213,6 +214,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               </div>
             )}
             <p className="text-gray-300">Waiting for other players to submit their songs...</p>
+            <p className="text-sm text-gray-400 mt-4">
+              Audio will be prioritized during voting to save data
+            </p>
           </div>
         ) : (
           <>
@@ -277,6 +281,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                     {isSubmitting ? 'Submitting...' : 'Confirm'}
                   </button>
                 </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Note: Audio versions will be shown during voting by default to save data
+                </p>
               </div>
             )}
             

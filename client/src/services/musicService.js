@@ -1,4 +1,4 @@
-// client/src/services/musicService.js
+// client/src/services/musicService.js - Updated with audio/video preference
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
@@ -27,15 +27,19 @@ export const searchSongs = async (query, limit = 8) => {
 };
 
 /**
- * Add YouTube data to a track (called when user selects a song)
+ * Add YouTube data to a track (with audio/video preference)
  * @param {Object} track The track object from search results
+ * @param {boolean} preferVideo Whether to prefer video versions (default: false)
  * @returns {Promise<Object>} Track object with YouTube data
  */
-export const addYoutubeDataToTrack = async (track) => {
+export const addYoutubeDataToTrack = async (track, preferVideo = false) => {
   try {
+    
     const response = await axios.post(`${API_URL}/music/track/youtube`, {
-      track
+      track,
+      preferVideo // Pass the preference to the backend
     });
+    
     return response.data;
   } catch (error) {
     console.error('Error adding YouTube data:', error);
@@ -44,17 +48,19 @@ export const addYoutubeDataToTrack = async (track) => {
 };
 
 /**
- * Get song details by artist and track name
+ * Get song details by artist and track name (with audio/video preference)
  * @param {string} artist The artist name
  * @param {string} track The track name
+ * @param {boolean} preferVideo Whether to prefer video versions (default: false)
  * @returns {Promise<Object>} Song details with YouTube embed
  */
-export const getSongDetails = async (artist, track) => {
+export const getSongDetails = async (artist, track, preferVideo = false) => {
   try {
     const response = await axios.get(`${API_URL}/music/track`, {
       params: {
         artist,
-        track
+        track,
+        preferVideo // Pass the preference to the backend
       }
     });
     return response.data;
@@ -102,8 +108,8 @@ export const formatSongForSubmission = (song) => {
 // Default export
 const musicService = {
   searchSongs,
-  addYoutubeDataToTrack,
-  getSongDetails,
+  addYoutubeDataToTrack, // Now with optional preferVideo parameter
+  getSongDetails,        // Now with optional preferVideo parameter
   getYouTubeEmbedUrl,
   getYouTubeWatchUrl,
   formatSongForSubmission

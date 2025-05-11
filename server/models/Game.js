@@ -1,4 +1,4 @@
-// server/models/Game.js - Removed YouTube IDs, will fetch from cache
+// server/models/Game.js - Updated with preference fields
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -49,12 +49,22 @@ const GameSchema = new mongoose.Schema({
     songName: String,
     artist: String,
     albumCover: String,
-    // REMOVED: youtubeId - will fetch from cache when needed
-    submittedAt: { // Add timestamp tracking
+    // YouTube data - now included during submission
+    youtubeId: String,
+    isVideo: {
+      type: Boolean,
+      default: false
+    },
+    preferredType: {
+      type: String,
+      enum: ['audio', 'video'],
+      default: 'audio'
+    },
+    submittedAt: {
       type: Date,
       default: Date.now
     },
-    gotSpeedBonus: { // Flag for the speed bonus
+    gotSpeedBonus: {
       type: Boolean,
       default: false
     },
@@ -77,7 +87,17 @@ const GameSchema = new mongoose.Schema({
       songName: String,
       artist: String,
       albumCover: String,
-      // REMOVED: youtubeId - will fetch from cache when needed
+      // YouTube data preserved in previous rounds
+      youtubeId: String,
+      isVideo: {
+        type: Boolean,
+        default: false
+      },
+      preferredType: {
+        type: String,
+        enum: ['audio', 'video'],
+        default: 'audio'
+      },
       gotSpeedBonus: Boolean,
       votes: [{
         type: mongoose.Schema.Types.ObjectId,

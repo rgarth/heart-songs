@@ -1,8 +1,8 @@
-// server/models/YoutubeCache.js
+// server/models/YoutubeCache.js - Updated to store both audio and video
 const mongoose = require('mongoose');
 
 const YoutubeCacheSchema = new mongoose.Schema({
-  // Compound key: artist + track name (normalized)
+  // Single key for the song (artist + track)
   trackKey: {
     type: String,
     required: true,
@@ -24,18 +24,50 @@ const YoutubeCacheSchema = new mongoose.Schema({
   // Last.fm track ID (if available)
   lastfmId: String,
   
-  // YouTube data
-  youtubeId: {
-    type: String,
-    required: true
+  // Audio version data
+  audio: {
+    youtubeId: String,
+    youtubeTitle: String,
+    youtubeThumbnail: String,
+    confidence: {
+      type: Number,
+      default: 1,
+      min: 0,
+      max: 1
+    },
+    firstSearched: {
+      type: Date,
+      default: Date.now
+    },
+    lastAccessed: {
+      type: Date,
+      default: Date.now
+    }
   },
   
-  youtubeTitle: String,
-  
-  youtubeThumbnail: String,
+  // Video version data
+  video: {
+    youtubeId: String,
+    youtubeTitle: String,
+    youtubeThumbnail: String,
+    confidence: {
+      type: Number,
+      default: 1,
+      min: 0,
+      max: 1
+    },
+    firstSearched: {
+      type: Date,
+      default: Date.now
+    },
+    lastAccessed: {
+      type: Date,
+      default: Date.now
+    }
+  },
   
   // Cache metadata
-  firstSearched: {
+  createdAt: {
     type: Date,
     default: Date.now
   },
@@ -49,21 +81,13 @@ const YoutubeCacheSchema = new mongoose.Schema({
   accessCount: {
     type: Number,
     default: 1
-  },
-  
-  // Optional: store additional metadata
-  confidence: {
-    type: Number,
-    default: 1,
-    min: 0,
-    max: 1
   }
 });
 
 // Create a TTL index - automatically delete entries after X days of no access
 YoutubeCacheSchema.index({ lastAccessed: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }); // 90 days
 
-// Helper method to generate cache key
+// Helper method to generate cache key (no preference needed)
 YoutubeCacheSchema.statics.generateKey = function(artist, track) {
   // Normalize the key: lowercase, remove special chars, trim whitespace
   const normalizedArtist = artist.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '');
@@ -72,9 +96,17 @@ YoutubeCacheSchema.statics.generateKey = function(artist, track) {
 };
 
 // Instance method to update access info
-YoutubeCacheSchema.methods.updateAccess = function() {
+YoutubeCacheSchema.methods.updateAccess = function(preferVideo = false) {
   this.lastAccessed = new Date();
   this.accessCount += 1;
+  
+  // Update specific preference access time
+  if (preferVideo && this.video.youtubeId) {
+    this.video.lastAccessed = new Date();
+  } else if (!preferVideo && this.audio.youtubeId) {
+    this.audio.lastAccessed = new Date();
+  }
+  
   return this.save();
 };
 

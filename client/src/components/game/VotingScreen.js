@@ -1,7 +1,8 @@
-// client/src/components/game/VotingScreen.js - SIMPLIFIED (expects cached data)
+// client/src/components/game/VotingScreen.js - Updated with video preference toggle
 import React, { useState, useEffect } from 'react';
 import { voteForSong } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
+import VideoPreferenceToggle from './VideoPreferenceToggle';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(true);
@@ -9,6 +10,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [isVoting, setIsVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [error, setError] = useState(null);
+  const [preferVideo, setPreferVideo] = useState(false); // Default to audio
   
   // State for submissions with YouTube data
   const [localSubmissions, setLocalSubmissions] = useState([]);
@@ -34,94 +36,128 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [game.submissions, currentUser.id]);
   
-  // Load submissions - fetch YouTube data from cache for each
+  // Load submissions - fetch YouTube data based on user preference
   useEffect(() => {
-    const loadSubmissions = async () => {
-      if (!game.submissions || game.submissions.length === 0) {
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        setLoading(true);
-        
-        // Start with the submissions as-is (no YouTube data yet)
-        const submissionsWithYoutube = [...game.submissions];
-        setLocalSubmissions(submissionsWithYoutube);
-        
-        // Since YouTube data should already be cached (from submission), 
-        // this should be very fast - mostly cache hits
-        console.log(`Fetching YouTube data for ${submissionsWithYoutube.length} songs (should be cached)...`);
-        
-        // Set loading states for all submissions
-        const loadingStates = {};
-        submissionsWithYoutube.forEach(submission => {
-          loadingStates[submission._id] = true;
-        });
-        setYoutubeLoadingStates(loadingStates);
-        
-        // Fetch YouTube data for all submissions (should hit cache)
-        await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
-          try {
-            // This should almost always be a cache hit
-            const trackWithYoutube = await addYoutubeDataToTrack({
-              id: submission.songId,
-              name: submission.songName,
-              artist: submission.artist,
-              albumArt: submission.albumCover
-            });
-            
-            // Update the submission with YouTube data
-            submissionsWithYoutube[index] = {
-              ...submission,
-              youtubeId: trackWithYoutube.youtubeId,
-              youtubeTitle: trackWithYoutube.youtubeTitle,
-              quotaExhausted: trackWithYoutube.quotaExhausted,
-              fromCache: trackWithYoutube.fromCache
-            };
-            
-            // Log if we had to hit the API (shouldn't happen often)
-            if (!trackWithYoutube.fromCache && trackWithYoutube.youtubeId) {
-              console.warn(`[UNEXPECTED] API call during voting for: ${submission.songName} - ${submission.artist}`);
-            }
-            
-          } catch (error) {
-            console.error(`Error loading YouTube for ${submission.songName}:`, error);
-            
-            // Mark as failed to load
-            submissionsWithYoutube[index] = {
-              ...submission,
-              youtubeLoadError: true
-            };
-          } finally {
-            // Remove loading state
-            setYoutubeLoadingStates(prev => {
-              const newState = { ...prev };
-              delete newState[submission._id];
-              return newState;
-            });
-          }
-        }));
-        
-        // Update state with all YouTube data
-        setLocalSubmissions(submissionsWithYoutube);
-        
-        // Log cache performance
-        const cachedCount = submissionsWithYoutube.filter(s => s.fromCache).length;
-        const totalCount = submissionsWithYoutube.length;
-        console.log(`[CACHE PERFORMANCE] ${cachedCount}/${totalCount} submissions loaded from cache`);
-        
-      } catch (error) {
-        console.error('Error loading submissions:', error);
-        setError('Failed to load video data. You can still vote!');
-      } finally {
-        setLoading(false);
-      }
-    };
+    loadSubmissionsWithPreference();
+  }, [game.submissions, preferVideo]); // Re-fetch when preference changes
+
+  const loadSubmissionsWithPreference = async () => {
+    if (!game.submissions || game.submissions.length === 0) {
+      setLoading(false);
+      return;
+    }
     
-    loadSubmissions();
-  }, [game.submissions]);
-  
+    try {
+      setLoading(true);
+      
+      // Start with the submissions as-is
+      const submissionsWithYoutube = [...game.submissions];
+      setLocalSubmissions(submissionsWithYoutube);
+      
+      console.log(`Checking cache for ${submissionsWithYoutube.length} songs (${preferVideo ? 'video' : 'audio'} preference)...`);
+      
+      // Set loading states for all submissions that might need updating
+      const loadingStates = {};
+      
+      // First pass: check what we already have in cache
+      await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
+        try {
+          // Quick check - do we already have the right preference?
+          if (submission.youtubeId && submission.preferredType === (preferVideo ? 'video' : 'audio')) {
+            // We already have the right preference
+            submissionsWithYoutube[index] = {
+              ...submission,
+              fromCache: true,
+              isVideo: submission.isVideo || false,
+              preferredType: submission.preferredType || 'audio'
+            };
+            return;
+          }
+          
+          // Mark as needing to be checked
+          loadingStates[submission._id] = true;
+        } catch (error) {
+          console.error(`Error checking ${submission.songName}:`, error);
+        }
+      }));
+      
+      setYoutubeLoadingStates(loadingStates);
+      
+      // Second pass: fetch missing data
+      await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
+        // Skip if we already have the right data
+        if (!loadingStates[submission._id]) {
+          return;
+        }
+        
+        try {
+          // This will check cache with the new preference and fetch if needed
+          const trackWithYoutube = await addYoutubeDataToTrack({
+            id: submission.songId,
+            name: submission.songName,
+            artist: submission.artist,
+            albumArt: submission.albumCover
+          }, preferVideo);
+          
+          // Update the submission with YouTube data
+          submissionsWithYoutube[index] = {
+            ...submission,
+            youtubeId: trackWithYoutube.youtubeId,
+            youtubeTitle: trackWithYoutube.youtubeTitle,
+            quotaExhausted: trackWithYoutube.quotaExhausted,
+            fromCache: trackWithYoutube.fromCache,
+            isVideo: trackWithYoutube.isVideo,
+            preferredType: trackWithYoutube.preferredType
+          };
+          
+          // Log cache performance
+          if (trackWithYoutube.fromCache) {
+            console.log(`[CACHE HIT] ${submission.songName} - ${submission.artist} (${preferVideo ? 'video' : 'audio'})`);
+          } else {
+            console.log(`[NEW FETCH] ${submission.songName} - ${submission.artist} (${preferVideo ? 'video' : 'audio'})`);
+          }
+          
+        } catch (error) {
+          console.error(`Error loading YouTube for ${submission.songName}:`, error);
+          
+          // Mark as failed to load
+          submissionsWithYoutube[index] = {
+            ...submission,
+            youtubeLoadError: true
+          };
+        } finally {
+          // Remove loading state
+          setYoutubeLoadingStates(prev => {
+            const newState = { ...prev };
+            delete newState[submission._id];
+            return newState;
+          });
+        }
+      }));
+      
+      // Update state with all YouTube data
+      setLocalSubmissions(submissionsWithYoutube);
+      
+      // Log cache performance summary
+      const alreadyHadCount = submissionsWithYoutube.filter(s => !loadingStates[s._id]).length;
+      const cachedCount = submissionsWithYoutube.filter(s => s.fromCache && loadingStates[s._id]).length;
+      const newFetchCount = submissionsWithYoutube.filter(s => !s.fromCache && s.youtubeId).length;
+      const totalCount = submissionsWithYoutube.length;
+      
+      console.log(`[DUAL CACHE PERFORMANCE]`);
+      console.log(`- Already had correct preference: ${alreadyHadCount}/${totalCount}`);
+      console.log(`- Found in cache: ${cachedCount}/${totalCount - alreadyHadCount}`);
+      console.log(`- New API fetches: ${newFetchCount}/${totalCount}`);
+      console.log(`- Preference: ${preferVideo ? 'video' : 'audio'}`);
+      
+    } catch (error) {
+      console.error('Error loading submissions:', error);
+      setError('Failed to load video data. You can still vote!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle vote
   const handleVote = async () => {
     if (!selectedSubmission) return;
@@ -176,8 +212,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           
           <div className="text-center py-10">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-300 mt-4">Loading videos from cache...</p>
-            <p className="text-gray-400 text-sm mt-2">(Should be very fast - all videos should be cached)</p>
+            <p className="text-gray-300 mt-4">Loading songs in {preferVideo ? 'video' : 'audio'} format...</p>
           </div>
         </div>
       </div>
@@ -191,6 +226,16 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         
         <div className="text-center mb-6">
           <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+        </div>
+        
+        {/* Video Preference Toggle */}
+        <div className="flex justify-center mb-6">
+          <VideoPreferenceToggle
+            preferVideo={preferVideo}
+            onToggle={() => setPreferVideo(!preferVideo)}
+            disabled={loading}
+            showLabel={true}
+          />
         </div>
         
         <div className="mb-4 flex justify-between items-center">
@@ -212,7 +257,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         {/* Cache Performance Info */}
         {localSubmissions.length > 0 && (
           <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded-lg text-sm">
-            <p><strong>Cache Performance:</strong> {localSubmissions.filter(s => s.fromCache).length}/{localSubmissions.length} videos loaded from cache!</p>
+            <p><strong>Cache Performance:</strong> {localSubmissions.filter(s => s.fromCache).length}/{localSubmissions.length} songs loaded from cache!</p>
+            <p className="text-xs mt-1">
+              Showing {preferVideo ? 'video' : 'audio'} versions - Toggle above to switch
+            </p>
           </div>
         )}
         
@@ -285,7 +333,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         <div className="h-72 bg-gray-700 rounded flex items-center justify-center mb-4">
                           <div className="flex flex-col items-center">
                             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                            <p className="text-gray-300 text-sm">Loading from cache...</p>
+                            <p className="text-gray-300 text-sm">Loading {preferVideo ? 'video' : 'audio'}...</p>
                           </div>
                         </div>
                       ) : submission.youtubeId ? (
@@ -300,19 +348,23 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             title={`${submission.songName} by ${submission.artist}`}
                             className="rounded mb-4"
                           ></iframe>
-                          {submission.fromCache && (
-                            <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
-                              Cached
+                          <div className="absolute top-2 right-2 flex gap-2">
+                            {submission.fromCache ? (
+                              <div className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                Cached
+                              </div>
+                            ) : (
+                              <div className="bg-yellow-600 text-white text-xs px-2 py-1 rounded">
+                                New
+                              </div>
+                            )}
+                            <div className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                              {submission.isVideo ? 'Video' : 'Audio'}
                             </div>
-                          )}
-                          {!submission.fromCache && submission.youtubeId && (
-                            <div className="absolute top-2 right-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded">
-                              Fresh API
-                            </div>
-                          )}
+                          </div>
                         </div>
                       ) : (
-                        <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
+                                                  <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
                           <div className="flex flex-col items-center text-center">
                             <svg className="w-8 h-8 text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10z" clipRule="evenodd" />
@@ -321,7 +373,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             <p className="text-gray-400 text-sm">
                               {submission.quotaExhausted ? 'Video unavailable (quota)' : 
                                submission.youtubeLoadError ? 'Video failed to load' :
-                               'No video available'}
+                               `No ${preferVideo ? 'video' : 'audio'} available`}
                             </p>
                           </div>
                         </div>
@@ -336,7 +388,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {/* Open in YouTube button - show even if no embed available */}
+                          {/* Open in YouTube button */}
                           {(submission.youtubeId || submission.songName) && (
                             <a 
                               href={submission.youtubeId 
@@ -349,13 +401,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                               className="py-2 px-3 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-sm"
                             >
                               <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
                               </svg>
                               {submission.youtubeId ? 'Watch on YouTube' : 'Search YouTube'}
                             </a>
                           )}
                           
-                          {/* Vote button - only for non-voted submissions and only for other submissions in regular games */}
+                          {/* Vote button */}
                           {!hasVoted && (isSmallGame || !isOwnSubmission) && (
                             <button
                               onClick={(e) => {
