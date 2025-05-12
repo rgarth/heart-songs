@@ -199,8 +199,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
       return;
     }
     
-    console.log(`Fetching YouTube data for ${tracksNeedingData.length} tracks that don't have it...`);
-    
     // Copy all tracks
     const tracksWithYoutube = [...tracks];
     
@@ -265,7 +263,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
     // Log cache performance
     const cachedCount = tracksWithYoutube.filter(t => t.fromCache).length;
     const totalCount = tracksWithYoutube.length;
-    console.log(`[CACHE PERFORMANCE] ${cachedCount}/${totalCount} tracks loaded from cache`);
   };
 
   // Generate YouTube embed URL

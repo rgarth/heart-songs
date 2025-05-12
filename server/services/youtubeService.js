@@ -52,17 +52,12 @@ async function searchVideos(query, preferVideo = false, maxResults = 3) {
         query // fallback to basic search
       ];
     }
-    
-    console.log(`[YOUTUBE SERVICE] Searching for: "${query}" (preferVideo: ${preferVideo})`);
-    console.log(`[YOUTUBE SERVICE] Will try ${searchStrategies.length} search strategies`);
-    
+        
     // Try each search strategy until we get good results
     for (let i = 0; i < searchStrategies.length; i++) {
       const searchQuery = searchStrategies[i];
       
       try {
-        console.log(`[YOUTUBE SERVICE] Attempt ${i + 1}: searching for "${searchQuery}"`);
-        
         const response = await axios.get(`${BASE_URL}/search`, {
           params: {
             part: 'snippet',
@@ -78,12 +73,7 @@ async function searchVideos(query, preferVideo = false, maxResults = 3) {
         // Reset quota status on successful request
         quotaExhausted = false;
         quotaResetTime = null;
-        
-        if (!response.data || !response.data.items || !response.data.items.length) {
-          console.log(`[YOUTUBE SERVICE] No results for strategy ${i + 1}, trying next...`);
-          continue;
-        }
-        
+                
         // Map results to a simpler format
         const results = response.data.items.map(item => ({
           id: item.id.videoId,
@@ -94,20 +84,16 @@ async function searchVideos(query, preferVideo = false, maxResults = 3) {
           channelTitle: item.snippet.channelTitle
         }));
         
-        console.log(`[YOUTUBE SERVICE] Found ${results.length} results with strategy ${i + 1}`);
-        console.log(`[YOUTUBE SERVICE] Results: ${results.map(r => r.title).join(', ')}`);
-        
+      
         // Filter results based on preference
         const filteredResults = filterResultsByPreference(results, preferVideo);
         
         if (filteredResults.length > 0) {
-          console.log(`[YOUTUBE SERVICE] After filtering: ${filteredResults.length} results match preference`);
           return filteredResults;
         }
         
         // If filtering doesn't help, return original results on first successful strategy
         if (i === 0) {
-          console.log(`[YOUTUBE SERVICE] Using unfiltered results from first strategy`);
           return results;
         }
         

@@ -207,13 +207,6 @@ router.post('/submit', async (req, res) => {
   try {
     const { gameId, userId, songId, songName, artist, albumCover, hasPassed } = req.body;
     
-    // Log the request parameters for debugging
-    console.log("Song submission request:", { 
-      gameId, userId, songId, songName, artist,
-      albumCover: albumCover?.substring(0, 20) + '...',
-      hasPassed
-    });
-    
     // Validate required parameters
     if (!gameId) {
       return res.status(400).json({ 

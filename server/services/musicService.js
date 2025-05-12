@@ -55,8 +55,6 @@ async function searchSongs(query, limit = 8) {
  */
 async function addYoutubeDataToTrack(track, preferVideo = false) {
   try {
-    console.log(`[MUSIC SERVICE] Processing request for: ${track.name} - ${track.artist} (preferVideo: ${preferVideo})`);
-    
     // Check if YouTube API key is available
     if (!process.env.YOUTUBE_API_KEY) {
       console.warn('YouTube API key not set');
@@ -108,8 +106,6 @@ async function addYoutubeDataToTrack(track, preferVideo = false) {
         isVideo: youtubeData.isVideo,
         preferredType: youtubeData.preferredType
       };
-      
-      console.log(`[MUSIC SERVICE] Returning YouTube data: ${result.youtubeId} (type: ${result.preferredType})`);
       
       return result;
     } catch (error) {

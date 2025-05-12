@@ -49,16 +49,11 @@ router.post('/track/youtube', async (req, res) => {
   try {
     const { track, preferVideo = false } = req.body; // Accept preferVideo parameter
     
-    console.log(`[SERVER] Received request for YouTube data: ${track?.name} - ${track?.artist} (preferVideo: ${preferVideo})`);
-    
     if (!track || !track.id || !track.name || !track.artist) {
       return res.status(400).json({ error: 'Valid track data is required' });
     }
     
     const trackWithYoutube = await musicService.addYoutubeDataToTrack(track, preferVideo);
-    
-    console.log(`[SERVER] Responding with YouTube data: ${trackWithYoutube?.youtubeId} (type: ${trackWithYoutube?.preferredType})`);
-    
     res.json(trackWithYoutube);
   } catch (error) {
     console.error('Error adding YouTube data:', error);

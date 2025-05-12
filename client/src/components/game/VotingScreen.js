@@ -63,8 +63,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       const submissionsWithYoutube = [...game.submissions];
       setLocalSubmissions(submissionsWithYoutube);
       
-      console.log(`Checking cache for ${submissionsWithYoutube.length} songs (${preferVideo ? 'video' : 'audio'} preference)...`);
-      
       // Set loading states only for non-passed submissions
       const loadingStates = {};
       
@@ -101,15 +99,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             fromCache: trackWithYoutube.fromCache,
             isVideo: trackWithYoutube.isVideo,
             preferredType: trackWithYoutube.preferredType
-          };
-          
-          // Log cache performance
-          if (trackWithYoutube.fromCache) {
-            console.log(`[CACHE HIT] ${submission.songName} - ${submission.artist} (${preferVideo ? 'video' : 'audio'})`);
-          } else {
-            console.log(`[NEW FETCH] ${submission.songName} - ${submission.artist} (${preferVideo ? 'video' : 'audio'})`);
-          }
-          
+          };          
         } catch (error) {
           console.error(`Error loading YouTube for ${submission.songName}:`, error);
           
@@ -135,11 +125,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       const cachedCount = submissionsWithYoutube.filter(s => s.fromCache).length;
       const newFetchCount = submissionsWithYoutube.filter(s => !s.fromCache && s.youtubeId).length;
       const totalCount = submissionsWithYoutube.filter(s => !s.hasPassed).length;
-      
-      console.log(`[DUAL CACHE PERFORMANCE]`);
-      console.log(`- Found in cache: ${cachedCount}/${totalCount}`);
-      console.log(`- New API fetches: ${newFetchCount}/${totalCount}`);
-      console.log(`- Preference: ${preferVideo ? 'video' : 'audio'}`);
       
     } catch (error) {
       console.error('Error loading submissions:', error);
