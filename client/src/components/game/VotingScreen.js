@@ -320,16 +320,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           </div>
         )}
         
-        {/* Cache Performance Info */}
-        {votableSubmissions.length > 0 && (
-          <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded-lg text-sm">
-            <p><strong>Cache Performance:</strong> {localSubmissions.filter(s => s.fromCache).length}/{votableSubmissions.length} songs loaded from cache!</p>
-            <p className="text-xs mt-1">
-              Showing {preferVideo ? 'video' : 'audio'} versions - Toggle above to switch
-            </p>
-          </div>
-        )}
-        
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
             <p><strong>Note:</strong> In games with fewer than 3 players, you can vote for your own submission.</p>

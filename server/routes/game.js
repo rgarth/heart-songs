@@ -18,22 +18,68 @@ function generateGameCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// Get random question
-async function getRandomQuestion() {
-  const randomQuestions = await Question.aggregate([
-    { $sample: { size: 1 } }
-  ]);
-  
-  // If no questions found (unlikely but possible), fallback to original method
-  if (!randomQuestions || randomQuestions.length === 0) {
-    const count = await Question.countDocuments();
-    const random = Math.floor(Math.random() * count);
-    return Question.findOne().skip(random);
+// Get random question that hasn't been used in this game
+async function getRandomQuestion(gameId = null) {
+  try {
+    // If no gameId provided, just get any random question
+    if (!gameId) {
+      const randomQuestions = await Question.aggregate([
+        { $sample: { size: 1 } }
+      ]);
+      
+      if (!randomQuestions || randomQuestions.length === 0) {
+        const count = await Question.countDocuments();
+        const random = Math.floor(Math.random() * count);
+        return Question.findOne().skip(random);
+      }
+      
+      return randomQuestions[0];
+    }
+    
+    // Get the game to check used questions
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      console.error('Game not found for question selection:', gameId);
+      // Fallback to any random question
+      return await Question.aggregate([{ $sample: { size: 1 } }]).then(q => q[0]);
+    }
+    
+    // Get list of used question IDs
+    const usedQuestionIds = (game.usedQuestions || []).map(q => q.questionId);
+    
+    // Build aggregation pipeline to exclude used questions
+    const pipeline = [
+      {
+        $match: {
+          _id: { $nin: usedQuestionIds }
+        }
+      },
+      { $sample: { size: 1 } }
+    ];
+    
+    const randomQuestions = await Question.aggregate(pipeline);
+    
+    // If all questions have been used, get a random one anyway (rare edge case)
+    if (!randomQuestions || randomQuestions.length === 0) {
+      console.warn(`All questions used in game ${gameId}, selecting any random question`);
+      return await Question.aggregate([{ $sample: { size: 1 } }]).then(q => q[0]);
+    }
+    
+    return randomQuestions[0];
+  } catch (error) {
+    console.error('Error getting random question:', error);
+    // Fallback to any random question
+    return await Question.aggregate([{ $sample: { size: 1 } }]).then(q => q[0]);
   }
-  
-  return randomQuestions[0];
 }
-
 // Create a new game
 router.post('/create', async (req, res) => {
   try {
@@ -124,7 +170,7 @@ router.post('/join', async (req, res) => {
   }
 });
 
-// Toggle ready status
+// Toggle ready status - UPDATED to track question usage
 router.post('/ready', async (req, res) => {
   try {
     const { gameId } = req.body;
@@ -168,12 +214,23 @@ router.post('/ready', async (req, res) => {
         });
         await playlist.save();
         
-        // Get random question
-        const question = await getRandomQuestion();
+        // Get random question that hasn't been used
+        const question = await getRandomQuestion(game._id);
         game.currentQuestion = {
+          _id: question._id,
           text: question.text,
           category: question.category
         };
+        
+        // Track this question as used
+        if (!game.usedQuestions) {
+          game.usedQuestions = [];
+        }
+        game.usedQuestions.push({
+          questionId: question._id,
+          roundNumber: (game.previousRounds?.length || 0) + 1,
+          usedAt: new Date()
+        });
         
         // When all players are ready, all players are active
         // Initialize activePlayers with all player IDs
@@ -183,7 +240,8 @@ router.post('/ready', async (req, res) => {
         await game.save();
       }
     }
-     // Populate game data
+    
+    // Populate game data
     await game.populate('players.user', 'displayName');
     if (game.activePlayers && game.activePlayers.length > 0) {
       await game.populate('activePlayers', 'displayName');
@@ -462,7 +520,7 @@ router.post('/vote', async (req, res) => {
   }
 });
 
-// Start a new round
+// Start a new round - UPDATED to track question usage
 router.post('/next-round', async (req, res) => {
   try {
     const { gameId, questionText, questionCategory } = req.body;
@@ -485,9 +543,13 @@ router.post('/next-round', async (req, res) => {
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
     
-    // NEW: Save current round data to previous rounds before clearing
+    // Save current round data to previous rounds before clearing
     const currentRoundData = {
-      question: game.currentQuestion,
+      question: {
+        _id: game.currentQuestion._id,
+        text: game.currentQuestion.text,
+        category: game.currentQuestion.category
+      },
       submissions: [...game.submissions],
       playersWhoFailedToSubmit: game.currentRound?.playersWhoFailedToSubmit || [],
       playersWhoFailedToVote: game.currentRound?.playersWhoFailedToVote || []
@@ -508,10 +570,9 @@ router.post('/next-round', async (req, res) => {
     });
     
     // Reset active players to empty for the new round
-    // This will be repopulated when players ready up or the host forces the start
     game.activePlayers = [];
     
-    // NEW: Reset current round failure tracking
+    // Reset current round failure tracking
     game.currentRound = {
       playersWhoFailedToSubmit: [],
       playersWhoFailedToVote: []
@@ -519,18 +580,29 @@ router.post('/next-round', async (req, res) => {
     
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
-      // Use the provided question
+      // Use the provided question (custom questions don't need tracking)
       game.currentQuestion = {
         text: questionText,
         category: questionCategory
       };
     } else {
-      // Get new random question
-      const question = await getRandomQuestion();
+      // Get new random question that hasn't been used
+      const question = await getRandomQuestion(game._id);
       game.currentQuestion = {
+        _id: question._id,
         text: question.text,
         category: question.category
       };
+      
+      // Track this question as used
+      if (!game.usedQuestions) {
+        game.usedQuestions = [];
+      }
+      game.usedQuestions.push({
+        questionId: question._id,
+        roundNumber: game.previousRounds.length + 1,
+        usedAt: new Date()
+      });
     }
     
     game.status = 'selecting';
@@ -591,7 +663,7 @@ router.get('/:gameId', async (req, res) => {
   }
 });
 
-// Get random question preview
+// Get random question preview - UPDATED to use game context
 router.get('/:gameId/question-preview', async (req, res) => {
   try {
     const { gameId } = req.params;
@@ -610,8 +682,8 @@ router.get('/:gameId/question-preview', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    // Get random question (but don't save it to the game yet)
-    const question = await getRandomQuestion();
+    // Get random question that hasn't been used in this game (but don't save it to the game yet)
+    const question = await getRandomQuestion(gameId);
     
     res.json({
       question: {
@@ -664,7 +736,7 @@ router.post('/:gameId/custom-question', async (req, res) => {
   }
 });
 
-// Force start game
+// Force start game - UPDATED to track question usage
 router.post('/start', async (req, res) => {
   try {
     const { gameId, userId, questionText, questionCategory } = req.body;
@@ -717,18 +789,29 @@ router.post('/start', async (req, res) => {
     
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
-      // Use the provided question
+      // Use the provided question (custom questions don't need tracking)
       game.currentQuestion = {
         text: questionText,
         category: questionCategory
       };
     } else {
-      // Get random question
-      const question = await getRandomQuestion();
+      // Get random question that hasn't been used
+      const question = await getRandomQuestion(game._id);
       game.currentQuestion = {
+        _id: question._id,
         text: question.text,
         category: question.category
       };
+      
+      // Track this question as used
+      if (!game.usedQuestions) {
+        game.usedQuestions = [];
+      }
+      game.usedQuestions.push({
+        questionId: question._id,
+        roundNumber: (game.previousRounds?.length || 0) + 1,
+        usedAt: new Date()
+      });
     }
 
     // Auto-ready the host if they're not already ready
@@ -737,13 +820,12 @@ router.post('/start', async (req, res) => {
       game.players[hostPlayerIndex].isReady = true;
     }
     
-    // Critical fix: Make sure all ready players are added to activePlayers
-    // This includes the host who we just made ready
+    // Make sure all ready players are added to activePlayers
     game.activePlayers = game.players
       .filter(player => player.isReady)
       .map(player => player.user);
     
-    // NEW: Initialize currentRound tracking
+    // Initialize currentRound tracking
     game.currentRound = {
       playersWhoFailedToSubmit: [],
       playersWhoFailedToVote: []

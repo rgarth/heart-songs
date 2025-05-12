@@ -1,4 +1,4 @@
-// server/models/Game.js
+// server/models/Game.js - UPDATED to track used questions
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -31,12 +31,25 @@ const GameSchema = new mongoose.Schema({
       default: 0
     }
   }],
-  // New field to track players who are actively participating in the current round
+  // Track players who are actively participating in the current round
   activePlayers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  // NEW: Track questions that have already been used in this game
+  usedQuestions: [{
+    questionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Question'
+    },
+    roundNumber: Number,
+    usedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   currentQuestion: {
+    _id: mongoose.Schema.Types.ObjectId, // Store the question ID for tracking
     text: String,
     category: String
   },
@@ -47,7 +60,7 @@ const GameSchema = new mongoose.Schema({
     },
     type: {
       type: String,
-      enum: [null, 'selection', 'voting'], // Allow null as a valid value
+      enum: [null, 'selection', 'voting'],
       default: null
     },
     message: {
@@ -72,7 +85,6 @@ const GameSchema = new mongoose.Schema({
     songName: String,
     artist: String,
     albumCover: String,
-    // YouTube data - now included during submission
     youtubeId: String,
     isVideo: {
       type: Boolean,
@@ -83,7 +95,6 @@ const GameSchema = new mongoose.Schema({
       enum: ['audio', 'video'],
       default: 'audio'
     },
-    // Pass indicator
     hasPassed: {
       type: Boolean,
       default: false
@@ -114,6 +125,7 @@ const GameSchema = new mongoose.Schema({
   },
   previousRounds: [{
     question: {
+      _id: mongoose.Schema.Types.ObjectId, // Store question ID in previous rounds too
       text: String,
       category: String
     },
@@ -126,7 +138,6 @@ const GameSchema = new mongoose.Schema({
       songName: String,
       artist: String,
       albumCover: String,
-      // YouTube data preserved in previous rounds
       youtubeId: String,
       isVideo: {
         type: Boolean,
@@ -137,7 +148,6 @@ const GameSchema = new mongoose.Schema({
         enum: ['audio', 'video'],
         default: 'audio'
       },
-      // Pass indicator for previous rounds
       hasPassed: {
         type: Boolean,
         default: false
@@ -148,7 +158,6 @@ const GameSchema = new mongoose.Schema({
         ref: 'User'
       }]
     }],
-    // Track failures for each round
     playersWhoFailedToSubmit: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
