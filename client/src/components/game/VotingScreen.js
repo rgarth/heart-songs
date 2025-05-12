@@ -120,12 +120,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       
       // Update state with all YouTube data
       setLocalSubmissions(submissionsWithYoutube);
-      
-      // Log cache performance summary
-      const cachedCount = submissionsWithYoutube.filter(s => s.fromCache).length;
-      const newFetchCount = submissionsWithYoutube.filter(s => !s.fromCache && s.youtubeId).length;
-      const totalCount = submissionsWithYoutube.filter(s => !s.hasPassed).length;
-      
+            
     } catch (error) {
       console.error('Error loading submissions:', error);
       setError('Failed to load video data. You can still vote!');

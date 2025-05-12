@@ -260,9 +260,6 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
     // Update state with all YouTube data
     setWinningTracks(tracksWithYoutube);
     
-    // Log cache performance
-    const cachedCount = tracksWithYoutube.filter(t => t.fromCache).length;
-    const totalCount = tracksWithYoutube.length;
   };
 
   // Generate YouTube embed URL
