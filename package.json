@@ -2,6 +2,7 @@
     "name": "heart-songs-server",
     "version": "1.0.0",
     "description": "Server for Heart Songs Game",
+    "license": "AGPL-3.0-or-later",
     "main": "index.js",
     "scripts": {
         "start": "node server/index.js",
