@@ -18,14 +18,7 @@ const MAX_RETRY_ATTEMPTS = 3;
 
 // Calculate time left for countdown (outside component)
 const getTimeLeft = (countdown) => {
-  console.log('⏰ getTimeLeft input:', countdown);
-
   if (!countdown || !countdown.isActive || !countdown.startedAt) {
-    console.log('⏰ getTimeLeft: returning 0 because:', {
-      noCountdown: !countdown,
-      notActive: countdown && !countdown.isActive,
-      noStartedAt: countdown && !countdown.startedAt
-    });
     return 0;
   }
   
@@ -33,15 +26,6 @@ const getTimeLeft = (countdown) => {
   const now = new Date();
   const elapsed = Math.floor((now - startTime) / 1000);
   const timeLeft = Math.max(0, countdown.duration - elapsed);
-  
-  console.log('⏰ getTimeLeft:', {
-    startTime: startTime.toISOString(),
-    now: now.toISOString(),
-    elapsed,
-    duration: countdown.duration,
-    timeLeft
-  });
-  
   return timeLeft;
 };
 
@@ -82,25 +66,7 @@ const Game = () => {
     }
     
     try {
-      console.log('📡 Fetching game state for gameId:', gameId);
       const gameData = await getGameState(gameId, token);
-      console.log('📡 GAME DEBUG 2: Received game data:', {
-        gameId: gameData._id,
-        status: gameData.status,
-        countdown: gameData.countdown,
-        countdownRaw: JSON.stringify(gameData.countdown),
-        hasCountdown: !!gameData.countdown,
-        countdownIsActive: gameData.countdown?.isActive,
-        countdownStartedAt: gameData.countdown?.startedAt,
-        countdownDuration: gameData.countdown?.duration,
-        countdownMessage: gameData.countdown?.message,
-        submissions: gameData.submissions?.length,
-        activePlayers: gameData.activePlayers?.length
-      });
-      // Also log the raw gameData to see everything:
-      if (gameData.countdown?.isActive) {
-        console.log('📡 RAW GAME DATA with active countdown:', JSON.stringify(gameData, null, 2));
-      }
       // Reset retry counter on success
       if (retryCount > 0) {
         setRetryCount(0);
@@ -465,19 +431,6 @@ const Game = () => {
   // Calculate current countdown time left if active - MOVED TO THE RIGHT PLACE!
   const currentTimeLeft = game.countdown?.isActive ? getTimeLeft(game.countdown) : 0;
   
-  console.log('🎯 Countdown Debug:', {  
-    hasCountdown: !!game.countdown,
-    countdown: game.countdown,
-    isActive: game.countdown?.isActive,
-    startedAt: game.countdown?.startedAt, 
-    duration: game.countdown?.duration,
-    message: game.countdown?.message,
-    type: game.countdown?.type,
-    currentTimeLeft,
-    gameTime: new Date().toISOString(),
-    shouldShowBanner: game.countdown?.isActive && currentTimeLeft > 0
-  });
-
   // Render appropriate game screen based on game status
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
@@ -489,7 +442,6 @@ const Game = () => {
       initialSeconds={currentTimeLeft}
       message={game.countdown?.message || ''}
       onComplete={() => {
-        console.log('✅ CountdownBanner onComplete called');
         // Don't do anything here - the server handles the countdown completion
       }}
       onCancel={handleCountdownCancel}

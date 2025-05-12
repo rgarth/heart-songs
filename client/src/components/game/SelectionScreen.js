@@ -155,18 +155,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   // NEW: Handle end selection with server countdown
   const handleEndSelectionWithCountdown = async () => {
     if (!isHost) return;
-    console.log('🚀 CLIENT DEBUG 1: Starting countdown request');
-    console.log('🚀 CLIENT DEBUG 2: Current game state:', {
-       gameId: game._id,
-       status: game.status,
-       isHost,
-       hasCountdown: !!game.countdown,
-       countdownActive: game.countdown?.isActive
-    }); 
     try {
       setIsStartingCountdown(true);
-      console.log('🚀 CLIENT DEBUG 6: Countdown request succeeded');
-
+    
       setCountdownError(null);
   
       // Start the server-side countdown
@@ -174,10 +165,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       
       // The countdown banner will appear for all players via the server state
     } catch (error) {
-      console.error('🚀 CLIENT DEBUG 7: Error starting countdown:', error);
-      console.error('🚀 CLIENT DEBUG 8: Error response:', error.response?.data);
-      console.error('🚀 CLIENT DEBUG 9: Error status:', error.response?.status);
-
       console.error('Error starting end selection countdown:', error);
       setCountdownError('Failed to start countdown. Please try again.');
     } finally {

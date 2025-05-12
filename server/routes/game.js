@@ -848,14 +848,6 @@ router.post('/end', async (req, res) => {
     await game.populate('host', 'displayName');
     await game.populate('players.user', 'displayName score');
     
-    console.log('📤 Sending game state response:', {
-      gameId: game._id,
-      status: game.status,
-      countdown: game.countdown,
-      hasCountdown: !!game.countdown,
-      countdownData: JSON.stringify(game.countdown)
-    });
-
     // Create a structured response with the final round data included explicitly
     const response = {
       _id: game._id,
@@ -1081,9 +1073,6 @@ router.post('/end-voting', async (req, res) => {
 
 // Start countdown for ending selection
 router.post('/start-end-selection-countdown', async (req, res) => {
-  console.log('🔥 ROUTE HIT: /start-end-selection-countdown');
-  console.log('🔥 Current time:', new Date().toISOString());
-  console.log('🔥 Request body:', req.body);
 
   try {
     const { gameId } = req.body;
@@ -1091,42 +1080,25 @@ router.post('/start-end-selection-countdown', async (req, res) => {
     
     // Find game by _id or code
     let game = null;
-    if (mongoose.Types.ObjectId.isValid(gameId)) {
-      console.log('🔥 COUNTDOWN DEBUG 4: Searching by ObjectId');
+    if (mongoose.Types.ObjectId.isValid(gameId)) {;
       game = await Game.findById(gameId);
     }
     
     if (!game) {
-      console.log('🔥 COUNTDOWN DEBUG 5: Not found by ObjectId, searching by code');
       game = await Game.findOne({ code: gameId });
     }
     
     if (!game) {
-      console.log('🔥 COUNTDOWN DEBUG 6: Game not found!');
       return res.status(404).json({ error: 'Game not found' });
     }
-    console.log('🔥 COUNTDOWN DEBUG 7: Found game with status:', game.status);
-    console.log('🔥 COUNTDOWN DEBUG 8: Game host:', game.host);
-    console.log('🔥 COUNTDOWN DEBUG 9: Current user:', user._id);
-
     // Check if user is the host
     if (game.host.toString() !== user._id.toString()) {
-      console.log('🔥 COUNTDOWN DEBUG 10: User is not the host!');
       return res.status(403).json({ error: 'Only the host can start the countdown' });
     }
-
-    console.log('🔥 COUNTDOWN DEBUG 11: User is the host, checking game status');
-    console.log('🔥 COUNTDOWN DEBUG 12: Expected status: selecting, Actual status:', game.status);
-   
     
     if (game.status !== 'selecting') {
-      console.log('🔥 COUNTDOWN DEBUG 13: Game is not in selection phase!');
-      console.log('🔥 COUNTDOWN DEBUG 14: Current status:', game.status);
-      console.log('🔥 COUNTDOWN DEBUG 15: This is why the countdown failed');
- 
       return res.status(400).json({ error: 'Game is not in selection phase' });
     }
-    console.log('🔥 COUNTDOWN DEBUG 16: All checks passed, starting countdown');
    
     // Start the countdown
     game.countdown = {
@@ -1136,50 +1108,29 @@ router.post('/start-end-selection-countdown', async (req, res) => {
       startedAt: new Date(),
       duration: 10
     };
-    console.log('🔥 COUNTDOWN DEBUG 17: Countdown object created:', game.countdown);
-   
     await game.save();
-    console.log('🔥 COUNTDOWN DEBUG 18: Game saved, countdown should be active');
-   
+
     // Schedule the actual ending after 10 seconds
     setTimeout(async () => {
       try {
-        console.log('🔥 COUNTDOWN DEBUG 19: Timeout triggered after 10 seconds');
-    
-        // Re-fetch the game to make sure it still exists and is in the right state
+       // Re-fetch the game to make sure it still exists and is in the right state
         const currentGame = await Game.findById(game._id);
-        console.log('🔥 COUNTDOWN DEBUG 20: Re-fetched game status:', currentGame?.status);
-        console.log('🔥 COUNTDOWN DEBUG 21: Re-fetched countdown active:', currentGame?.countdown?.isActive);
-   
+    
         if (currentGame && currentGame.status === 'selecting' && currentGame.countdown.isActive) {
-          console.log('🔥 COUNTDOWN DEBUG 22: Ending selection after countdown');
           // End selection using the existing logic
           await endSelectionInternal(currentGame);
-          console.log('🔥 COUNTDOWN DEBUG 23: Selection ended successfully');
-
-        } else {
-          console.log('🔥 COUNTDOWN DEBUG 24: Not ending selection - game state changed');
-          console.log('🔥 COUNTDOWN DEBUG 25: Current status:', currentGame?.status);
-          console.log('🔥 COUNTDOWN DEBUG 26: Countdown active:', currentGame?.countdown?.isActive);
- 
+    
         }
       } catch (error) {
-        console.error('🔥 COUNTDOWN DEBUG 27: Error ending selection after countdown:', error);
         console.error('Error ending selection after countdown:', error);
       }
     }, 10000);
-    console.log('🔥 COUNTDOWN DEBUG 28: Sending success response');
-    console.log('gameId:', game._id);
-    console.log('status:', game.status);
-    console.log('countdown:', game.countdown);
     res.json({
       gameId: game._id,
       status: game.status,
       countdown: game.countdown
     });
   } catch (error) {
-    console.error('🔥 COUNTDOWN DEBUG 29: Error in countdown route:', error);
-
     console.error('Error starting end selection countdown:', error);
     res.status(500).json({ error: 'Failed to start countdown' });
   }

@@ -75,9 +75,7 @@ router.get('/track', async (req, res) => {
     
     // Convert preferVideo string to boolean
     const preferVideoBoolean = preferVideo === 'true' || preferVideo === true;
-    
-    console.log(`[SERVER] Track details request: ${track} - ${artist} (preferVideo: ${preferVideoBoolean})`);
-    
+     
     const trackDetails = await musicService.getTrackBySearch(artist, track, preferVideoBoolean);
     
     if (!trackDetails) {

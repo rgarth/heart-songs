@@ -343,21 +343,6 @@ export const getGameState = async (gameId, token) => {
       `${API_URL}/game/${gameId}`,
       createHeaders(token)
     );
-    
-    // ADD DEBUG LOG FOR COUNTDOWN DATA:
-    if (response.data.countdown) {
-      console.log('🔍 getGameState API response with countdown:', {
-        status: response.data.status,
-        countdown: response.data.countdown,
-        hasCountdown: !!response.data.countdown,
-        countdownActive: response.data.countdown?.isActive,
-        countdownType: response.data.countdown?.type,
-        countdownStartedAt: response.data.countdown?.startedAt,
-        countdownDuration: response.data.countdown?.duration,
-        countdownMessage: response.data.countdown?.message
-      });
-    }
-    
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'getting game state');
@@ -413,12 +398,6 @@ export const endVotingPhase = async (gameId, token) => {
 // Start countdown for ending selection - WITH DEBUG LOGGING
 export const startEndSelectionCountdown = async (gameId, token) => {
   try {
-    console.log('🌐 SERVICE DEBUG 1: Starting countdown request');
-    console.log('🌐 SERVICE DEBUG 2: gameId provided:', gameId);
-    console.log('🌐 SERVICE DEBUG 3: Token provided:', token ? 'Yes' : 'No');
-    console.log('🌐 SERVICE DEBUG 4: Token preview:', token?.substring(0, 10) + '...');
-    
-    
     if (!gameId || !token) {
        console.error("🌐 SERVICE DEBUG 5: Missing required parameters for starting end selection countdown:", { 
         hasGameId: !!gameId, 
@@ -430,26 +409,14 @@ export const startEndSelectionCountdown = async (gameId, token) => {
       });
       throw new Error('Missing required parameters: gameId and token are required');
     }
-    console.log('🌐 SERVICE DEBUG 6: Making POST request to:', `${API_URL}/game/start-end-selection-countdown`);
-    console.log('🌐 SERVICE DEBUG 7: Request body:', { gameId });
-    console.log('🌐 SERVICE DEBUG 8: Request headers:', createHeaders(token));
-    
-    
     const response = await axios.post(
       `${API_URL}/game/start-end-selection-countdown`, 
       { gameId },
       createHeaders(token)
     );
     
-    console.log('🌐 SERVICE DEBUG 9: Received response:', response.data);
-    console.log('🌐 SERVICE DEBUG 10: Response status:', response.status);
     return response.data;
   } catch (error) {
-  console.error('🌐 SERVICE DEBUG 11: Error in startEndSelectionCountdown:', error);
-    console.error('🌐 SERVICE DEBUG 12: Error response data:', error.response?.data);
-    console.error('🌐 SERVICE DEBUG 13: Error response status:', error.response?.status);
-    console.error('🌐 SERVICE DEBUG 14: Error message:', error.message);
-    
     return handleRequestError(error, 'starting end selection countdown');
   }
 };
