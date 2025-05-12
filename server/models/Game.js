@@ -1,4 +1,4 @@
-// server/models/Game.js - Updated with failure tracking
+// server/models/Game.js - Fixed countdown schema to allow null
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -40,6 +40,30 @@ const GameSchema = new mongoose.Schema({
     text: String,
     category: String
   },
+  // NEW: Add countdown state to the game - FIXED to allow null
+  countdown: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    type: {
+      type: String,
+      enum: [null, 'selection', 'voting'], // Allow null as a valid value
+      default: null
+    },
+    message: {
+      type: String,
+      default: ''
+    },
+    startedAt: {
+      type: Date,
+      default: null
+    },
+    duration: {
+      type: Number,
+      default: 10 // seconds
+    }
+  },
   submissions: [{
     player: {
       type: mongoose.Schema.Types.ObjectId,
@@ -78,7 +102,7 @@ const GameSchema = new mongoose.Schema({
       ref: 'User'
     }]
   }],
-  // NEW: Track round failures
+  // Track round failures
   currentRound: {
     playersWhoFailedToSubmit: [{
       type: mongoose.Schema.Types.ObjectId,
@@ -125,7 +149,7 @@ const GameSchema = new mongoose.Schema({
         ref: 'User'
       }]
     }],
-    // NEW: Track failures for each round
+    // Track failures for each round
     playersWhoFailedToSubmit: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'

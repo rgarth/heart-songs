@@ -1,10 +1,10 @@
-// client/src/components/game/VotingScreen.js - Updated with banner countdown
+// client/src/components/game/VotingScreen.js - Updated with server-side countdown
 import React, { useState, useEffect, useCallback } from 'react';
-import { voteForSong, endVotingPhase } from '../../services/gameService';
+import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VideoPreferenceToggle from './VideoPreferenceToggle';
 
-const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
+const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
@@ -16,18 +16,15 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
   const [localSubmissions, setLocalSubmissions] = useState([]);
   const [youtubeLoadingStates, setYoutubeLoadingStates] = useState({});
   
-  // NEW: Simpler countdown state
-  const [isEndingVoting, setIsEndingVoting] = useState(false);
-  const [endingVotingError, setEndingVotingError] = useState(null);
+  // NEW: Server countdown state
+  const [isStartingCountdown, setIsStartingCountdown] = useState(false);
+  const [countdownError, setCountdownError] = useState(null);
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
   
   // Check if this is a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
-  
-  // Check if current user is the host
-  const isHost = game.host._id === currentUser.id;
   
   // Check if any submission has quota exhausted flag
   const hasQuotaIssue = localSubmissions.some(s => s.quotaExhausted);
@@ -37,6 +34,9 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
   
   // Count passed submissions
   const passedCount = localSubmissions.filter(s => s.hasPassed).length;
+  
+  // Check if current user is the host
+  const isHost = game.host._id === currentUser.id;
   
   // Check if user has already voted
   useEffect(() => {
@@ -152,7 +152,7 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
   // Load submissions - fetch YouTube data based on user preference
   useEffect(() => {
     loadSubmissionsWithPreference();
-  }, [loadSubmissionsWithPreference]);
+  }, [loadSubmissionsWithPreference]); // Now loadSubmissionsWithPreference is in the dependency array
 
   // Handle vote
   const handleVote = async () => {
@@ -182,36 +182,23 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
     }
   };
   
-  // NEW: Handle countdown complete
-  const handleCountdownComplete = async () => {
+  // NEW: Handle end voting with server countdown
+  const handleEndVotingWithCountdown = async () => {
+    if (!isHost) return;
+    
     try {
-      setIsEndingVoting(true);
-      setEndingVotingError(null);
+      setIsStartingCountdown(true);
+      setCountdownError(null);
       
-      await endVotingPhase(game._id, accessToken);
+      // Start the server-side countdown
+      await startEndVotingCountdown(game._id, accessToken);
       
-      // The game state will update via polling
+      // The countdown banner will appear for all players via the server state
     } catch (error) {
-      console.error('Error ending voting phase:', error);
-      setEndingVotingError('Failed to end voting phase. Please try again.');
+      console.error('Error starting end voting countdown:', error);
+      setCountdownError('Failed to start countdown. Please try again.');
     } finally {
-      setIsEndingVoting(false);
-    }
-  };
-  
-  // NEW: Handle end voting with banner countdown
-  const handleEndVotingWithCountdown = () => {
-    if (onStartCountdown) {
-      // Start the countdown banner for all players
-      onStartCountdown('voting', 'Voting phase ending in...');
-      
-      // Set a timer to actually end voting after 10 seconds
-      setTimeout(() => {
-        handleCountdownComplete();
-      }, 10000);
-    } else {
-      // Fallback to immediate execution if onStartCountdown not available
-      handleCountdownComplete();
+      setIsStartingCountdown(false);
     }
   };
   
@@ -246,28 +233,6 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="text-gray-300 mt-4">Loading songs in {preferVideo ? 'video' : 'audio'} format...</p>
           </div>
-          
-          {/* NEW: Host controls for ending voting - even during loading */}
-          {isHost && (
-            <div className="mt-8 pt-4 border-t border-gray-700 text-center">
-              <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-              <button
-                onClick={handleEndVotingWithCountdown}
-                disabled={isEndingVoting}
-                className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {isEndingVoting ? 'Ending Voting...' : 'End Voting Phase'}
-              </button>
-              <p className="text-xs text-gray-500 mt-2">
-                Force all non-voted players to forfeit their vote
-              </p>
-              {endingVotingError && (
-                <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                  {endingVotingError}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     );
@@ -301,20 +266,27 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
             </div>
           </div>
           
-          {/* NEW: Host controls when all passed */}
+          {/* Host controls for ending voting when everyone passed */}
           {isHost && (
             <div className="mt-6 pt-4 border-t border-gray-700 text-center">
               <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
               <button
                 onClick={handleEndVotingWithCountdown}
-                disabled={isEndingVoting}
+                disabled={isStartingCountdown || game.countdown?.isActive}
                 className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
               >
-                {isEndingVoting ? 'Ending Voting...' : 'End Voting Phase'}
+                {isStartingCountdown ? 'Starting Countdown...' : 
+                 game.countdown?.isActive ? 'Countdown Active' : 
+                 'End Voting Phase'}
               </button>
               <p className="text-xs text-gray-500 mt-2">
-                Move to results immediately
+                Force all non-voted players to abstain
               </p>
+              {countdownError && (
+                <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                  {countdownError}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -408,6 +380,30 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
               <p className="text-gray-300 text-sm mt-1">
                 You can still listen to all submissions while waiting for others to vote.
               </p>
+              
+              {/* Host controls when user has voted */}
+              {isHost && (
+                <div className="mt-6 pt-4 border-t border-gray-600">
+                  <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+                  <button
+                    onClick={handleEndVotingWithCountdown}
+                    disabled={isStartingCountdown || game.countdown?.isActive}
+                    className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isStartingCountdown ? 'Starting Countdown...' : 
+                     game.countdown?.isActive ? 'Countdown Active' : 
+                     'End Voting Phase'}
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Force all non-voted players to abstain
+                  </p>
+                  {countdownError && (
+                    <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                      {countdownError}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           
@@ -571,31 +567,33 @@ const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
               <p className="text-sm text-gray-400 mt-2">
                 Select your favorite song{isSmallGame ? "" : " from another player"}, then submit your vote
               </p>
+              
+              {/* Host controls for ending voting when user hasn't voted */}
+              {isHost && (
+                <div className="mt-6 pt-4 border-t border-gray-700">
+                  <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+                  <button
+                    onClick={handleEndVotingWithCountdown}
+                    disabled={isStartingCountdown || game.countdown?.isActive}
+                    className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isStartingCountdown ? 'Starting Countdown...' : 
+                     game.countdown?.isActive ? 'Countdown Active' : 
+                     'End Voting Phase'}
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Force all non-voted players to abstain
+                  </p>
+                  {countdownError && (
+                    <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                      {countdownError}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
-        
-        {/* NEW: Host controls for ending voting */}
-        {isHost && votableSubmissions.length > 0 && (
-          <div className="mt-8 pt-4 border-t border-gray-700 text-center">
-            <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-            <button
-              onClick={handleEndVotingWithCountdown}
-              disabled={isEndingVoting}
-              className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-            >
-              {isEndingVoting ? 'Ending Voting...' : 'End Voting Phase'}
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              Force all non-voted players to forfeit their vote
-            </p>
-            {endingVotingError && (
-              <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                {endingVotingError}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

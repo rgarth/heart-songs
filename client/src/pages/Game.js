@@ -1,8 +1,8 @@
-// client/src/pages/Game.js - Add countdown state management
+// client/src/pages/Game.js - Updated to use server-side countdown
 import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getGameState, toggleReady, startNewRound, startGame, endGame } from '../services/gameService';
+import { getGameState, toggleReady, startNewRound, startGame, endGame, cancelCountdown } from '../services/gameService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LobbyScreen from '../components/game/LobbyScreen';
@@ -28,14 +28,6 @@ const Game = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
   
-  // NEW: Countdown state management
-  const [countdownState, setCountdownState] = useState({
-    isActive: false,
-    type: null, // 'selection' or 'voting'
-    timeLeft: 10,
-    message: ''
-  });
-  
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
     previousRounds: []
@@ -52,6 +44,18 @@ const Game = () => {
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
+  };
+  
+  // Calculate time left for countdown
+  const getTimeLeft = (countdown) => {
+    if (!countdown || !countdown.isActive || !countdown.startedAt) return 0;
+    
+    const startTime = new Date(countdown.startedAt);
+    const now = new Date();
+    const elapsed = Math.floor((now - startTime) / 1000);
+    const timeLeft = Math.max(0, countdown.duration - elapsed);
+    
+    return timeLeft;
   };
   
   // Fetch game state with optimized polling
@@ -91,6 +95,11 @@ const Game = () => {
         const hasSubmissionsCountChanged = 
           (prevGame.submissions?.length || 0) !== (gameData.submissions?.length || 0);
         
+        // Check countdown changes
+        const hasCountdownChanged = 
+          prevGame.countdown?.isActive !== gameData.countdown?.isActive ||
+          prevGame.countdown?.type !== gameData.countdown?.type;
+        
         // Compare votes by stringifying arrays of vote counts
         const prevVotesCounts = JSON.stringify(
           prevGame.submissions?.map(s => s.votes?.length) || []
@@ -120,7 +129,8 @@ const Game = () => {
           hasVotesChanged || 
           hasReadyStatusChanged || 
           hasPlayersChanged ||
-          hasActivePlayersChanged
+          hasActivePlayersChanged ||
+          hasCountdownChanged  // NEW: Also update on countdown changes
         ) {
           // If status changed from results to selecting, it means a new round started
           // Save the previous round data
@@ -332,33 +342,24 @@ const Game = () => {
     navigate('/');
   };
   
-  // NEW: Countdown handlers
-  const startCountdown = (type, message) => {
-    setCountdownState({
-      isActive: true,
-      type,
-      timeLeft: 10,
-      message
-    });
-  };
-  
-  const handleCountdownComplete = () => {
-    // The actual ending is handled by the respective screens
-    setCountdownState({
-      isActive: false,
-      type: null,
-      timeLeft: 10,
-      message: ''
-    });
-  };
-  
-  const handleCountdownCancel = () => {
-    setCountdownState({
-      isActive: false,
-      type: null,
-      timeLeft: 10,
-      message: ''
-    });
+  // NEW: Handle countdown cancel (only for host)
+  const handleCountdownCancel = async () => {
+    if (!game || !game.countdown.isActive) return;
+    
+    try {
+      // Get the most up-to-date token
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication error. Please login again.');
+        return;
+      }
+      
+      await cancelCountdown(gameId, token);
+    } catch (error) {
+      console.error('Error canceling countdown:', error);
+      setError('Failed to cancel countdown. Please try again.');
+    }
   };
 
   // Loading state
@@ -426,23 +427,26 @@ const Game = () => {
     );
   }
 
+  // Calculate current countdown time left if active
+  const currentTimeLeft = game.countdown?.isActive ? getTimeLeft(game.countdown) : 0;
+  
   // Render appropriate game screen based on game status
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       <Header gameCode={game.gameCode} />
       
-      {/* NEW: Countdown Banner */}
+      {/* NEW: Server-side Countdown Banner */}
       <CountdownBanner
-        isActive={countdownState.isActive}
-        initialSeconds={10}
-        message={countdownState.message}
-        onComplete={handleCountdownComplete}
+        isActive={game.countdown?.isActive && currentTimeLeft > 0}
+        initialSeconds={currentTimeLeft}
+        message={game.countdown?.message || ''}
+        onComplete={() => {}} // No action needed - server handles it
         onCancel={handleCountdownCancel}
         showCancelButton={user && game.host._id === user.id} // Only host can cancel
       />
       
       {/* Add top padding when countdown is active */}
-      <div className={`container mx-auto px-4 py-6 flex-1 ${countdownState.isActive ? 'mt-16' : ''}`}>
+      <div className={`container mx-auto px-4 py-6 flex-1 ${game.countdown?.isActive ? 'mt-16' : ''}`}>
         {/* Display game code prominently in waiting status */}
         {game.status === 'waiting' && (
           <div className="mb-6 text-center">
@@ -503,7 +507,6 @@ const Game = () => {
               accessToken: accessToken || localStorage.getItem('accessToken')
             }}
             accessToken={accessToken || localStorage.getItem('accessToken')}
-            onStartCountdown={startCountdown}
           />
         )}
         
@@ -513,7 +516,6 @@ const Game = () => {
             currentUser={user}
             accessToken={accessToken}
             sessionToken={accessToken} // Updated: Pass accessToken as sessionToken
-            onStartCountdown={startCountdown}
           />
         )}
         

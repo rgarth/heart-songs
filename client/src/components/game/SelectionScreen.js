@@ -1,9 +1,9 @@
-// client/src/components/game/SelectionScreen.js - Updated with banner countdown
+// client/src/components/game/SelectionScreen.js - Updated for server-side countdown
 import React, { useState, useEffect } from 'react';
-import { submitSong, endSelectionPhase } from '../../services/gameService';
+import { submitSong, startEndSelectionCountdown } from '../../services/gameService';
 import { searchSongs } from '../../services/musicService';
 
-const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
+const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedSong, setSelectedSong] = useState(null);
@@ -17,9 +17,9 @@ const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) =
   const [isPassConfirmShowing, setIsPassConfirmShowing] = useState(false);
   const [hasPassed, setHasPassed] = useState(false);
   
-  // NEW: Simpler countdown state
-  const [isEndingSelection, setIsEndingSelection] = useState(false);
-  const [endingError, setEndingError] = useState(null);
+  // NEW: Server countdown state
+  const [isStartingCountdown, setIsStartingCountdown] = useState(false);
+  const [countdownError, setCountdownError] = useState(null);
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -152,20 +152,23 @@ const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) =
     }
   };
   
-  // NEW: Handle countdown complete
-  const handleCountdownComplete = async () => {
+  // NEW: Handle end selection with server countdown
+  const handleEndSelectionWithCountdown = async () => {
+    if (!isHost) return;
+    
     try {
-      setIsEndingSelection(true);
-      setEndingError(null);
+      setIsStartingCountdown(true);
+      setCountdownError(null);
       
-      await endSelectionPhase(game._id, accessToken);
+      // Start the server-side countdown
+      await startEndSelectionCountdown(game._id, accessToken);
       
-      // The game state will update via polling
+      // The countdown banner will appear for all players via the server state
     } catch (error) {
-      console.error('Error ending selection phase:', error);
-      setEndingError('Failed to end selection phase. Please try again.');
+      console.error('Error starting end selection countdown:', error);
+      setCountdownError('Failed to start countdown. Please try again.');
     } finally {
-      setIsEndingSelection(false);
+      setIsStartingCountdown(false);
     }
   };
   
@@ -184,22 +187,6 @@ const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) =
   };
   
   const userIsActive = isUserActive();
-  
-  // NEW: Handle end selection with banner countdown
-  const handleEndSelectionWithCountdown = () => {
-    if (onStartCountdown) {
-      // Start the countdown banner for all players
-      onStartCountdown('selection', 'Selection phase ending in...');
-      
-      // Set a timer to actually end selection after 10 seconds
-      setTimeout(() => {
-        handleCountdownComplete();
-      }, 10000);
-    } else {
-      // Fallback to immediate execution if onStartCountdown not available
-      handleCountdownComplete();
-    }
-  };
   
   // If user is not active in this round, show a message
   if (!userIsActive) {
@@ -227,23 +214,25 @@ const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) =
             </p>
           </div>
           
-          {/* NEW: Host controls for ending selection */}
+          {/* Host controls for ending selection */}
           {isHost && (
             <div className="mt-6 pt-4 border-t border-gray-700">
               <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
               <button
                 onClick={handleEndSelectionWithCountdown}
-                disabled={isEndingSelection}
+                disabled={isStartingCountdown || game.countdown?.isActive}
                 className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
               >
-                {isEndingSelection ? 'Ending Selection...' : 'End Selection Phase'}
+                {isStartingCountdown ? 'Starting Countdown...' : 
+                 game.countdown?.isActive ? 'Countdown Active' : 
+                 'End Selection Phase'}
               </button>
               <p className="text-xs text-gray-500 mt-2">
                 Force all non-submitted players to pass
               </p>
-              {endingError && (
+              {countdownError && (
                 <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                  {endingError}
+                  {countdownError}
                 </div>
               )}
             </div>
@@ -318,23 +307,25 @@ const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) =
               </p>
             )}
             
-            {/* NEW: Host controls when user has submitted */}
+            {/* Host controls when user has submitted */}
             {isHost && (
               <div className="mt-8 pt-4 border-t border-gray-700">
                 <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
                 <button
                   onClick={handleEndSelectionWithCountdown}
-                  disabled={isEndingSelection}
+                  disabled={isStartingCountdown || game.countdown?.isActive}
                   className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                 >
-                  {isEndingSelection ? 'Ending Selection...' : 'End Selection Phase'}
+                  {isStartingCountdown ? 'Starting Countdown...' : 
+                   game.countdown?.isActive ? 'Countdown Active' : 
+                   'End Selection Phase'}
                 </button>
                 <p className="text-xs text-gray-500 mt-2">
                   Force all non-submitted players to pass
                 </p>
-                {endingError && (
+                {countdownError && (
                   <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                    {endingError}
+                    {countdownError}
                   </div>
                 )}
               </div>
@@ -491,23 +482,25 @@ const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) =
               )}
             </div>
             
-            {/* NEW: Host controls for ending selection */}
+            {/* Host controls for ending selection */}
             {isHost && (
               <div className="mt-6 pt-4 border-t border-gray-700 text-center">
                 <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
                 <button
                   onClick={handleEndSelectionWithCountdown}
-                  disabled={isEndingSelection}
+                  disabled={isStartingCountdown || game.countdown?.isActive}
                   className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                 >
-                  {isEndingSelection ? 'Ending Selection...' : 'End Selection Phase'}
+                  {isStartingCountdown ? 'Starting Countdown...' : 
+                   game.countdown?.isActive ? 'Countdown Active' : 
+                   'End Selection Phase'}
                 </button>
                 <p className="text-xs text-gray-500 mt-2">
                   Force all non-submitted players to pass
                 </p>
-                {endingError && (
+                {countdownError && (
                   <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                    {endingError}
+                    {countdownError}
                   </div>
                 )}
               </div>

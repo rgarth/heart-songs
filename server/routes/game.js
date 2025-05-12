@@ -1077,5 +1077,313 @@ router.post('/end-voting', async (req, res) => {
   }
 });
 
+// Start countdown for ending selection
+router.post('/start-end-selection-countdown', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can start the countdown' });
+    }
+    
+    if (game.status !== 'selecting') {
+      return res.status(400).json({ error: 'Game is not in selection phase' });
+    }
+    
+    // Start the countdown
+    game.countdown = {
+      isActive: true,
+      type: 'selection',
+      message: 'Selection phase ending in...',
+      startedAt: new Date(),
+      duration: 10
+    };
+    
+    await game.save();
+    
+    // Schedule the actual ending after 10 seconds
+    setTimeout(async () => {
+      try {
+        // Re-fetch the game to make sure it still exists and is in the right state
+        const currentGame = await Game.findById(game._id);
+        if (currentGame && currentGame.status === 'selecting' && currentGame.countdown.isActive) {
+          // End selection using the existing logic
+          await endSelectionInternal(currentGame);
+        }
+      } catch (error) {
+        console.error('Error ending selection after countdown:', error);
+      }
+    }, 10000);
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      countdown: game.countdown
+    });
+  } catch (error) {
+    console.error('Error starting end selection countdown:', error);
+    res.status(500).json({ error: 'Failed to start countdown' });
+  }
+});
+
+// Start countdown for ending voting
+router.post('/start-end-voting-countdown', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can start the countdown' });
+    }
+    
+    if (game.status !== 'voting') {
+      return res.status(400).json({ error: 'Game is not in voting phase' });
+    }
+    
+    // Start the countdown
+    game.countdown = {
+      isActive: true,
+      type: 'voting',
+      message: 'Voting phase ending in...',
+      startedAt: new Date(),
+      duration: 10
+    };
+    
+    await game.save();
+    
+    // Schedule the actual ending after 10 seconds
+    setTimeout(async () => {
+      try {
+        // Re-fetch the game to make sure it still exists and is in the right state
+        const currentGame = await Game.findById(game._id);
+        if (currentGame && currentGame.status === 'voting' && currentGame.countdown.isActive) {
+          // End voting using the existing logic
+          await endVotingInternal(currentGame);
+        }
+      } catch (error) {
+        console.error('Error ending voting after countdown:', error);
+      }
+    }, 10000);
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      countdown: game.countdown
+    });
+  } catch (error) {
+    console.error('Error starting end voting countdown:', error);
+    res.status(500).json({ error: 'Failed to start countdown' });
+  }
+});
+
+// Cancel countdown (for host)
+router.post('/cancel-countdown', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can cancel the countdown' });
+    }
+    
+    // Cancel the countdown
+    game.countdown = {
+      isActive: false,
+      type: null,
+      message: '',
+      startedAt: null,
+      duration: 10
+    };
+    
+    await game.save();
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      countdown: game.countdown
+    });
+  } catch (error) {
+    console.error('Error canceling countdown:', error);
+    res.status(500).json({ error: 'Failed to cancel countdown' });
+  }
+});
+
+// Helper function to end selection (extracted from the original route)
+async function endSelectionInternal(game) {
+  // Initialize currentRound if it doesn't exist
+  if (!game.currentRound) {
+    game.currentRound = {
+      playersWhoFailedToSubmit: [],
+      playersWhoFailedToVote: []
+    };
+  }
+  
+  // Get all active players who should have submitted
+  const expectedSubmitters = game.activePlayers && game.activePlayers.length > 0 
+    ? game.activePlayers 
+    : game.players.map(p => p.user);
+  
+  // Get players who actually submitted
+  const submittedPlayerIds = game.submissions.map(s => s.player.toString());
+  
+  // Find players who didn't submit
+  const playersWhoDidntSubmit = expectedSubmitters.filter(playerId => 
+    !submittedPlayerIds.includes(playerId.toString())
+  );
+  
+  // Create pass submissions for players who didn't submit
+  for (const playerId of playersWhoDidntSubmit) {
+    game.submissions.push({
+      player: playerId,
+      songId: 'PASS',
+      songName: 'PASS',
+      artist: 'PASS',
+      albumCover: '',
+      youtubeId: null,
+      hasPassed: true,
+      submittedAt: new Date(),
+      gotSpeedBonus: false,
+      votes: []
+    });
+  }
+  
+  // Track who failed to submit
+  game.currentRound.playersWhoFailedToSubmit = playersWhoDidntSubmit;
+  
+  // Clear the countdown
+  game.countdown = {
+    isActive: false,
+    type: null,
+    message: '',
+    startedAt: null,
+    duration: 10
+  };
+  
+  // Move to voting phase
+  game.status = 'voting';
+  await game.save();
+}
+
+// Helper function to end voting (extracted from the original route)
+async function endVotingInternal(game) {
+  // Initialize currentRound if it doesn't exist
+  if (!game.currentRound) {
+    game.currentRound = {
+      playersWhoFailedToSubmit: [],
+      playersWhoFailedToVote: []
+    };
+  }
+  
+  // Get all active players who should have voted
+  const expectedVoters = game.activePlayers && game.activePlayers.length > 0 
+    ? game.activePlayers 
+    : game.players.map(p => p.user);
+  
+  // Get players who actually voted
+  const votedPlayerIds = [];
+  game.submissions.forEach(submission => {
+    submission.votes.forEach(vote => {
+      if (!votedPlayerIds.includes(vote.toString())) {
+        votedPlayerIds.push(vote.toString());
+      }
+    });
+  });
+  
+  // Find players who didn't vote
+  const playersWhoDidntVote = expectedVoters.filter(playerId => 
+    !votedPlayerIds.includes(playerId.toString())
+  );
+  
+  // Track who failed to vote
+  game.currentRound.playersWhoFailedToVote = playersWhoDidntVote;
+  
+  // Clear the countdown
+  game.countdown = {
+    isActive: false,
+    type: null,
+    message: '',
+    startedAt: null,
+    duration: 10
+  };
+  
+  // Move to results phase
+  game.status = 'results';
+  
+  // Update scores - only for non-passed submissions
+  game.submissions.forEach(sub => {
+    // Skip passed submissions for scoring
+    if (sub.hasPassed) return;
+    
+    // Base points from votes
+    const votePoints = sub.votes.length;
+    
+    // Add speed bonus point if applicable
+    const speedBonus = sub.gotSpeedBonus ? 1 : 0;
+    
+    // Calculate total points for this submission
+    const totalPoints = votePoints + speedBonus;
+    
+    if (totalPoints > 0) {
+      const playerIndex = game.players.findIndex(p => p.user.toString() === sub.player.toString());
+      if (playerIndex !== -1) {
+        game.players[playerIndex].score += totalPoints;
+      }
+    }
+  });
+  
+  await game.save();
+  
+  // Update user scores in the database
+  for (const player of game.players) {
+    await User.findByIdAndUpdate(player.user, { $inc: { score: player.score } });
+  }
+}
+
 // Export the router
 module.exports = router;
