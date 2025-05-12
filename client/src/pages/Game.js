@@ -1,4 +1,4 @@
-// client/src/pages/Game.js - Updated to use server-side countdown
+// client/src/pages/Game.js - Fixed and cleaned up
 import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -12,9 +12,38 @@ import ResultsScreen from '../components/game/ResultsScreen';
 import FinalResultsScreen from '../components/game/FinalResultsScreen';
 import CountdownBanner from '../components/game/CountdownBanner';
 
-// Polling interval in milliseconds
+// Polling intervals
 const POLLING_INTERVAL = 2000;
 const MAX_RETRY_ATTEMPTS = 3;
+
+// Calculate time left for countdown (outside component)
+const getTimeLeft = (countdown) => {
+  console.log('⏰ getTimeLeft input:', countdown);
+
+  if (!countdown || !countdown.isActive || !countdown.startedAt) {
+    console.log('⏰ getTimeLeft: returning 0 because:', {
+      noCountdown: !countdown,
+      notActive: countdown && !countdown.isActive,
+      noStartedAt: countdown && !countdown.startedAt
+    });
+    return 0;
+  }
+  
+  const startTime = new Date(countdown.startedAt);
+  const now = new Date();
+  const elapsed = Math.floor((now - startTime) / 1000);
+  const timeLeft = Math.max(0, countdown.duration - elapsed);
+  
+  console.log('⏰ getTimeLeft:', {
+    startTime: startTime.toISOString(),
+    now: now.toISOString(),
+    elapsed,
+    duration: countdown.duration,
+    timeLeft
+  });
+  
+  return timeLeft;
+};
 
 const Game = () => {
   const { gameId } = useParams();
@@ -32,31 +61,6 @@ const Game = () => {
   const [gameHistory, setGameHistory] = useState({
     previousRounds: []
   });
-  
-  // Copy game code to clipboard
-  const copyGameCode = () => {
-    if (!game || !game.gameCode) return;
-    
-    try {
-      navigator.clipboard.writeText(game.gameCode);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
-  
-  // Calculate time left for countdown
-  const getTimeLeft = (countdown) => {
-    if (!countdown || !countdown.isActive || !countdown.startedAt) return 0;
-    
-    const startTime = new Date(countdown.startedAt);
-    const now = new Date();
-    const elapsed = Math.floor((now - startTime) / 1000);
-    const timeLeft = Math.max(0, countdown.duration - elapsed);
-    
-    return timeLeft;
-  };
   
   // Fetch game state with optimized polling
   const fetchGameState = useCallback(async () => {
@@ -78,8 +82,25 @@ const Game = () => {
     }
     
     try {
+      console.log('📡 Fetching game state for gameId:', gameId);
       const gameData = await getGameState(gameId, token);
-      
+      console.log('📡 GAME DEBUG 2: Received game data:', {
+        gameId: gameData._id,
+        status: gameData.status,
+        countdown: gameData.countdown,
+        countdownRaw: JSON.stringify(gameData.countdown),
+        hasCountdown: !!gameData.countdown,
+        countdownIsActive: gameData.countdown?.isActive,
+        countdownStartedAt: gameData.countdown?.startedAt,
+        countdownDuration: gameData.countdown?.duration,
+        countdownMessage: gameData.countdown?.message,
+        submissions: gameData.submissions?.length,
+        activePlayers: gameData.activePlayers?.length
+      });
+      // Also log the raw gameData to see everything:
+      if (gameData.countdown?.isActive) {
+        console.log('📡 RAW GAME DATA with active countdown:', JSON.stringify(gameData, null, 2));
+      }
       // Reset retry counter on success
       if (retryCount > 0) {
         setRetryCount(0);
@@ -130,7 +151,7 @@ const Game = () => {
           hasReadyStatusChanged || 
           hasPlayersChanged ||
           hasActivePlayersChanged ||
-          hasCountdownChanged  // NEW: Also update on countdown changes
+          hasCountdownChanged
         ) {
           // If status changed from results to selecting, it means a new round started
           // Save the previous round data
@@ -201,6 +222,20 @@ const Game = () => {
       clearInterval(intervalId);
     };
   }, [fetchGameState, error, game?.status]);
+  
+  // ALL YOUR HANDLER FUNCTIONS GO HERE (keeping them as they are)
+  // Copy game code to clipboard
+  const copyGameCode = () => {
+    if (!game || !game.gameCode) return;
+    
+    try {
+      navigator.clipboard.writeText(game.gameCode);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
   
   // Handle ready toggle
   const handleToggleReady = async () => {
@@ -342,9 +377,9 @@ const Game = () => {
     navigate('/');
   };
   
-  // NEW: Handle countdown cancel (only for host)
+  // Handle countdown cancel (only for host)
   const handleCountdownCancel = async () => {
-    if (!game || !game.countdown.isActive) return;
+    if (!game || !game.countdown?.isActive) return;
     
     try {
       // Get the most up-to-date token
@@ -427,27 +462,43 @@ const Game = () => {
     );
   }
 
-  // Calculate current countdown time left if active
+  // Calculate current countdown time left if active - MOVED TO THE RIGHT PLACE!
   const currentTimeLeft = game.countdown?.isActive ? getTimeLeft(game.countdown) : 0;
   
+  console.log('🎯 Countdown Debug:', {  
+    hasCountdown: !!game.countdown,
+    countdown: game.countdown,
+    isActive: game.countdown?.isActive,
+    startedAt: game.countdown?.startedAt, 
+    duration: game.countdown?.duration,
+    message: game.countdown?.message,
+    type: game.countdown?.type,
+    currentTimeLeft,
+    gameTime: new Date().toISOString(),
+    shouldShowBanner: game.countdown?.isActive && currentTimeLeft > 0
+  });
+
   // Render appropriate game screen based on game status
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       <Header gameCode={game.gameCode} />
       
-      {/* NEW: Server-side Countdown Banner */}
+      {/* Server-side Countdown Banner */}
       <CountdownBanner
-        isActive={game.countdown?.isActive && currentTimeLeft > 0}
-        initialSeconds={currentTimeLeft}
-        message={game.countdown?.message || ''}
-        onComplete={() => {}} // No action needed - server handles it
-        onCancel={handleCountdownCancel}
-        showCancelButton={user && game.host._id === user.id} // Only host can cancel
-      />
+      isActive={game.countdown?.isActive && currentTimeLeft > 0}
+      initialSeconds={currentTimeLeft}
+      message={game.countdown?.message || ''}
+      onComplete={() => {
+        console.log('✅ CountdownBanner onComplete called');
+        // Don't do anything here - the server handles the countdown completion
+      }}
+      onCancel={handleCountdownCancel}
+      showCancelButton={user && game.host._id === user.id}
+    />
       
       {/* Add top padding when countdown is active */}
       <div className={`container mx-auto px-4 py-6 flex-1 ${game.countdown?.isActive ? 'mt-16' : ''}`}>
-        {/* Display game code prominently in waiting status */}
+      {/* Display game code prominently in waiting status */}
         {game.status === 'waiting' && (
           <div className="mb-6 text-center">
             <div className="bg-gray-800 rounded-lg py-3 px-4 inline-block mx-auto">

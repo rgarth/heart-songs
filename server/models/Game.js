@@ -1,4 +1,4 @@
-// server/models/Game.js - Fixed countdown schema to allow null
+// server/models/Game.js
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -40,7 +40,6 @@ const GameSchema = new mongoose.Schema({
     text: String,
     category: String
   },
-  // NEW: Add countdown state to the game - FIXED to allow null
   countdown: {
     isActive: {
       type: Boolean,

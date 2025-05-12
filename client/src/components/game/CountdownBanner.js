@@ -1,4 +1,4 @@
-// client/src/components/game/CountdownBanner.js
+// client/src/components/game/CountdownBanner.js - Fix the issue
 import React, { useState, useEffect, useCallback } from 'react';
 
 const CountdownBanner = ({ 
@@ -12,35 +12,77 @@ const CountdownBanner = ({
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isVisible, setIsVisible] = useState(false);
   
+  console.log('🎨 CountdownBanner render:', {
+    initialSeconds,
+    isActive,
+    timeLeft,
+    isVisible,
+    message
+  });
+  
   const resetTimer = useCallback(() => {
+    console.log('🔄 CountdownBanner: resetting timer');
     setTimeLeft(initialSeconds);
     setIsVisible(false);
   }, [initialSeconds]);
   
   useEffect(() => {
+    console.log('⚡ CountdownBanner useEffect:', {
+      isActive,
+      timeLeft,
+      isVisible,
+      initialSeconds
+    });
+    
     if (!isActive) {
       resetTimer();
       return;
     }
     
-    if (!isVisible) {
-      setIsVisible(true);
-    }
+    // Set the time left to the initial seconds when countdown starts
+    setTimeLeft(initialSeconds);
+    setIsVisible(true);
     
-    if (timeLeft <= 0) {
-      onComplete();
+    // Don't start the countdown if initialSeconds is 0 or less
+    if (initialSeconds <= 0) {
+      console.log('⚠️ CountdownBanner: initial seconds is 0 or less, calling onComplete');
       setIsVisible(false);
+      onComplete && onComplete();
       return;
     }
     
+  }, [isActive, initialSeconds, onComplete, resetTimer]);
+  
+  // Separate useEffect for the countdown timer
+  useEffect(() => {
+    if (!isActive || !isVisible || timeLeft <= 0) return;
+    
+    console.log('⏰ CountdownBanner: setting up timer for', timeLeft);
+    
     const timer = setTimeout(() => {
-      setTimeLeft(prev => prev - 1);
+      console.log('⏰ CountdownBanner: timer tick, timeLeft was', timeLeft);
+      setTimeLeft(prev => {
+        const newTime = prev - 1;
+        console.log('⏰ CountdownBanner: setting timeLeft to', newTime);
+        
+        if (newTime <= 0) {
+          console.log('✅ CountdownBanner: countdown complete, calling onComplete');
+          setIsVisible(false);
+          onComplete && onComplete();
+        }
+        
+        return newTime;
+      });
     }, 1000);
     
-    return () => clearTimeout(timer);
-  }, [timeLeft, isActive, isVisible, onComplete, resetTimer]);
+    return () => {
+      console.log('🧹 CountdownBanner: cleaning up timer');
+      clearTimeout(timer);
+    };
+  }, [isActive, isVisible, timeLeft, onComplete]);
   
   if (!isActive || !isVisible) {
+    console.log('🚫 CountdownBanner: not showing - isActive:', isActive, 'isVisible:', isVisible);
     return null;
   }
   
@@ -50,6 +92,8 @@ const CountdownBanner = ({
     if (timeLeft <= 5) return 'bg-yellow-600 border-yellow-500';
     return 'bg-orange-600 border-orange-500';
   };
+  
+  console.log('✨ CountdownBanner: rendering with timeLeft:', timeLeft);
   
   return (
     <div className={`fixed top-0 left-0 right-0 z-40 ${getColorClasses()} border-b-2 transition-all duration-300`}>
