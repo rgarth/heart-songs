@@ -492,6 +492,20 @@ router.post('/next-round', async (req, res) => {
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
     
+    // NEW: Save current round data to previous rounds before clearing
+    const currentRoundData = {
+      question: game.currentQuestion,
+      submissions: [...game.submissions],
+      playersWhoFailedToSubmit: game.currentRound?.playersWhoFailedToSubmit || [],
+      playersWhoFailedToVote: game.currentRound?.playersWhoFailedToVote || []
+    };
+    
+    // Add to previous rounds
+    if (!game.previousRounds) {
+      game.previousRounds = [];
+    }
+    game.previousRounds.push(currentRoundData);
+    
     // Clear submissions
     game.submissions = [];
     
@@ -503,6 +517,12 @@ router.post('/next-round', async (req, res) => {
     // Reset active players to empty for the new round
     // This will be repopulated when players ready up or the host forces the start
     game.activePlayers = [];
+    
+    // NEW: Reset current round failure tracking
+    game.currentRound = {
+      playersWhoFailedToSubmit: [],
+      playersWhoFailedToVote: []
+    };
     
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
@@ -650,7 +670,7 @@ router.post('/:gameId/custom-question', async (req, res) => {
   }
 });
 
-// Force start game - UPDATED to remove Spotify playlist creation
+// Force start game
 router.post('/start', async (req, res) => {
   try {
     const { gameId, userId, questionText, questionCategory } = req.body;
@@ -728,6 +748,12 @@ router.post('/start', async (req, res) => {
     game.activePlayers = game.players
       .filter(player => player.isReady)
       .map(player => player.user);
+    
+    // NEW: Initialize currentRound tracking
+    game.currentRound = {
+      playersWhoFailedToSubmit: [],
+      playersWhoFailedToVote: []
+    };
     
     // Start the game regardless of ready status
     game.status = 'selecting';
@@ -850,6 +876,204 @@ router.post('/end', async (req, res) => {
   } catch (error) {
     console.error('Error ending game:', error);
     res.status(500).json({ error: 'Failed to end game' });
+  }
+});
+
+// Force end selection phase 
+router.post('/end-selection', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can end the selection phase' });
+    }
+    
+    if (game.status !== 'selecting') {
+      return res.status(400).json({ error: 'Game is not in selection phase' });
+    }
+    
+    // Initialize currentRound if it doesn't exist
+    if (!game.currentRound) {
+      game.currentRound = {
+        playersWhoFailedToSubmit: [],
+        playersWhoFailedToVote: []
+      };
+    }
+    
+    // Get all active players who should have submitted
+    const expectedSubmitters = game.activePlayers && game.activePlayers.length > 0 
+      ? game.activePlayers 
+      : game.players.map(p => p.user);
+    
+    // Get players who actually submitted
+    const submittedPlayerIds = game.submissions.map(s => s.player.toString());
+    
+    // Find players who didn't submit
+    const playersWhoDidntSubmit = expectedSubmitters.filter(playerId => 
+      !submittedPlayerIds.includes(playerId.toString())
+    );
+    
+    // Create pass submissions for players who didn't submit
+    for (const playerId of playersWhoDidntSubmit) {
+      game.submissions.push({
+        player: playerId,
+        songId: 'PASS',
+        songName: 'PASS',
+        artist: 'PASS',
+        albumCover: '',
+        youtubeId: null,
+        hasPassed: true,
+        submittedAt: new Date(),
+        gotSpeedBonus: false,
+        votes: []
+      });
+    }
+    
+    // Track who failed to submit
+    game.currentRound.playersWhoFailedToSubmit = playersWhoDidntSubmit;
+    
+    // Move to voting phase
+    game.status = 'voting';
+    await game.save();
+    
+    // Populate the failure list
+    await game.populate('currentRound.playersWhoFailedToSubmit', 'displayName');
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      submissions: game.submissions,
+      playersWhoFailedToSubmit: game.currentRound.playersWhoFailedToSubmit
+    });
+  } catch (error) {
+    console.error('Error ending selection phase:', error);
+    res.status(500).json({ error: 'Failed to end selection phase' });
+  }
+});
+
+// Force end voting phase
+router.post('/end-voting', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can end the voting phase' });
+    }
+    
+    if (game.status !== 'voting') {
+      return res.status(400).json({ error: 'Game is not in voting phase' });
+    }
+    
+    // Initialize currentRound if it doesn't exist
+    if (!game.currentRound) {
+      game.currentRound = {
+        playersWhoFailedToSubmit: [],
+        playersWhoFailedToVote: []
+      };
+    }
+    
+    // Get all active players who should have voted
+    const expectedVoters = game.activePlayers && game.activePlayers.length > 0 
+      ? game.activePlayers 
+      : game.players.map(p => p.user);
+    
+    // Get players who actually voted
+    const votedPlayerIds = [];
+    game.submissions.forEach(submission => {
+      submission.votes.forEach(vote => {
+        if (!votedPlayerIds.includes(vote.toString())) {
+          votedPlayerIds.push(vote.toString());
+        }
+      });
+    });
+    
+    // Find players who didn't vote
+    const playersWhoDidntVote = expectedVoters.filter(playerId => 
+      !votedPlayerIds.includes(playerId.toString())
+    );
+    
+    // Track who failed to vote
+    game.currentRound.playersWhoFailedToVote = playersWhoDidntVote;
+    
+    // Move to results phase
+    game.status = 'results';
+    
+    // Update scores - only for non-passed submissions
+    game.submissions.forEach(sub => {
+      // Skip passed submissions for scoring
+      if (sub.hasPassed) return;
+      
+      // Base points from votes
+      const votePoints = sub.votes.length;
+      
+      // Add speed bonus point if applicable
+      const speedBonus = sub.gotSpeedBonus ? 1 : 0;
+      
+      // Calculate total points for this submission
+      const totalPoints = votePoints + speedBonus;
+      
+      if (totalPoints > 0) {
+        const playerIndex = game.players.findIndex(p => p.user.toString() === sub.player.toString());
+        if (playerIndex !== -1) {
+          game.players[playerIndex].score += totalPoints;
+        }
+      }
+    });
+    
+    await game.save();
+    
+    // Update user scores in the database
+    for (const player of game.players) {
+      await User.findByIdAndUpdate(player.user, { $inc: { score: player.score } });
+    }
+    
+    // Populate the failure lists
+    await game.populate('currentRound.playersWhoFailedToSubmit', 'displayName');
+    await game.populate('currentRound.playersWhoFailedToVote', 'displayName');
+    await game.populate('submissions.player', 'displayName');
+    await game.populate('submissions.votes', 'displayName');
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      submissions: game.submissions,
+      currentRound: game.currentRound
+    });
+  } catch (error) {
+    console.error('Error ending voting phase:', error);
+    res.status(500).json({ error: 'Failed to end voting phase' });
   }
 });
 

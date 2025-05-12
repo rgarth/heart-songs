@@ -1,10 +1,10 @@
-// client/src/components/game/VotingScreen.js - Fixed ESLint warning
+// client/src/components/game/VotingScreen.js - Updated with banner countdown
 import React, { useState, useEffect, useCallback } from 'react';
-import { voteForSong } from '../../services/gameService';
+import { voteForSong, endVotingPhase } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VideoPreferenceToggle from './VideoPreferenceToggle';
 
-const VotingScreen = ({ game, currentUser, accessToken }) => {
+const VotingScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
@@ -16,11 +16,18 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [localSubmissions, setLocalSubmissions] = useState([]);
   const [youtubeLoadingStates, setYoutubeLoadingStates] = useState({});
   
+  // NEW: Simpler countdown state
+  const [isEndingVoting, setIsEndingVoting] = useState(false);
+  const [endingVotingError, setEndingVotingError] = useState(null);
+  
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
   
   // Check if this is a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
+  
+  // Check if current user is the host
+  const isHost = game.host._id === currentUser.id;
   
   // Check if any submission has quota exhausted flag
   const hasQuotaIssue = localSubmissions.some(s => s.quotaExhausted);
@@ -145,7 +152,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Load submissions - fetch YouTube data based on user preference
   useEffect(() => {
     loadSubmissionsWithPreference();
-  }, [loadSubmissionsWithPreference]); // Now loadSubmissionsWithPreference is in the dependency array
+  }, [loadSubmissionsWithPreference]);
 
   // Handle vote
   const handleVote = async () => {
@@ -172,6 +179,39 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       setError('Failed to submit your vote. Please try again.');
     } finally {
       setIsVoting(false);
+    }
+  };
+  
+  // NEW: Handle countdown complete
+  const handleCountdownComplete = async () => {
+    try {
+      setIsEndingVoting(true);
+      setEndingVotingError(null);
+      
+      await endVotingPhase(game._id, accessToken);
+      
+      // The game state will update via polling
+    } catch (error) {
+      console.error('Error ending voting phase:', error);
+      setEndingVotingError('Failed to end voting phase. Please try again.');
+    } finally {
+      setIsEndingVoting(false);
+    }
+  };
+  
+  // NEW: Handle end voting with banner countdown
+  const handleEndVotingWithCountdown = () => {
+    if (onStartCountdown) {
+      // Start the countdown banner for all players
+      onStartCountdown('voting', 'Voting phase ending in...');
+      
+      // Set a timer to actually end voting after 10 seconds
+      setTimeout(() => {
+        handleCountdownComplete();
+      }, 10000);
+    } else {
+      // Fallback to immediate execution if onStartCountdown not available
+      handleCountdownComplete();
     }
   };
   
@@ -206,6 +246,28 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="text-gray-300 mt-4">Loading songs in {preferVideo ? 'video' : 'audio'} format...</p>
           </div>
+          
+          {/* NEW: Host controls for ending voting - even during loading */}
+          {isHost && (
+            <div className="mt-8 pt-4 border-t border-gray-700 text-center">
+              <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+              <button
+                onClick={handleEndVotingWithCountdown}
+                disabled={isEndingVoting}
+                className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {isEndingVoting ? 'Ending Voting...' : 'End Voting Phase'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                Force all non-voted players to forfeit their vote
+              </p>
+              {endingVotingError && (
+                <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                  {endingVotingError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -238,6 +300,23 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               </p>
             </div>
           </div>
+          
+          {/* NEW: Host controls when all passed */}
+          {isHost && (
+            <div className="mt-6 pt-4 border-t border-gray-700 text-center">
+              <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+              <button
+                onClick={handleEndVotingWithCountdown}
+                disabled={isEndingVoting}
+                className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {isEndingVoting ? 'Ending Voting...' : 'End Voting Phase'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                Move to results immediately
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -495,6 +574,28 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             </div>
           )}
         </div>
+        
+        {/* NEW: Host controls for ending voting */}
+        {isHost && votableSubmissions.length > 0 && (
+          <div className="mt-8 pt-4 border-t border-gray-700 text-center">
+            <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+            <button
+              onClick={handleEndVotingWithCountdown}
+              disabled={isEndingVoting}
+              className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+            >
+              {isEndingVoting ? 'Ending Voting...' : 'End Voting Phase'}
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Force all non-voted players to forfeit their vote
+            </p>
+            {endingVotingError && (
+              <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                {endingVotingError}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

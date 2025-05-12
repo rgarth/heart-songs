@@ -1,4 +1,4 @@
-// server/models/Game.js - Updated with hasPassed field
+// server/models/Game.js - Updated with failure tracking
 const mongoose = require('mongoose');
 
 const GameSchema = new mongoose.Schema({
@@ -60,7 +60,7 @@ const GameSchema = new mongoose.Schema({
       enum: ['audio', 'video'],
       default: 'audio'
     },
-    // NEW: Pass indicator
+    // Pass indicator
     hasPassed: {
       type: Boolean,
       default: false
@@ -78,6 +78,17 @@ const GameSchema = new mongoose.Schema({
       ref: 'User'
     }]
   }],
+  // NEW: Track round failures
+  currentRound: {
+    playersWhoFailedToSubmit: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    playersWhoFailedToVote: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }]
+  },
   previousRounds: [{
     question: {
       text: String,
@@ -103,7 +114,7 @@ const GameSchema = new mongoose.Schema({
         enum: ['audio', 'video'],
         default: 'audio'
       },
-      // NEW: Pass indicator for previous rounds
+      // Pass indicator for previous rounds
       hasPassed: {
         type: Boolean,
         default: false
@@ -113,6 +124,15 @@ const GameSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
       }]
+    }],
+    // NEW: Track failures for each round
+    playersWhoFailedToSubmit: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    playersWhoFailedToVote: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
     }]
   }],
   playlistId: String,

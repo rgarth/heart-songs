@@ -349,3 +349,49 @@ export const getGameState = async (gameId, token) => {
     return handleRequestError(error, 'getting game state');
   }
 };
+
+// Force end selection phase
+export const endSelectionPhase = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for ending selection phase:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/end-selection`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'ending selection phase');
+  }
+};
+
+// Force end voting phase
+export const endVotingPhase = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for ending voting phase:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/end-voting`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'ending voting phase');
+  }
+};

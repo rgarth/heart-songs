@@ -1,4 +1,4 @@
-// client/src/components/game/ResultsScreen.js
+// client/src/components/game/ResultsScreen.js - Updated to show failed voters
 import React, { useState } from 'react';
 import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 
@@ -20,6 +20,10 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
   
   // Check if this was a small game (less than 3 players)
   const isSmallGame = (hasActivePlayers ? game.activePlayers.length : game.players.length) < 3;
+  
+  // NEW: Get failure information
+  const playersWhoFailedToSubmit = game.currentRound?.playersWhoFailedToSubmit || [];
+  const playersWhoFailedToVote = game.currentRound?.playersWhoFailedToVote || [];
   
   // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -118,6 +122,27 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
         {isSmallGame && (
           <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
             <p><strong>Note:</strong> In games with fewer than 3 players, players can vote for their own submission.</p>
+          </div>
+        )}
+        
+        {/* NEW: Show players who failed to submit or vote */}
+        {(playersWhoFailedToSubmit.length > 0 || playersWhoFailedToVote.length > 0) && (
+          <div className="mb-6 space-y-3">
+            {playersWhoFailedToSubmit.length > 0 && (
+              <div className="p-3 bg-yellow-900/30 text-yellow-200 rounded-lg text-sm">
+                <p className="font-medium mb-1">Players who failed to submit:</p>
+                <p>{playersWhoFailedToSubmit.map(p => p.displayName).join(', ')}</p>
+                <p className="text-xs mt-1 text-yellow-300">These players were automatically marked as passed</p>
+              </div>
+            )}
+            
+            {playersWhoFailedToVote.length > 0 && (
+              <div className="p-3 bg-red-900/30 text-red-200 rounded-lg text-sm">
+                <p className="font-medium mb-1">Players who failed to vote:</p>
+                <p>{playersWhoFailedToVote.map(p => p.displayName).join(', ')}</p>
+                <p className="text-xs mt-1 text-red-300">These players forfeited their vote</p>
+              </div>
+            )}
           </div>
         )}
         
@@ -233,6 +258,8 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                 let votesReceived = 0;
                 let speedBonus = 0;
                 let hasPassed = passedSubmissions.some(s => s.player._id === player.user._id);
+                let failedToSubmit = playersWhoFailedToSubmit.some(p => p._id === player.user._id);
+                let failedToVote = playersWhoFailedToVote.some(p => p._id === player.user._id);
                 
                 if (playerSubmission) {
                   votesReceived = playerSubmission.votes.length;
@@ -257,17 +284,31 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                           className="w-8 h-8 rounded-full mr-3" 
                         />
                       )}
-                      <p className="font-medium">
-                        {player.user.displayName}
-                        {player.user._id === currentUser.id && (
-                          <span className="ml-1 text-blue-400">(You)</span>
-                        )}
-                        {hasPassed && (
-                          <span className="ml-2 text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded">
-                            Passed
-                          </span>
-                        )}
-                      </p>
+                      <div>
+                        <p className="font-medium">
+                          {player.user.displayName}
+                          {player.user._id === currentUser.id && (
+                            <span className="ml-1 text-blue-400">(You)</span>
+                          )}
+                        </p>
+                        <div className="flex gap-2 mt-1">
+                          {hasPassed && (
+                            <span className="text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded">
+                              Passed
+                            </span>
+                          )}
+                          {failedToSubmit && (
+                            <span className="text-xs bg-yellow-600 text-yellow-100 px-2 py-1 rounded">
+                              Failed to Submit
+                            </span>
+                          )}
+                          {failedToVote && (
+                            <span className="text-xs bg-red-600 text-red-100 px-2 py-1 rounded">
+                              Failed to Vote
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-center">
                       {roundPoints > 0 && (

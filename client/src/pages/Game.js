@@ -1,4 +1,4 @@
-// client/src/pages/Game.js
+// client/src/pages/Game.js - Add countdown state management
 import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -10,6 +10,7 @@ import SelectionScreen from '../components/game/SelectionScreen';
 import VotingScreen from '../components/game/VotingScreen';
 import ResultsScreen from '../components/game/ResultsScreen';
 import FinalResultsScreen from '../components/game/FinalResultsScreen';
+import CountdownBanner from '../components/game/CountdownBanner';
 
 // Polling interval in milliseconds
 const POLLING_INTERVAL = 2000;
@@ -26,6 +27,14 @@ const Game = () => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
+  
+  // NEW: Countdown state management
+  const [countdownState, setCountdownState] = useState({
+    isActive: false,
+    type: null, // 'selection' or 'voting'
+    timeLeft: 10,
+    message: ''
+  });
   
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
@@ -288,7 +297,7 @@ const Game = () => {
         }));
         
         // Call API to end the game on the server
-        const response = await endGame(gameId, token);
+        await endGame(gameId, token);
         
         // Update game status with all the data we need to render final results
         setGame(prevGame => {
@@ -304,7 +313,7 @@ const Game = () => {
         
       } else {
         // Call API to end the game on the server
-        const response = await endGame(gameId, token);
+        await endGame(gameId, token);
         
         // Just update the status if no round data to save
         setGame(prevGame => ({
@@ -321,6 +330,35 @@ const Game = () => {
   // Go back to home
   const handleLeaveGame = () => {
     navigate('/');
+  };
+  
+  // NEW: Countdown handlers
+  const startCountdown = (type, message) => {
+    setCountdownState({
+      isActive: true,
+      type,
+      timeLeft: 10,
+      message
+    });
+  };
+  
+  const handleCountdownComplete = () => {
+    // The actual ending is handled by the respective screens
+    setCountdownState({
+      isActive: false,
+      type: null,
+      timeLeft: 10,
+      message: ''
+    });
+  };
+  
+  const handleCountdownCancel = () => {
+    setCountdownState({
+      isActive: false,
+      type: null,
+      timeLeft: 10,
+      message: ''
+    });
   };
 
   // Loading state
@@ -392,7 +430,19 @@ const Game = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       <Header gameCode={game.gameCode} />
-      <div className="container mx-auto px-4 py-6 flex-1">
+      
+      {/* NEW: Countdown Banner */}
+      <CountdownBanner
+        isActive={countdownState.isActive}
+        initialSeconds={10}
+        message={countdownState.message}
+        onComplete={handleCountdownComplete}
+        onCancel={handleCountdownCancel}
+        showCancelButton={user && game.host._id === user.id} // Only host can cancel
+      />
+      
+      {/* Add top padding when countdown is active */}
+      <div className={`container mx-auto px-4 py-6 flex-1 ${countdownState.isActive ? 'mt-16' : ''}`}>
         {/* Display game code prominently in waiting status */}
         {game.status === 'waiting' && (
           <div className="mb-6 text-center">
@@ -453,6 +503,7 @@ const Game = () => {
               accessToken: accessToken || localStorage.getItem('accessToken')
             }}
             accessToken={accessToken || localStorage.getItem('accessToken')}
+            onStartCountdown={startCountdown}
           />
         )}
         
@@ -462,6 +513,7 @@ const Game = () => {
             currentUser={user}
             accessToken={accessToken}
             sessionToken={accessToken} // Updated: Pass accessToken as sessionToken
+            onStartCountdown={startCountdown}
           />
         )}
         

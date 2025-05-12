@@ -1,9 +1,9 @@
-// client/src/components/game/SelectionScreen.js - Fixed ESLint warnings
+// client/src/components/game/SelectionScreen.js - Updated with banner countdown
 import React, { useState, useEffect } from 'react';
-import { submitSong } from '../../services/gameService';
+import { submitSong, endSelectionPhase } from '../../services/gameService';
 import { searchSongs } from '../../services/musicService';
 
-const SelectionScreen = ({ game, currentUser, accessToken }) => {
+const SelectionScreen = ({ game, currentUser, accessToken, onStartCountdown }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedSong, setSelectedSong] = useState(null);
@@ -16,6 +16,10 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [error, setError] = useState(null);
   const [isPassConfirmShowing, setIsPassConfirmShowing] = useState(false);
   const [hasPassed, setHasPassed] = useState(false);
+  
+  // NEW: Simpler countdown state
+  const [isEndingSelection, setIsEndingSelection] = useState(false);
+  const [endingError, setEndingError] = useState(null);
 
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -23,6 +27,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   // Count of submitted players
   const submittedCount = game.submissions.length;
   const totalPlayers = hasActivePlayers ? game.activePlayers.length : game.players.length;
+  
+  // Check if current user is the host
+  const isHost = game.host._id === currentUser.id;
   
   // Check if user has already submitted or passed
   useEffect(() => {
@@ -145,6 +152,23 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     }
   };
   
+  // NEW: Handle countdown complete
+  const handleCountdownComplete = async () => {
+    try {
+      setIsEndingSelection(true);
+      setEndingError(null);
+      
+      await endSelectionPhase(game._id, accessToken);
+      
+      // The game state will update via polling
+    } catch (error) {
+      console.error('Error ending selection phase:', error);
+      setEndingError('Failed to end selection phase. Please try again.');
+    } finally {
+      setIsEndingSelection(false);
+    }
+  };
+  
   // Check if user is active in the current round
   const isUserActive = () => {
     if (!game.activePlayers || game.activePlayers.length === 0) {
@@ -160,6 +184,22 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   };
   
   const userIsActive = isUserActive();
+  
+  // NEW: Handle end selection with banner countdown
+  const handleEndSelectionWithCountdown = () => {
+    if (onStartCountdown) {
+      // Start the countdown banner for all players
+      onStartCountdown('selection', 'Selection phase ending in...');
+      
+      // Set a timer to actually end selection after 10 seconds
+      setTimeout(() => {
+        handleCountdownComplete();
+      }, 10000);
+    } else {
+      // Fallback to immediate execution if onStartCountdown not available
+      handleCountdownComplete();
+    }
+  };
   
   // If user is not active in this round, show a message
   if (!userIsActive) {
@@ -186,6 +226,28 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               You'll be able to participate in the next round when the host starts it.
             </p>
           </div>
+          
+          {/* NEW: Host controls for ending selection */}
+          {isHost && (
+            <div className="mt-6 pt-4 border-t border-gray-700">
+              <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+              <button
+                onClick={handleEndSelectionWithCountdown}
+                disabled={isEndingSelection}
+                className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {isEndingSelection ? 'Ending Selection...' : 'End Selection Phase'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                Force all non-submitted players to pass
+              </p>
+              {endingError && (
+                <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                  {endingError}
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="mt-6">
             <p className="text-sm text-gray-400">
@@ -254,6 +316,28 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               <p className="text-sm text-gray-400 mt-4">
                 Audio will be prioritized during voting to save data
               </p>
+            )}
+            
+            {/* NEW: Host controls when user has submitted */}
+            {isHost && (
+              <div className="mt-8 pt-4 border-t border-gray-700">
+                <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+                <button
+                  onClick={handleEndSelectionWithCountdown}
+                  disabled={isEndingSelection}
+                  className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isEndingSelection ? 'Ending Selection...' : 'End Selection Phase'}
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Force all non-submitted players to pass
+                </p>
+                {endingError && (
+                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                    {endingError}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -406,6 +490,28 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 </button>
               )}
             </div>
+            
+            {/* NEW: Host controls for ending selection */}
+            {isHost && (
+              <div className="mt-6 pt-4 border-t border-gray-700 text-center">
+                <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
+                <button
+                  onClick={handleEndSelectionWithCountdown}
+                  disabled={isEndingSelection}
+                  className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isEndingSelection ? 'Ending Selection...' : 'End Selection Phase'}
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Force all non-submitted players to pass
+                </p>
+                {endingError && (
+                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                    {endingError}
+                  </div>
+                )}
+              </div>
+            )}
             
             {error && (
               <div className="mt-4 bg-red-500 text-white p-3 rounded">
