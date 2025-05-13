@@ -173,7 +173,7 @@ This integration offers several advantages:
 
 ## License
 
-MIT
+AGPLv3
 
 ## Acknowledgements
 
