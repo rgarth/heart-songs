@@ -1,5 +1,5 @@
-// client/src/components/game/VotingScreen.js - Updated with server-side countdown
-import React, { useState, useEffect, useCallback } from 'react';
+// client/src/components/game/VotingScreen.js - Fixed to prevent iframe reload on vote changes
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VideoPreferenceToggle from './VideoPreferenceToggle';
@@ -38,7 +38,30 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
   
-  // Check if user has already voted
+  // OPTIMIZATION: Memoize submission keys to prevent iframe reloads
+  // Only include submission data that affects iframe rendering, not vote counts
+  const submissionKeys = useMemo(() => {
+    return game.submissions.map(s => ({
+      id: s._id,
+      songId: s.songId,
+      songName: s.songName,
+      artist: s.artist,
+      albumCover: s.albumCover,
+      hasPassed: s.hasPassed,
+      playerName: s.player?.displayName || 'Unknown'
+    }));
+  }, [game.submissions.map(s => `${s._id}-${s.songId}-${s.songName}-${s.artist}-${s.hasPassed}-${s.player?.displayName}`).join(',')]);
+  
+  // OPTIMIZATION: Separate memo for vote counts to avoid affecting iframe rendering
+  const voteData = useMemo(() => {
+    return game.submissions.map(s => ({
+      id: s._id,
+      voteCount: s.votes?.length || 0,
+      votes: s.votes || []
+    }));
+  }, [game.submissions.map(s => `${s._id}-${s.votes?.length || 0}`).join(',')]);
+  
+  // Check if user has already voted - use separate effect that doesn't trigger submission reload
   useEffect(() => {
     const userVoted = game.submissions.some(s => 
       s.votes.some(v => v._id === currentUser.id)
@@ -47,11 +70,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     if (userVoted) {
       setHasVoted(true);
     }
-  }, [game.submissions, currentUser.id]);
+  }, [game.submissions.map(s => s.votes?.map(v => v._id).join(',')).join('|'), currentUser.id]);
   
-  // Wrap loadSubmissionsWithPreference in useCallback to stabilize its reference
+  // OPTIMIZATION: Wrap loadSubmissionsWithPreference in useCallback with stable dependencies
   const loadSubmissionsWithPreference = useCallback(async () => {
-    if (!game.submissions || game.submissions.length === 0) {
+    if (!submissionKeys || submissionKeys.length === 0) {
       setLoading(false);
       return;
     }
@@ -59,23 +82,30 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     try {
       setLoading(true);
       
-      // Start with the submissions as-is
-      const submissionsWithYoutube = [...game.submissions];
-      setLocalSubmissions(submissionsWithYoutube);
+      // Start with the submissions as-is, combining with game data for votes
+      const submissionsWithVotes = submissionKeys.map(subKey => {
+        const gameSubmission = game.submissions.find(s => s._id === subKey.id);
+        return {
+          ...subKey,
+          votes: gameSubmission?.votes || []
+        };
+      });
+      
+      setLocalSubmissions(submissionsWithVotes);
       
       // Set loading states only for non-passed submissions
       const loadingStates = {};
       
-      submissionsWithYoutube.forEach(submission => {
+      submissionsWithVotes.forEach(submission => {
         if (!submission.hasPassed) {
-          loadingStates[submission._id] = true;
+          loadingStates[submission.id] = true;
         }
       });
       
       setYoutubeLoadingStates(loadingStates);
       
       // Fetch YouTube data for each non-passed submission
-      await Promise.all(submissionsWithYoutube.map(async (submission, index) => {
+      await Promise.all(submissionsWithVotes.map(async (submission, index) => {
         // Skip passed submissions
         if (submission.hasPassed) {
           return;
@@ -91,7 +121,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           }, preferVideo);
           
           // Update the submission with YouTube data
-          submissionsWithYoutube[index] = {
+          submissionsWithVotes[index] = {
             ...submission,
             youtubeId: trackWithYoutube.youtubeId,
             youtubeTitle: trackWithYoutube.youtubeTitle,
@@ -104,7 +134,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           console.error(`Error loading YouTube for ${submission.songName}:`, error);
           
           // Mark as failed to load
-          submissionsWithYoutube[index] = {
+          submissionsWithVotes[index] = {
             ...submission,
             youtubeLoadError: true
           };
@@ -112,14 +142,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           // Remove loading state
           setYoutubeLoadingStates(prev => {
             const newState = { ...prev };
-            delete newState[submission._id];
+            delete newState[submission.id];
             return newState;
           });
         }
       }));
       
       // Update state with all YouTube data
-      setLocalSubmissions(submissionsWithYoutube);
+      setLocalSubmissions(submissionsWithVotes);
             
     } catch (error) {
       console.error('Error loading submissions:', error);
@@ -127,12 +157,27 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     } finally {
       setLoading(false);
     }
-  }, [game.submissions, preferVideo]);
+  }, [submissionKeys, preferVideo]);
 
-  // Load submissions - fetch YouTube data based on user preference
+  // OPTIMIZATION: Use memoized submission keys instead of game.submissions
   useEffect(() => {
     loadSubmissionsWithPreference();
-  }, [loadSubmissionsWithPreference]); // Now loadSubmissionsWithPreference is in the dependency array
+  }, [loadSubmissionsWithPreference]);
+
+  // Separate effect to update vote counts without triggering iframe reload
+  useEffect(() => {
+    if (localSubmissions.length > 0) {
+      setLocalSubmissions(prevSubmissions => 
+        prevSubmissions.map(submission => {
+          const voteInfo = voteData.find(v => v.id === submission.id);
+          return {
+            ...submission,
+            votes: voteInfo?.votes || []
+          };
+        })
+      );
+    }
+  }, [voteData, localSubmissions.length]);
 
   // Handle vote
   const handleVote = async () => {
@@ -381,8 +426,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <h3 className="text-lg font-medium mb-2">All Submissions</h3>
             
             {localSubmissions.map(submission => {
-              const isOwnSubmission = submission.player._id === currentUser.id;
-              const isLoadingYoutube = youtubeLoadingStates[submission._id];
+              const isOwnSubmission = submission.player?._id === currentUser.id;
+              const isLoadingYoutube = youtubeLoadingStates[submission.id];
               const isPassed = submission.hasPassed;
               
               // Don't show passed submissions in the list (they're just informational above)
@@ -392,17 +437,17 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               
               return (
                 <div 
-                  key={submission._id}
+                  key={`${submission.id}-${submission.songId}`} // OPTIMIZATION: Stable key that doesn't change with votes
                   className={`bg-gray-750 rounded-lg overflow-hidden ${
                     !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
                   } transition-colors ${
-                    selectedSubmission === submission._id ? 'border border-blue-500' : ''
+                    selectedSubmission === submission.id ? 'border border-blue-500' : ''
                   } ${
                     isOwnSubmission ? 'relative border-t-4 border-t-yellow-500' : ''
                   }`}
                   onClick={() => {
                     if (!hasVoted && (isSmallGame || !isOwnSubmission)) {
-                      setSelectedSubmission(submission._id);
+                      setSelectedSubmission(submission.id);
                     }
                   }}
                 >
@@ -425,6 +470,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       ) : submission.youtubeId ? (
                         <div className="relative">
                           <iframe 
+                            key={`${submission.id}-${submission.youtubeId}-${preferVideo}`} // OPTIMIZATION: Key includes preference to prevent unnecessary reloads
                             src={getYouTubeEmbedUrl(submission.youtubeId)}
                             width="100%" 
                             height="300"
@@ -470,7 +516,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         <div>
                           <p className="font-medium">{submission.songName}</p>
                           <p className="text-sm text-gray-400">{submission.artist}</p>
-                          <p className="text-xs text-gray-500 mt-1">Submitted by: {submission.player.displayName}</p>
+                          <p className="text-xs text-gray-500 mt-1">Submitted by: {submission.playerName}</p>
+                          {/* Show vote count for this submission */}
+                          <p className="text-xs text-blue-400 mt-1">
+                            {submission.votes?.length || 0} vote{(submission.votes?.length || 0) !== 1 ? 's' : ''}
+                          </p>
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -498,15 +548,15 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedSubmission(submission._id);
+                                setSelectedSubmission(submission.id);
                               }}
                               className={`py-2 px-4 rounded ${
-                                selectedSubmission === submission._id
+                                selectedSubmission === submission.id
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-gray-600 text-white hover:bg-gray-500'
                               }`}
                             >
-                              {selectedSubmission === submission._id ? 'Selected' : 'Select'}
+                              {selectedSubmission === submission.id ? 'Selected' : 'Select'}
                             </button>
                           )}
                         </div>
