@@ -69,7 +69,6 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
   // Function to show question controls and fetch first question
   const handleShowQuestionControls = async () => {
     if (!isHost) return;
-    
     try {
       setLoading(true);
       setError(null);
