@@ -203,9 +203,6 @@ const Home = () => {
                       className="w-full p-4 bg-vinyl-black text-white rounded-lg border border-turquoise/30 focus:border-lime-green focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all font-mono uppercase text-center text-xl tracking-widest placeholder-silver/50"
                       maxLength={6}
                     />
-                    <div className="absolute inset-y-0 right-3 flex items-center text-turquoise/50">
-                      🎟️
-                    </div>
                   </div>
                   
                   <button 

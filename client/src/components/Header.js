@@ -1,14 +1,18 @@
-// client/src/components/Header.js - Updated with proper glow effect
+// client/src/components/Header.js - Updated with Leave Game button and themed buttons
 import React, { useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import VinylRecord from './VinylRecord';
 
 const Header = ({ gameCode }) => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  
+  // Check if we're in a game
+  const isInGame = location.pathname.startsWith('/game/');
   
   const handleLogout = () => {
     logout();
@@ -17,6 +21,11 @@ const Header = ({ gameCode }) => {
   
   const handleGoHome = () => {
     navigate('/');
+  };
+  
+  const handleLeaveGame = () => {
+    navigate('/');
+    setMenuOpen(false); // Close menu after leaving
   };
 
   // Copy game code to clipboard
@@ -52,9 +61,6 @@ const Header = ({ gameCode }) => {
                   className="w-12 h-12 relative z-10"
                   animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
                 />
-                
-                {/* Small indicator dot (optional - you can remove this if you don't want it) */}
-                {/* <div className="absolute -top-1 -right-1 w-4 h-4 bg-neon-pink rounded-full border-2 border-stage-dark animate-pulse z-20"></div> */}
               </div>
               <h1 className="text-3xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
                 HEART SONGS
@@ -91,22 +97,39 @@ const Header = ({ gameCode }) => {
                   <div className="flex items-center text-xs">
                     <span className="text-silver">Score:</span>
                     <span className="ml-2 text-gold-record font-bold">{user.score || 0}</span>
-                    <span className="ml-1 text-gold-record">♪</span>
                   </div>
                 </div>
-                <button 
-                  onClick={handleLogout}
-                  className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium text-sm hover:shadow-lg hover:shadow-stage-red/50"
-                >
-                  LOGOUT
-                </button>
+                
+                {/* Desktop action buttons */}
+                <div className="flex items-center gap-3">
+                  {isInGame && (
+                    <button 
+                      onClick={handleLeaveGame}
+                      className="btn-electric text-sm px-4 py-2 group relative overflow-hidden"
+                    >
+                      <span className="relative z-10 flex items-center">
+                        LEAVE GAME
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleLogout}
+                    className="btn-stage text-sm px-4 py-2 group relative overflow-hidden"
+                  >
+                    <span className="relative z-10 flex items-center">
+                      LOGOUT
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
       </header>
       
-      {/* Rest of component remains the same... */}
+      {/* Mobile dropdown menu */}
       {menuOpen && user && (
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black py-4 px-4 shadow-inner shadow-electric-purple/20 border-b border-electric-purple/20">
           <div className="container mx-auto">
@@ -140,12 +163,32 @@ const Header = ({ gameCode }) => {
                       </div>
                     </div>
                   </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium"
-                  >
-                    LOGOUT
-                  </button>
+                  
+                  {/* Mobile action buttons */}
+                  <div className="flex items-center gap-3">
+                    {isInGame && (
+                      <button 
+                        onClick={handleLeaveGame}
+                        className="btn-electric text-sm px-4 py-2 group relative overflow-hidden"
+                      >
+                        <span className="relative z-10 flex items-center">
+                          <span className="mr-2">🚪</span>
+                          LEAVE
+                        </span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      </button>
+                    )}
+                    <button 
+                      onClick={handleLogout}
+                      className="btn-stage text-sm px-4 py-2 group relative overflow-hidden"
+                    >
+                      <span className="relative z-10 flex items-center">
+                        <span className="mr-2">👋</span>
+                        LOGOUT
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                  </div>
                 </div>
               </div>
               

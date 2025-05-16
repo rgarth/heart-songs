@@ -142,7 +142,6 @@ const Login = () => {
             <div className="mx-6 -mt-4 relative z-10">
               <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 border border-gold-record/40 rounded-lg p-3 text-center">
                 <div className="flex items-center justify-center text-gold-record text-sm font-medium">
-                  <span className="mr-2">🎟️</span>
                   Ready to join the concert!
                 </div>
               </div>

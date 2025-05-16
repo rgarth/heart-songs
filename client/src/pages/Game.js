@@ -450,46 +450,7 @@ const Game = () => {
       
       {/* Add top padding when countdown is active */}
       <div className={`container mx-auto px-4 py-6 flex-1 ${game.countdown?.isActive ? 'mt-16' : ''}`}>
-      {/* Display game code prominently in waiting status */}
-        {game.status === 'waiting' && (
-          <div className="mb-6 text-center">
-            <div className="bg-gray-800 rounded-lg py-3 px-4 inline-block mx-auto">
-              <p className="text-sm text-gray-400 mb-1">Game Code:</p>
-              <div className="flex items-center justify-center">
-                <p className="text-3xl font-bold tracking-wider bg-gray-700 px-4 py-2 rounded-lg text-yellow-400 font-mono">
-                  {game.gameCode}
-                </p>
-                <button 
-                  onClick={copyGameCode}
-                  className="ml-2 p-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 focus:outline-none"
-                  aria-label="Copy game code"
-                  title="Copy game code"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                  </svg>
-                </button>
-              </div>
-              {copySuccess && (
-                <p className="text-green-400 text-sm mt-1">
-                  Copied to clipboard!
-                </p>
-              )}
-              <p className="text-xs text-gray-400 mt-2">Share this code with friends to let them join</p>
-            </div>
-          </div>
-        )}
         
-        <div className="flex justify-end mb-6">
-          <button
-            onClick={handleLeaveGame}
-            className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Leave Game
-          </button>
-        </div>
-
         {game.status === 'waiting' && (
           <LobbyScreen 
             game={game} 
