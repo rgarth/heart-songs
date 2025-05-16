@@ -1,4 +1,4 @@
-// client/src/components/Header.js
+// client/src/components/Header.js - Rockstar Design Edition
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -33,45 +33,65 @@ const Header = ({ gameCode }) => {
   
   return (
     <>
-      {/* Main header - always visible */}
-      <header className="bg-gray-800 shadow-md">
+      {/* Main header - Stage lighting effect */}
+      <header className="bg-gradient-to-r from-deep-space via-stage-dark to-midnight-purple shadow-lg shadow-electric-purple/20 border-b border-electric-purple/30">
         <div className="container mx-auto px-4">
-          {/* Single row - brand and logo */}
-          <div className="flex justify-between items-center py-3">
-            <div className="flex items-center cursor-pointer" onClick={handleGoHome}>
-              <img src="/logo192.png" alt="Heart Songs" className="h-10 w-auto mr-3" />
-              <h1 className="text-2xl font-bold text-white">Heart Songs</h1>
+          <div className="flex justify-between items-center py-4">
+            
+            {/* Logo - Spinning vinyl record with neon glow */}
+            <div className="flex items-center cursor-pointer group" onClick={handleGoHome}>
+              <div className="relative mr-4">
+                <div className="vinyl-record w-12 h-12 animate-vinyl-spin group-hover:animate-spin-slow">
+                  <div className="absolute inset-0 rounded-full border-2 border-neon-pink/30 group-hover:border-neon-pink/60 transition-all"></div>
+                </div>
+                <div className="absolute inset-0 rounded-full shadow-neon-purple group-hover:shadow-neon-pink transition-all"></div>
+              </div>
+              <h1 className="text-3xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
+                HEART SONGS
+              </h1>
             </div>
             
-            {/* Menu toggle button - always show this regardless of screen size */}
+            {/* Menu toggle - Electric button */}
             <button 
-              className="text-white focus:outline-none ml-auto mr-4"
+              className="text-white focus:outline-none ml-auto mr-4 p-2 rounded-full bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 hover:from-electric-purple/40 hover:to-neon-pink/40 transition-all"
               onClick={() => setMenuOpen(!menuOpen)}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
+              <div className="equalizer ml-2 inline-flex">
+                <div className="equalizer-bar"></div>
+                <div className="equalizer-bar"></div>
+                <div className="equalizer-bar"></div>
+              </div>
             </button>
             
-            {/* User info and logout button */}
+            {/* Desktop user info - Concert VIP style */}
             {user && (
-              <div className="hidden md:flex items-center">
+              <div className="hidden md:flex items-center bg-stage-dark/50 rounded-full px-4 py-2 border border-electric-purple/30">
                 {user.profileImage && (
-                  <img 
-                    src={user.profileImage} 
-                    alt={user.displayName || user.username} 
-                    className="w-8 h-8 rounded-full mr-2" 
-                  />
+                  <div className="relative">
+                    <img 
+                      src={user.profileImage} 
+                      alt={user.displayName || user.username} 
+                      className="w-10 h-10 rounded-full mr-3 border-2 border-gold-record" 
+                    />
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-lime-green rounded-full border-2 border-stage-dark animate-pulse"></div>
+                  </div>
                 )}
                 <div className="mr-4">
-                  <p className="font-medium text-white">{user.displayName || user.username}</p>
-                  <p className="text-xs text-gray-400">Score: {user.score || 0}</p>
+                  <p className="font-medium text-white font-concert">{user.displayName || user.username}</p>
+                  <div className="flex items-center text-xs">
+                    <span className="text-silver">Score:</span>
+                    <span className="ml-2 text-gold-record font-bold">{user.score || 0}</span>
+                    <span className="ml-1 text-gold-record">♪</span>
+                  </div>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="py-1 px-3 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                  className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium text-sm hover:shadow-lg hover:shadow-stage-red/50"
                 >
-                  Logout
+                  LOGOUT
                 </button>
               </div>
             )}
@@ -79,60 +99,87 @@ const Header = ({ gameCode }) => {
         </div>
       </header>
       
-      {/* Dropdown menu - only shown when menu is open */}
+      {/* Dropdown menu - Amplifier control panel style */}
       {menuOpen && user && (
-        <div className="bg-gray-750 py-3 px-4 shadow-inner">
+        <div className="bg-gradient-to-b from-stage-dark to-vinyl-black py-4 px-4 shadow-inner shadow-electric-purple/20 border-b border-electric-purple/20">
           <div className="container mx-auto">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-              {/* User info for mobile */}
-              <div className="md:hidden flex items-center justify-between">
-                <div className="flex items-center">
-                  {user.profileImage && (
-                    <img 
-                      src={user.profileImage} 
-                      alt={user.displayName || user.username} 
-                      className="w-8 h-8 rounded-full mr-2" 
-                    />
-                  )}
-                  <div>
-                    <p className="font-medium text-white">{user.displayName || user.username}</p>
-                    <p className="text-xs text-gray-400">Score: {user.score || 0}</p>
+              
+              {/* Mobile user info - Backstage pass style */}
+              <div className="md:hidden bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    {user.profileImage && (
+                      <div className="relative">
+                        <img 
+                          src={user.profileImage} 
+                          alt={user.displayName || user.username} 
+                          className="w-12 h-12 rounded-full mr-3 border-2 border-gold-record" 
+                        />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-lime-green rounded-full border-2 border-stage-dark flex items-center justify-center">
+                          <span className="text-xs">♪</span>
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-white font-concert text-lg">{user.displayName || user.username}</p>
+                      <div className="flex items-center">
+                        <span className="text-silver text-sm">SCORE:</span>
+                        <span className="ml-2 text-gold-record font-bold text-lg">{user.score || 0}</span>
+                        <div className="ml-2 flex">
+                          <span className="text-gold-record animate-pulse">♪</span>
+                          <span className="text-neon-pink animate-pulse" style={{animationDelay: '0.5s'}}>♫</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium"
+                  >
+                    LOGOUT
+                  </button>
                 </div>
-                <button 
-                  onClick={handleLogout}
-                  className="py-1 px-3 bg-red-600 text-white text-sm rounded hover:bg-red-700 md:hidden"
-                >
-                  Logout
-                </button>
               </div>
               
-              {/* Game code - always visible in dropdown regardless of screen size */}
+              {/* Game code - Concert ticket style */}
               {gameCode && (
-                <div className="border-t md:border-t-0 border-gray-700 pt-3 md:pt-0">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="text-sm text-gray-400">Game Code:</p>
-                      <p className="text-xl font-bold tracking-wider text-yellow-400 font-mono">
-                        {gameCode}
-                      </p>
+                <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="text-silver text-sm font-medium mb-1">🎟️ GAME CODE</div>
+                      <div className="flex items-center">
+                        <span className="text-3xl font-rock neon-gold tracking-widest font-mono">
+                          {gameCode}
+                        </span>
+                        <button
+                          onClick={copyGameCode}
+                          className="ml-3 p-3 bg-gradient-to-r from-electric-purple to-neon-pink rounded-full hover:shadow-neon-purple transition-all group"
+                          aria-label="Copy game code"
+                          title="Copy game code to share"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white group-hover:scale-110 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                          </svg>
+                        </button>
+                      </div>
+                      {copySuccess && (
+                        <div className="mt-2 flex items-center text-lime-green text-sm animate-pulse">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          CODE COPIED!
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={copyGameCode}
-                      className="p-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 focus:outline-none"
-                      aria-label="Copy game code"
-                      title="Copy game code"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                      </svg>
-                    </button>
-                    {copySuccess && (
-                      <p className="text-green-400 text-xs">
-                        Copied!
-                      </p>
-                    )}
+                    
+                    {/* Stage lighting decoration */}
+                    <div className="flex-1 flex justify-end">
+                      <div className="w-2 h-16 bg-gradient-to-t from-electric-purple via-neon-pink to-turquoise rounded-full opacity-30 animate-pulse"></div>
+                      <div className="w-2 h-12 bg-gradient-to-t from-neon-pink via-turquoise to-lime-green rounded-full opacity-40 animate-pulse ml-1" style={{animationDelay: '0.5s'}}></div>
+                      <div className="w-2 h-14 bg-gradient-to-t from-turquoise via-lime-green to-gold-record rounded-full opacity-30 animate-pulse ml-1" style={{animationDelay: '1s'}}></div>
+                    </div>
                   </div>
                 </div>
               )}

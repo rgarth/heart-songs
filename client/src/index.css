@@ -1,14 +1,20 @@
+/* client/src/index.css - Enhanced with Rockstar Theme */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Import Google Fonts for Rock/Concert feel */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;500;600;700&display=swap');
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Oswald', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #0F172A; /* deep-space background */
+  color: #F1F5F9; /* light text by default */
 }
 
 code {
@@ -16,19 +22,244 @@ code {
     monospace;
 }
 
+/* ENHANCED SCROLLBAR - Vinyl Record Style */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #1a202c;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #4a5568;
+  background: #1E293B; /* stage-dark */
   border-radius: 6px;
 }
 
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #9333EA, #EC4899);
+  border-radius: 6px;
+  border: 1px solid #0F172A;
+}
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #718096;
+  background: linear-gradient(135deg, #EC4899, #9333EA);
+  box-shadow: 0 0 10px rgba(147, 51, 234, 0.5);
+}
+
+/* VINYL RECORD COMPONENTS */
+.vinyl-record {
+  position: relative;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, 
+    #1F2937 0%, 
+    #374151 30%, 
+    #1F2937 60%, 
+    #0F172A 100%);
+  border: 2px solid #374151;
+}
+
+.vinyl-record::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20%;
+  height: 20%;
+  background: #FBBF24; /* gold center */
+  border-radius: 50%;
+  border: 1px solid #F59E0B;
+}
+
+.vinyl-record::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+/* NEON TEXT EFFECTS */
+.neon-text {
+  text-shadow: 
+    0 0 5px currentColor,
+    0 0 10px currentColor,
+    0 0 15px currentColor,
+    0 0 20px currentColor;
+}
+
+.neon-purple {
+  color: #9333EA;
+  text-shadow: 
+    0 0 5px #9333EA,
+    0 0 10px #9333EA,
+    0 0 15px #9333EA,
+    0 0 20px #9333EA;
+}
+
+.neon-pink {
+  color: #EC4899;
+  text-shadow: 
+    0 0 5px #EC4899,
+    0 0 10px #EC4899,
+    0 0 15px #EC4899,
+    0 0 20px #EC4899;
+}
+
+.neon-gold {
+  color: #FBBF24;
+  text-shadow: 
+    0 0 5px #FBBF24,
+    0 0 10px #FBBF24,
+    0 0 15px #FBBF24,
+    0 0 20px #FBBF24;
+}
+
+/* STAGE SPOTLIGHT EFFECT */
+.spotlight {
+  background: radial-gradient(circle at center, 
+    rgba(147, 51, 234, 0.15) 0%, 
+    rgba(147, 51, 234, 0.05) 50%, 
+    transparent 100%);
+}
+
+/* ROCKSTAR BUTTONS */
+.btn-rockstar {
+  @apply font-bold text-lg px-8 py-4 rounded-full 
+         transform transition-all duration-200
+         hover:scale-105 active:scale-95;
+}
+
+.btn-electric {
+  @apply btn-rockstar bg-gradient-to-r from-electric-purple to-neon-pink
+         text-white shadow-lg shadow-electric-purple/25
+         hover:shadow-xl hover:shadow-neon-pink/40;
+}
+
+.btn-gold {
+  @apply btn-rockstar bg-gradient-to-r from-gold-record to-yellow-400
+         text-vinyl-black shadow-lg shadow-gold-record/25
+         hover:shadow-xl hover:shadow-gold-record/40;
+}
+
+.btn-stage {
+  @apply btn-rockstar bg-gradient-to-r from-stage-dark to-vinyl-black
+         text-white border-2 border-electric-purple
+         hover:border-neon-pink hover:shadow-neon-purple;
+}
+
+/* MUSIC NOTE BULLETS */
+.music-note-bullet::before {
+  content: '♪';
+  display: inline-block;
+  width: 1em;
+  margin-right: 0.5em;
+  color: #EC4899;
+  font-weight: bold;
+}
+
+/* EQUALIZER ANIMATION */
+.equalizer {
+  display: flex;
+  align-items: flex-end;
+  height: 40px;
+  gap: 2px;
+}
+
+.equalizer-bar {
+  width: 4px;
+  background: linear-gradient(to top, #06B6D4, #9333EA, #EC4899);
+  border-radius: 2px;
+  animation: equalizer 0.8s ease-in-out infinite;
+}
+
+.equalizer-bar:nth-child(1) { animation-delay: 0.1s; }
+.equalizer-bar:nth-child(2) { animation-delay: 0.2s; }
+.equalizer-bar:nth-child(3) { animation-delay: 0.3s; }
+.equalizer-bar:nth-child(4) { animation-delay: 0.4s; }
+.equalizer-bar:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes equalizer {
+  0%, 100% { height: 10px; }
+  50% { height: 40px; }
+}
+
+/* STAGE LIGHTING BACKGROUND */
+.stage-bg {
+  background: 
+    linear-gradient(45deg, rgba(147, 51, 234, 0.03) 0%, transparent 50%),
+    linear-gradient(-45deg, rgba(236, 72, 153, 0.03) 0%, transparent 50%),
+    #0F172A;
+}
+
+/* VINYL GROOVES EFFECT */
+.vinyl-grooves {
+  background-image: 
+    repeating-radial-gradient(circle at center,
+      transparent 0px,
+      transparent 8px,
+      rgba(255, 255, 255, 0.02) 8px,
+      rgba(255, 255, 255, 0.02) 9px);
+}
+
+/* CONCERT CROWD SILHOUETTE */
+.crowd-silhouette {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 100'%3E%3Cpath d='M0,100 Q50,70 100,85 T200,80 T300,75 T400,90 L400,100 Z' fill='rgba(31, 41, 55, 0.5)'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: bottom;
+  background-size: 400px 100px;
+}
+
+/* GLOW ANIMATIONS */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* SOUND WAVE PROGRESS BAR */
+.sound-wave-progress {
+  background: linear-gradient(to right, 
+    #06B6D4 0%, 
+    #9333EA 50%, 
+    #EC4899 100%);
+  clip-path: polygon(
+    0% 50%, 
+    5% 0%, 
+    10% 100%, 
+    15% 30%, 
+    20% 70%, 
+    25% 0%, 
+    30% 100%, 
+    35% 40%, 
+    40% 60%, 
+    45% 0%, 
+    50% 100%, 
+    55% 20%, 
+    60% 80%, 
+    65% 0%, 
+    70% 100%, 
+    75% 50%, 
+    80% 0%, 
+    85% 100%, 
+    90% 30%, 
+    95% 70%, 
+    100% 50%
+  );
+}
+
+/* RESPONSIVE DESIGN HELPERS */
+@media (max-width: 768px) {
+  .btn-rockstar {
+    @apply px-6 py-3 text-base;
+  }
+  
+  .vinyl-record {
+    min-width: 60px;
+    min-height: 60px;
+  }
 }
