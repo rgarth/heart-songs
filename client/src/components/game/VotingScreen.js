@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js - Fixed ESLint errors while preserving performance
+// client/src/components/game/VotingScreen.js - ROCKSTAR THEME EDITION
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -261,75 +261,107 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // Check if there are no votable submissions (everyone passed)
   const allPassed = votableSubmissions.length === 0;
   
-  // Loading state
+  // Loading state - ROCKSTAR THEMED
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-          <h2 className="text-2xl font-bold mb-2 text-center">Voting Time</h2>
-          
-          <div className="text-center mb-6">
-            <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
+          <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
+            <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
+              🎤 VOTE FOR THE BEST ACT 🎤
+            </h2>
+            <p className="text-silver text-center mt-2">Loading the concert lineup...</p>
           </div>
           
-          <div className="text-center py-10">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-300 mt-4">Loading songs in {preferVideo ? 'video' : 'audio'} format...</p>
+          <div className="text-center py-12">
+            <div className="text-lg text-yellow-400 font-medium mb-8">{game.currentQuestion.text}</div>
+            
+            <div className="flex justify-center items-center mb-4">
+              <div className="vinyl-record w-16 h-16 animate-spin mr-4"></div>
+              <div className="equalizer">
+                <div className="equalizer-bar"></div>
+                <div className="equalizer-bar"></div>
+                <div className="equalizer-bar"></div>
+                <div className="equalizer-bar"></div>
+                <div className="equalizer-bar"></div>
+              </div>
+            </div>
+            <p className="text-silver">Loading songs in {preferVideo ? 'video' : 'audio'} format...</p>
           </div>
         </div>
       </div>
     );
   }
   
-  // If everyone passed, show a message
+  // If everyone passed - ROCKSTAR THEMED
   if (allPassed) {
     return (
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-          <h2 className="text-2xl font-bold mb-2 text-center">Voting Time</h2>
-          
-          <div className="text-center mb-6">
-            <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
+          <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
+            <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
+              🎤 VOTE FOR THE BEST ACT 🎤
+            </h2>
           </div>
           
-          <div className="text-center py-10">
-            <div className="mb-4">
-              <svg className="w-16 h-16 text-gray-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          <div className="text-center py-12">
+            <div className="text-lg text-yellow-400 font-medium mb-8">{game.currentQuestion.text}</div>
+            
+            <div className="mb-6">
+              <div className="inline-block bg-stage-dark/50 rounded-full p-8">
+                <svg className="w-20 h-20 text-silver mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </div>
-            <h3 className="text-xl font-medium text-gray-400 mb-2">Everyone Passed</h3>
-            <p className="text-gray-300 mb-4">
-              All players passed on this question. Moving to the next round...
+            <h3 className="text-2xl font-rock text-silver mb-4">🎭 EMPTY STAGE 🎭</h3>
+            <p className="text-silver mb-6">
+              All band members passed on this challenge. Moving to the next round...
             </p>
-            <div className="bg-gray-700 p-4 rounded-lg inline-block">
-              <p className="text-sm text-gray-400">
-                {passedCount} player{passedCount !== 1 ? 's' : ''} passed on this question
+            <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 inline-block border border-electric-purple/20">
+              <p className="text-sm text-silver">
+                {passedCount} performer{passedCount !== 1 ? 's' : ''} passed on this question
               </p>
             </div>
           </div>
           
-          {/* Host controls for ending voting when everyone passed */}
           {isHost && (
-            <div className="mt-6 pt-4 border-t border-gray-700 text-center">
-              <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-              <button
-                onClick={handleEndVotingWithCountdown}
-                disabled={isStartingCountdown || game.countdown?.isActive}
-                className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {isStartingCountdown ? 'Starting Countdown...' : 
-                 game.countdown?.isActive ? 'Countdown Active' : 
-                 'End Voting Phase'}
-              </button>
-              <p className="text-xs text-gray-500 mt-2">
-                Force all non-voted players to abstain
-              </p>
-              {countdownError && (
-                <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                  {countdownError}
-                </div>
-              )}
+            <div className="p-6 border-t border-electric-purple/20 text-center">
+              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/20">
+                <p className="text-sm text-silver mb-3 flex items-center justify-center">
+                  <span className="mr-2">🎼</span>
+                  Bandleader Controls
+                  <span className="ml-2">🎼</span>
+                </p>
+                <button
+                  onClick={handleEndVotingWithCountdown}
+                  disabled={isStartingCountdown || game.countdown?.isActive}
+                  className="btn-electric disabled:opacity-50"
+                >
+                  {isStartingCountdown ? (
+                    <>
+                      <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                      Starting Countdown...
+                    </>
+                  ) : game.countdown?.isActive ? (
+                    'Countdown Active'
+                  ) : (
+                    <>
+                      <span className="mr-2">⏭️</span>
+                      END VOTING PHASE
+                      <span className="ml-2">⏭️</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-silver mt-2">
+                  Force the show to continue
+                </p>
+                {countdownError && (
+                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                    {countdownError}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -338,130 +370,197 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   }
   
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-2 text-center">Voting Time</h2>
-        
-        <div className="text-center mb-6">
-          <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
+        <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
+          <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
+            🎤 VOTE FOR THE BEST ACT 🎤
+          </h2>
+          <p className="text-silver text-center mt-2">Cast your vote for the winning performance!</p>
         </div>
         
-        {/* Video Preference Toggle - only show if there are votable submissions */}
-        {votableSubmissions.length > 0 && (
-          <div className="flex justify-center mb-6">
-            <VideoPreferenceToggle
-              preferVideo={preferVideo}
-              onToggle={() => setPreferVideo(!preferVideo)}
-              disabled={loading}
-              showLabel={true}
-            />
-          </div>
-        )}
-        
-        <div className="mb-4 flex justify-between items-center">
-          <p className="text-sm">
-            Vote for your favorite answer {isSmallGame ? "" : "(not your own)"}
-          </p>
-          <p className="text-sm text-gray-400">
-            {votedCount} of {totalPlayers} voted
-          </p>
-        </div>
-        
-        {/* Pass Information */}
-        {passedCount > 0 && (
-          <div className="mb-4 p-3 bg-gray-750 rounded-lg text-sm">
-            <p className="text-gray-300">
-              <strong>Note:</strong> {passedCount} player{passedCount !== 1 ? 's' : ''} passed on this question.
-            </p>
-          </div>
-        )}
-        
-        {/* YouTube Quota Warning */}
-        {hasQuotaIssue && (
-          <div className="mb-4 p-3 bg-yellow-900/50 text-yellow-200 rounded-lg text-sm">
-            <p><strong>Note:</strong> YouTube video embeds are temporarily unavailable due to daily quota limits. You can still vote and the videos will be available again tomorrow.</p>
-          </div>
-        )}
-        
-        {isSmallGame && (
-          <div className="mb-4 p-3 bg-blue-900/50 text-blue-200 rounded-lg text-sm">
-            <p><strong>Note:</strong> In games with fewer than 3 players, you can vote for your own submission.</p>
-          </div>
-        )}
-        
-        {hasActivePlayers && game.activePlayers.length < game.players.length && (
-          <div className="mb-4 p-3 bg-purple-900/50 text-purple-200 rounded-lg text-sm">
-            <p><strong>Note:</strong> This round is being played with {game.activePlayers.length} out of {game.players.length} players. Only players who were ready when the game started are participating.</p>
-          </div>
-        )}
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-lg text-sm">
-            <p><strong>Error:</strong> {error}</p>
-          </div>
-        )}
-        
-        <div>
-          {hasVoted && (
-            <div className="mb-6 text-center py-4 bg-green-800/30 rounded-lg">
-              <div className="mb-2">
-                <svg className="w-8 h-8 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+        <div className="p-6">
+          <div className="text-center mb-8">
+            <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
+              <div className="flex items-center justify-center mb-2">
+                <div className="text-3xl mr-3">🎵</div>
+                <p className="text-xl font-bold text-neon-pink">Tonight's Challenge</p>
+                <div className="text-3xl ml-3">🎵</div>
               </div>
-              <p className="text-green-400 font-medium">Your vote has been submitted!</p>
-              <p className="text-gray-300 text-sm mt-1">
-                You can still listen to all submissions while waiting for others to vote.
-              </p>
-              
-              {/* Host controls when user has voted */}
-              {isHost && (
-                <div className="mt-6 pt-4 border-t border-gray-600">
-                  <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-                  <button
-                    onClick={handleEndVotingWithCountdown}
-                    disabled={isStartingCountdown || game.countdown?.isActive}
-                    className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {isStartingCountdown ? 'Starting Countdown...' : 
-                     game.countdown?.isActive ? 'Countdown Active' : 
-                     'End Voting Phase'}
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Force all non-voted players to abstain
-                  </p>
-                  {countdownError && (
-                    <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                      {countdownError}
-                    </div>
-                  )}
-                </div>
-              )}
+              <p className="text-2xl font-rock text-yellow-400">{game.currentQuestion.text}</p>
+            </div>
+          </div>
+          
+          {votableSubmissions.length > 0 && (
+            <div className="flex justify-center mb-8">
+              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/20">
+                <VideoPreferenceToggle
+                  preferVideo={preferVideo}
+                  onToggle={() => setPreferVideo(!preferVideo)}
+                  disabled={loading}
+                  showLabel={true}
+                />
+              </div>
             </div>
           )}
           
-          <div className="space-y-4 mb-6">
-            <h3 className="text-lg font-medium mb-2">All Submissions</h3>
+          <div className="mb-6">
+            <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30">
+              <div className="flex justify-between items-center">
+                <p className="text-silver font-medium">
+                  Vote for your favorite performance {isSmallGame ? "" : "(not your own)"}
+                </p>
+                <div className="flex items-center">
+                  <span className="text-gold-record font-bold">{votedCount}/{totalPlayers}</span>
+                  <span className="text-silver ml-2">votes cast</span>
+                  <div className="ml-3 equalizer">
+                    <div className="equalizer-bar"></div>
+                    <div className="equalizer-bar"></div>
+                    <div className="equalizer-bar"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 bg-vinyl-black rounded-full h-2 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise transition-all duration-500"
+                  style={{ width: `${(votedCount / totalPlayers) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mb-6 space-y-3">
+            {passedCount > 0 && (
+              <div className="bg-gradient-to-r from-silver/10 to-stage-dark/50 rounded-lg p-3 border border-silver/20">
+                <div className="flex items-center text-silver">
+                  <span className="mr-2">📝</span>
+                  <span><strong>Note:</strong> {passedCount} performer{passedCount !== 1 ? 's' : ''} passed on this challenge</span>
+                </div>
+              </div>
+            )}
+            
+            {hasQuotaIssue && (
+              <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 rounded-lg p-3 border border-yellow-600/40">
+                <div className="flex items-center text-yellow-200">
+                  <span className="mr-2">⚠️</span>
+                  <span><strong>Note:</strong> Video embeds temporarily unavailable due to daily quota limits. You can still vote!</span>
+                </div>
+              </div>
+            )}
+            
+            {isSmallGame && (
+              <div className="bg-gradient-to-r from-blue-600/20 to-turquoise/20 rounded-lg p-3 border border-blue-600/40">
+                <div className="flex items-center text-blue-200">
+                  <span className="mr-2">🎪</span>
+                  <span><strong>Small Concert:</strong> In intimate shows (2 players), you can vote for your own performance</span>
+                </div>
+              </div>
+            )}
+            
+            {hasActivePlayers && game.activePlayers.length < game.players.length && (
+              <div className="bg-gradient-to-r from-purple-600/20 to-neon-pink/20 rounded-lg p-3 border border-purple-600/40">
+                <div className="flex items-center text-purple-200">
+                  <span className="mr-2">🎭</span>
+                  <span><strong>This Act:</strong> {game.activePlayers.length} of {game.players.length} players performing tonight</span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {error && (
+            <div className="mb-6 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-4">
+              <div className="flex items-center text-stage-red">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+          
+          {hasVoted && (
+            <div className="mb-8 text-center">
+              <div className="bg-gradient-to-r from-lime-green/20 to-green-600/20 rounded-lg p-6 border border-lime-green/40 relative overflow-hidden">
+                <div className="absolute top-0 left-1/2 w-32 h-32 bg-lime-green/10 rounded-full -translate-x-1/2 -translate-y-16 blur-3xl"></div>
+                
+                <div className="relative z-10">
+                  <div className="mb-4">
+                    <div className="vinyl-record w-16 h-16 mx-auto animate-spin-slow">
+                      <div className="absolute inset-0 flex items-center justify-center text-2xl">✓</div>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-rock text-lime-green mb-2">🎤 VOTE RECORDED! 🎤</h3>
+                  <p className="text-silver text-sm">
+                    Your vote has been cast! Enjoy the rest of the performances while we wait.
+                  </p>
+                  
+                  {isHost && (
+                    <div className="mt-6 pt-4 border-t border-lime-green/20">
+                      <p className="text-sm text-silver mb-3 flex items-center justify-center">
+                        <span className="mr-2">🎼</span>
+                        Bandleader Controls
+                        <span className="ml-2">🎼</span>
+                      </p>
+                      <button
+                        onClick={handleEndVotingWithCountdown}
+                        disabled={isStartingCountdown || game.countdown?.isActive}
+                        className="btn-electric disabled:opacity-50"
+                      >
+                        {isStartingCountdown ? (
+                          <>
+                            <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                            Starting Countdown...
+                          </>
+                        ) : game.countdown?.isActive ? (
+                          'Countdown Active'
+                        ) : (
+                          <>
+                            <span className="mr-2">⏭️</span>
+                            END VOTING PHASE
+                            <span className="ml-2">⏭️</span>
+                          </>
+                        )}
+                      </button>
+                      <p className="text-xs text-silver mt-2">
+                        Force all non-voted players to abstain
+                      </p>
+                      {countdownError && (
+                        <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                          {countdownError}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="space-y-6 mb-8">
+            <h3 className="text-2xl font-rock text-center text-gold-record flex items-center justify-center">
+              <span className="mr-3">🎪</span>
+              TONIGHT'S LINEUP
+              <span className="ml-3">🎪</span>
+            </h3>
             
             {localSubmissions.map(submission => {
               const isOwnSubmission = submission.player?._id === currentUser.id;
               const isLoadingYoutube = youtubeLoadingStates[submission.id];
               const isPassed = submission.hasPassed;
               
-              // Don't show passed submissions in the list (they're just informational above)
               if (isPassed) {
                 return null;
               }
               
               return (
                 <div 
-                  key={`${submission.id}-${submission.songId}`} // OPTIMIZATION: Stable key that doesn't change with votes
-                  className={`bg-gray-750 rounded-lg overflow-hidden ${
-                    !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:bg-gray-700' : ''
-                  } transition-colors ${
-                    selectedSubmission === submission.id ? 'border border-blue-500' : ''
+                  key={`${submission.id}-${submission.songId}`}
+                  className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg overflow-hidden border transition-all ${
+                    !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg' : 'border-electric-purple/30'
                   } ${
-                    isOwnSubmission ? 'relative border-t-4 border-t-yellow-500' : ''
+                    selectedSubmission === submission.id ? 'border-neon-pink shadow-neon-pink/50 shadow-lg' : ''
+                  } ${
+                    isOwnSubmission ? 'relative border-t-4 border-t-gold-record' : ''
                   }`}
                   onClick={() => {
                     if (!hasVoted && (isSmallGame || !isOwnSubmission)) {
@@ -470,167 +569,309 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   }}
                 >
                   {isOwnSubmission && (
-                    <div className="absolute top-0 left-4 -mt-2 bg-yellow-600 text-white text-xs px-2 py-px rounded">
-                      Your Pick
+                    <div className="absolute top-0 left-4 -mt-2 bg-gold-record text-vinyl-black text-xs px-3 py-1 rounded font-bold">
+                      🎤 YOUR PERFORMANCE
                     </div>
                   )}
                   
-                  <div className="p-4">
-                    <div className="w-full">
-                      {/* YouTube Player Embed */}
-                      {isLoadingYoutube ? (
-                        <div className="h-72 bg-gray-700 rounded flex items-center justify-center mb-4">
-                          <div className="flex flex-col items-center">
-                            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                            <p className="text-gray-300 text-sm">Loading {preferVideo ? 'video' : 'audio'}...</p>
-                          </div>
-                        </div>
-                      ) : submission.youtubeId ? (
-                        <div className="relative">
-                          <iframe 
-                            key={`${submission.id}-${submission.youtubeId}-${preferVideo}`} // OPTIMIZATION: Key includes preference to prevent unnecessary reloads
-                            src={getYouTubeEmbedUrl(submission.youtubeId)}
-                            width="100%" 
-                            height="300"
-                            frameBorder="0" 
-                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                            title={`${submission.songName} by ${submission.artist}`}
-                            className="rounded mb-4"
-                          ></iframe>
-                          <div className="absolute top-2 right-2 flex gap-2">
-                            {submission.fromCache ? (
-                              <div className="bg-green-600 text-white text-xs px-2 py-1 rounded">
-                                Cached
-                              </div>
-                            ) : (
-                              <div className="bg-yellow-600 text-white text-xs px-2 py-1 rounded">
-                                New
-                              </div>
-                            )}
-                            <div className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                              {submission.isVideo ? 'Video' : 'Audio'}
+                  <div className="p-6">
+                    {isLoadingYoutube ? (
+                      <div className="h-72 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg flex items-center justify-center mb-6 border border-electric-purple/20">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center mb-4">
+                            <div className="vinyl-record w-12 h-12 animate-spin mr-4"></div>
+                            <div className="equalizer">
+                              <div className="equalizer-bar"></div>
+                              <div className="equalizer-bar"></div>
+                              <div className="equalizer-bar"></div>
+                              <div className="equalizer-bar"></div>
+                              <div className="equalizer-bar"></div>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-700 h-20 rounded flex items-center justify-center mb-4">
-                          <div className="flex flex-col items-center text-center">
-                            <svg className="w-8 h-8 text-gray-400 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10z" clipRule="evenodd" />
-                              <path fillRule="evenodd" d="M8 7v6l4-3-4-3z" clipRule="evenodd" />
-                            </svg>
-                            <p className="text-gray-400 text-sm">
-                              {submission.quotaExhausted ? 'Video unavailable (quota)' : 
-                               submission.youtubeLoadError ? 'Video failed to load' :
-                               `No ${preferVideo ? 'video' : 'audio'} available`}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Song Info and Buttons */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{submission.songName}</p>
-                          <p className="text-sm text-gray-400">{submission.artist}</p>
-                          <p className="text-xs text-gray-500 mt-1">Submitted by: {submission.playerName}</p>
-                          {/* Show vote count for this submission */}
-                          <p className="text-xs text-blue-400 mt-1">
-                            {submission.votes?.length || 0} vote{(submission.votes?.length || 0) !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {/* Open in YouTube button */}
-                          {(submission.youtubeId || submission.songName) && (
-                            <a 
-                              href={submission.youtubeId 
-                                ? `https://www.youtube.com/watch?v=${submission.youtubeId}`
-                                : `https://www.youtube.com/results?search_query=${encodeURIComponent(submission.artist + ' ' + submission.songName)}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="py-2 px-3 bg-red-600 text-white rounded hover:bg-red-700 flex items-center text-sm"
-                            >
-                              <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                              </svg>
-                              {submission.youtubeId ? 'Watch on YouTube' : 'Search YouTube'}
-                            </a>
-                          )}
-                          
-                          {/* Vote button */}
-                          {!hasVoted && (isSmallGame || !isOwnSubmission) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedSubmission(submission.id);
-                              }}
-                              className={`py-2 px-4 rounded ${
-                                selectedSubmission === submission.id
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-gray-600 text-white hover:bg-gray-500'
-                              }`}
-                            >
-                              {selectedSubmission === submission.id ? 'Selected' : 'Select'}
-                            </button>
-                          )}
+                          <p className="text-silver text-lg">Loading {preferVideo ? 'video' : 'audio'}...</p>
                         </div>
                       </div>
+                    ) : submission.youtubeId ? (
+                      <div className="relative rounded-lg overflow-hidden border border-electric-purple/30">
+                        <iframe 
+                          key={`${submission.id}-${submission.youtubeId}-${preferVideo}`}
+                          src={getYouTubeEmbedUrl(submission.youtubeId)}
+                          width="100%" 
+                          height="300"
+                          frameBorder="0" 
+                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                          allowFullScreen
+                          title={`${submission.songName} by ${submission.artist}`}
+                          className="rounded"
+                        ></iframe>
+                        
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          {submission.fromCache ? (
+                            <div className="bg-lime-green/90 text-vinyl-black text-xs px-2 py-1 rounded font-bold">
+                              🟢 CACHED
+                            </div>
+                          ) : (
+                            <div className="bg-yellow-600/90 text-vinyl-black text-xs px-2 py-1 rounded font-bold">
+                              🆕 FRESH
+                            </div>
+                          )}
+                          <div className="bg-electric-purple/90 text-white text-xs px-2 py-1 rounded font-bold">
+                            {submission.isVideo ? '📹 VIDEO' : '🎵 AUDIO'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-72 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg flex items-center justify-center mb-6 border border-silver/20">
+                        <div className="flex flex-col items-center text-center">
+                          <div className="vinyl-record w-20 h-20 mb-4 opacity-50">
+                            <div className="absolute inset-0 flex items-center justify-center text-2xl">🚫</div>
+                          </div>
+                          <p className="text-silver text-lg">
+                            {submission.quotaExhausted ? 'Video unavailable (quota)' : 
+                             submission.youtubeLoadError ? 'Video failed to load' :
+                             `No ${preferVideo ? 'video' : 'audio'} available`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        {submission.albumCover && (
+                          <div className="float-left mr-4 mb-2">
+                            <img 
+                              src={submission.albumCover} 
+                              alt={submission.songName} 
+                              className="w-16 h-16 rounded-lg border-2 border-silver" 
+                            />
+                          </div>
+                        )}
+                        
+                        <div>
+                          <p className="font-bold text-white text-xl font-rock">{submission.songName}</p>
+                          <p className="text-silver text-lg font-medium">{submission.artist}</p>
+                          <div className="flex items-center mt-2">
+                            <span className="text-turquoise text-sm">🎤 Performed by: </span>
+                            <span className="text-white font-medium ml-1">{submission.playerName}</span>
+                            {isOwnSubmission && (
+                              <span className="ml-2 text-gold-record font-bold">(YOU)</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center mt-2">
+                            <span className="text-neon-pink text-sm">📊 Votes: </span>
+                            <span className="text-white font-bold text-lg ml-1">{submission.votes?.length || 0}</span>
+                            {submission.votes?.length > 0 && (
+                              <span className="text-silver text-sm ml-2">
+                                {submission.votes?.length === 1 ? 'vote' : 'votes'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-3 ml-4">
+                        {(submission.youtubeId || submission.songName) && (
+                          <a 
+                            href={submission.youtubeId 
+                              ? `https://www.youtube.com/watch?v=${submission.youtubeId}`
+                              : `https://www.youtube.com/results?search_query=${encodeURIComponent(submission.artist + ' ' + submission.songName)}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="btn-stage text-sm px-4 py-2 group"
+                          >
+                            <span className="relative z-10 flex items-center">
+                              <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                              </svg>
+                              {submission.youtubeId ? 'WATCH FULL' : 'SEARCH YT'}
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                          </a>
+                        )}
+                        
+                        {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSubmission(submission.id);
+                            }}
+                            className={`px-6 py-3 rounded-lg font-bold transition-all ${
+                              selectedSubmission === submission.id
+                                ? 'bg-gradient-to-r from-neon-pink to-electric-purple text-white shadow-neon-pink/50 shadow-lg'
+                                : 'bg-gradient-to-r from-vinyl-black to-stage-dark text-silver border border-electric-purple/30 hover:border-neon-pink/50 hover:text-white'
+                            }`}
+                          >
+                            {selectedSubmission === submission.id ? (
+                              <>
+                                <span className="mr-2">✓</span>
+                                SELECTED
+                              </>
+                            ) : (
+                              <>
+                                <span className="mr-2">🎤</span>
+                                CHOOSE THIS
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    
+                    {submission.votes && submission.votes.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-electric-purple/20">
+                        <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-3 border border-electric-purple/20">
+                          <p className="text-sm text-silver mb-2 flex items-center">
+                            <span className="mr-2">👥</span>
+                            <span className="font-medium">Fan Votes:</span>
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {submission.votes.map((voter, index) => (
+                              <div key={voter._id} className="flex items-center">
+                                <span className="bg-gradient-to-r from-vinyl-black to-stage-dark px-3 py-1 rounded-full text-sm border border-electric-purple/30">
+                                  <span className="text-white font-medium">{voter.displayName}</span>
+                                  {voter._id === currentUser.id && (
+                                    <span className="text-neon-pink ml-1">(YOU)</span>
+                                  )}
+                                  {voter._id === submission.player._id && (
+                                    <span className="text-gold-record ml-1">(SELF)</span>
+                                  )}
+                                </span>
+                                {index < submission.votes.length - 1 && (
+                                  <span className="text-electric-purple mx-2">•</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
             
-            {/* Show message if there are no submissions to vote on */}
             {votableSubmissions.length === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                <p>No submissions to vote on this round.</p>
+              <div className="text-center py-12">
+                <div className="vinyl-record w-20 h-20 mx-auto mb-4 opacity-50">
+                  <div className="absolute inset-0 flex items-center justify-center text-2xl">🎭</div>
+                </div>
+                <p className="text-silver text-lg">No performances available for voting this round.</p>
               </div>
             )}
           </div>
           
           {!hasVoted && votableSubmissions.length > 0 && (
             <div className="text-center">
-              <button
-                onClick={handleVote}
-                disabled={!selectedSubmission || isVoting}
-                className="py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isVoting ? 'Submitting Vote...' : 'Submit Vote'}
-              </button>
-              <p className="text-sm text-gray-400 mt-2">
-                Select your favorite song{isSmallGame ? "" : " from another player"}, then submit your vote
-              </p>
-              
-              {/* Host controls for ending voting when user hasn't voted */}
-              {isHost && (
-                <div className="mt-6 pt-4 border-t border-gray-700">
-                  <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-                  <button
-                    onClick={handleEndVotingWithCountdown}
-                    disabled={isStartingCountdown || game.countdown?.isActive}
-                    className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {isStartingCountdown ? 'Starting Countdown...' : 
-                     game.countdown?.isActive ? 'Countdown Active' : 
-                     'End Voting Phase'}
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Force all non-voted players to abstain
-                  </p>
-                  {countdownError && (
-                    <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                      {countdownError}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-6 border border-electric-purple/30">
+                <button
+                  onClick={handleVote}
+                  disabled={!selectedSubmission || isVoting}
+                  className="btn-gold disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden mb-4"
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    {isVoting ? (
+                      <>
+                        <div className="vinyl-record w-6 h-6 animate-spin mr-3"></div>
+                        CASTING VOTE...
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-3">🗳️</span>
+                        CAST YOUR VOTE
+                        <span className="ml-3">🗳️</span>
+                      </>
+                    )}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+                
+                <p className="text-sm text-silver mb-4">
+                  Select your favorite performance{isSmallGame ? "" : " from another artist"}, then cast your vote
+                </p>
+                
+                {isHost && (
+                  <div className="pt-4 border-t border-electric-purple/20">
+                    <p className="text-sm text-silver mb-3 flex items-center justify-center">
+                      <span className="mr-2">🎼</span>
+                      Bandleader Controls
+                      <span className="ml-2">🎼</span>
+                    </p>
+                    <button
+                      onClick={handleEndVotingWithCountdown}
+                      disabled={isStartingCountdown || game.countdown?.isActive}
+                      className="btn-electric disabled:opacity-50"
+                    >
+                      {isStartingCountdown ? (
+                        <>
+                          <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                          Starting Countdown...
+                        </>
+                      ) : game.countdown?.isActive ? (
+                        'Countdown Active'
+                      ) : (
+                        <>
+                          <span className="mr-2">⏭️</span>
+                          END VOTING PHASE
+                          <span className="ml-2">⏭️</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-silver mt-2">
+                      Force all non-voted players to abstain
+                    </p>
+                    {countdownError && (
+                      <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                        {countdownError}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
+        </div>
+        
+        <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-6 border-t border-electric-purple/20">
+          <details className="group">
+            <summary className="text-center cursor-pointer">
+              <span className="text-silver hover:text-white transition-colors font-medium">
+                🎸 Voting Tips & Concert Etiquette 🎸
+              </span>
+            </summary>
+            <div className="mt-4 grid md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-neon-pink/20">
+                <h5 className="text-neon-pink font-semibold mb-2 flex items-center">
+                  <span className="mr-2">🎭</span>
+                  Fair Play
+                </h5>
+                <p className="text-silver">{isSmallGame ? "In intimate shows, you can vote for yourself!" : "Choose performances by other artists - no self-voting in big concerts!"}</p>
+              </div>
+              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-turquoise/20">
+                <h5 className="text-turquoise font-semibold mb-2 flex items-center">
+                  <span className="mr-2">🎵</span>
+                  Media Options
+                </h5>
+                <p className="text-silver">Toggle between audio and video formats to suit your data usage and preference.</p>
+              </div>
+              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-lime-green/20">
+                <h5 className="text-lime-green font-semibold mb-2 flex items-center">
+                  <span className="mr-2">⏱️</span>
+                  Take Your Time
+                </h5>
+                <p className="text-silver">Listen to all performances before voting. The bandleader can end voting early if needed.</p>
+              </div>
+              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-gold-record/20">
+                <h5 className="text-gold-record font-semibold mb-2 flex items-center">
+                  <span className="mr-2">👥</span>
+                  See Who Voted
+                </h5>
+                <p className="text-silver">Vote counts and voter lists are visible to add excitement and transparency to the show!</p>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </div>
