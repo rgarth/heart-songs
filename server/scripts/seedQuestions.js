@@ -19,10 +19,6 @@ const questions = [
     category: "event"
   },
   {
-    text: "What song would aliens enjoy the most?",
-    category: "fun"
-  },
-  {
     text: "What song represents your personality?",
     category: "personal"
   },
@@ -43,20 +39,12 @@ const questions = [
     category: "emotion"
   },
   {
-    text: "What song would you play to introduce someone to your favorite genre?",
-    category: "genre"
-  },
-  {
     text: "What's the best song for a workout?",
     category: "activity"
   },
   {
     text: "What song would you play to cheer someone up?",
     category: "emotion"
-  },
-  {
-    text: "What song would be playing during the climax of a movie about your life?",
-    category: "personal"
   },
   {
     text: "What song would you play on a first date?",
@@ -83,14 +71,6 @@ const questions = [
     category: "time"
   },
   {
-    text: "What song would you play to introduce Earth to aliens?",
-    category: "fun"
-  },
-  {
-    text: "What song would you play at your graduation party?",
-    category: "event"
-  },
-  {
     text: "What song makes you want to dance no matter what?",
     category: "emotion"
   },
@@ -101,10 +81,6 @@ const questions = [
   {
     text: "What's the best song for a karaoke night?",
     category: "activity"
-  },
-  {
-    text: "What song best represents your country?",
-    category: "place"
   },
   {
     text: "What song would you play to calm yourself down?",
@@ -118,13 +94,6 @@ const questions = [
     text: "What song would you play to motivate yourself for a big challenge?",
     category: "activity"
   },
-  {
-    text: "What song best represents the spirit of the 80s?",
-    category: "time"
-  },
-  
-  // NEW QUESTIONS
-  // Time period questions
   {
     text: "What's the best one-hit wonder of all time?",
     category: "time"
@@ -146,21 +115,7 @@ const questions = [
     category: "time"
   },
   {
-    text: "What song feels like it's from another era but is actually recent?",
-    category: "time"
-  },
-  {
-    text: "What's a song that was ahead of its time?",
-    category: "time"
-  },
-  {
-    text: "What song will people still be listening to in 50 years?",
-    category: "time"
-  },
-  
-  // Emotional questions
-  {
-    text: "What song never fails to make you cry?",
+    text: "What is the saddest?",
     category: "emotion"
   },
   {
@@ -180,15 +135,7 @@ const questions = [
     category: "emotion"
   },
   {
-    text: "What's the most relaxing song you've ever heard?",
-    category: "emotion"
-  },
-  {
     text: "What song instantly puts you in a good mood?",
-    category: "emotion"
-  },
-  {
-    text: "What song makes you feel like you can conquer the world?",
     category: "emotion"
   },
   {
@@ -199,8 +146,6 @@ const questions = [
     text: "What's the most romantic song ever made?",
     category: "emotion"
   },
-  
-  // Event/Occasion questions
   {
     text: "What song would you play to kick off a house party?",
     category: "event"
@@ -218,22 +163,8 @@ const questions = [
     category: "event"
   },
   {
-    text: "What's the ideal song for a New Year's Eve countdown?",
-    category: "event"
-  },
-  {
-    text: "What song would you choose for a surprise birthday party entrance?",
-    category: "event"
-  },
-  {
     text: "What song would you play to end a perfect night?",
     category: "event"
-  },
-  
-  // Activity questions
-  {
-    text: "What's the best song to cook to?",
-    category: "activity"
   },
   {
     text: "What song would you play while cleaning your home?",
@@ -263,18 +194,12 @@ const questions = [
     text: "What song would you play during a family reunion?",
     category: "activity"
   },
-  
-  // Personal questions
   {
     text: "What song would be the soundtrack to your life story?",
     category: "personal"
   },
   {
     text: "What song do you secretly love but rarely admit to?",
-    category: "personal"
-  },
-  {
-    text: "What song brings back your strongest memory?",
     category: "personal"
   },
   {
@@ -297,8 +222,6 @@ const questions = [
     text: "What song reminds you of your father?",
     category: "personal"
   },
-  
-  // Fun/hypothetical questions
   {
     text: "What song would you choose as the national anthem for Mars?",
     category: "fun"
@@ -308,23 +231,13 @@ const questions = [
     category: "fun"
   },
   {
-    text: "What song would you play to scare away ghosts?",
-    category: "fun"
-  },
-  {
     text: "What song would be your superhero theme?",
-    category: "fun"
-  },
-  {
-    text: "What song would you use to wake up a sleeping dragon?",
     category: "fun"
   },
   {
     text: "What song would play if your life had end credits?",
     category: "fun"
   },
-  
-  // Genre questions
   {
     text: "What's the best rock song of all time?",
     category: "genre"
@@ -342,10 +255,6 @@ const questions = [
     category: "genre"
   },
   {
-    text: "What EDM track gets the biggest reaction on the dance floor?",
-    category: "genre"
-  },
-  {
     text: "What's the most powerful R&B ballad?",
     category: "genre"
   },
@@ -354,7 +263,7 @@ const questions = [
     category: "genre"
   },
   {
-    text: "What folk song tells the best story?",
+    text: "What song tells the best story?",
     category: "genre"
   },
   {
@@ -417,18 +326,12 @@ const questions = [
     text: "What is your favourite song from a musical?",
     category: "genre"
   },
-
-  // Weather/Season questions
   {
     text: "What song feels like a warm spring day?",
     category: "weather"
   },
   {
     text: "What's the perfect song for a snowy winter night?",
-    category: "weather"
-  },
-  {
-    text: "What song captures the beauty of autumn?",
     category: "weather"
   },
   {
@@ -451,8 +354,6 @@ const questions = [
     text: "What song reminds you of watching the sunset?",
     category: "weather"
   },
-  
-  // Place/Location questions
   {
     text: "What song reminds you of your hometown?",
     category: "place"
@@ -465,12 +366,6 @@ const questions = [
     text: "What song would play in the background at a Paris café?",
     category: "place"
   },
-  {
-    text: "What song feels like being in the mountains?",
-    category: "place"
-  },
-  
-  // Situational questions
   {
     text: "What song would you play to psyche yourself up before a job interview?",
     category: "situation"
@@ -503,10 +398,8 @@ const questions = [
     text: "What song would play during your victory lap?",
     category: "situation"
   },
-  
-  // Cultural questions
   {
-    text: "What song defined a generation?",
+    text: "What song defines your generation?",
     category: "culture"
   },
   {
@@ -519,14 +412,6 @@ const questions = [
   },
   {
     text: "What song perfectly captures modern society?",
-    category: "culture"
-  },
-  {
-    text: "What's the most culturally significant song of the last 50 years?",
-    category: "culture"
-  },
-  {
-    text: "What song tells the most important story?",
     category: "culture"
   },
   {
