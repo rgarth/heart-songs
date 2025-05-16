@@ -1,4 +1,4 @@
-// client/src/components/Header.js - Rockstar Design Edition
+// client/src/components/Header.js - Rockstar Design Edition with Sideways EQ Menu
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -51,18 +51,15 @@ const Header = ({ gameCode }) => {
               </h1>
             </div>
             
-            {/* Menu toggle - Electric button */}
+            {/* Menu toggle - Sideways EQ (3 horizontal lines) */}
             <button 
-              className="text-white focus:outline-none ml-auto mr-4 p-2 rounded-full bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 hover:from-electric-purple/40 hover:to-neon-pink/40 transition-all"
+              className="text-white focus:outline-none ml-auto mr-4 p-3 rounded-lg bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 hover:from-electric-purple/40 hover:to-neon-pink/40 transition-all"
               onClick={() => setMenuOpen(!menuOpen)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <div className="equalizer ml-2 inline-flex">
-                <div className="equalizer-bar"></div>
-                <div className="equalizer-bar"></div>
-                <div className="equalizer-bar"></div>
+              <div className="equalizer-sideways">
+                <div className="equalizer-bar-sideways"></div>
+                <div className="equalizer-bar-sideways"></div>
+                <div className="equalizer-bar-sideways"></div>
               </div>
             </button>
             
