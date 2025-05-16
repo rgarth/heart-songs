@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { registerAnonymous, checkUsernameAvailability } from '../services/AuthService';
 import { generateUsername, isValidUsername } from '../utils/usernameGenerator';
+import VinylRecord from '../components/VinylRecord';
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -122,19 +123,17 @@ const Login = () => {
           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-8 text-center border-b border-electric-purple/30">
             {/* Spinning vinyl logo */}
             <div className="relative inline-block mb-4">
-              <div className="vinyl-record w-24 h-24 animate-vinyl-spin mx-auto">
-                <div className="absolute inset-0 rounded-full shadow-neon-purple"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl">🎵</span>
-              </div>
+               <VinylRecord 
+                  className="w-24 h-24 relative z-10"
+                  animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                />
             </div>
             
             <h1 className="text-4xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent mb-2">
               HEART SONGS
             </h1>
             <p className="text-silver text-sm font-medium">
-              🎤 Where Music Meets Personality
+              Where Music Meets Personality
             </p>
           </div>
           
@@ -229,9 +228,7 @@ const Login = () => {
                     </>
                   ) : (
                     <>
-                      <span className="mr-3">🎸</span>
                       GET ON STAGE
-                      <span className="ml-3">🎸</span>
                     </>
                   )}
                 </span>
@@ -256,16 +253,10 @@ const Login = () => {
           {/* Stage footer with musical notes */}
           <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-4 text-center border-t border-electric-purple/20">
             <div className="flex justify-center items-center space-x-4 text-silver/50">
-              <span className="animate-bounce">♪</span>
-              <span className="text-xs font-medium">Join the rhythm</span>
-              <span className="animate-bounce" style={{animationDelay: '0.5s'}}>♫</span>
             </div>
           </div>
         </div>
         
-        {/* Floating decorative elements */}
-        <div className="absolute -top-8 -left-8 w-16 h-16 bg-electric-purple/20 rounded-full animate-bounce"></div>
-        <div className="absolute -bottom-8 -right-8 w-12 h-12 bg-neon-pink/20 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
       </div>
     </div>
   );

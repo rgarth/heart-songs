@@ -1,7 +1,8 @@
-// client/src/components/Header.js - Rockstar Design Edition with Sideways EQ Menu
+// client/src/components/Header.js - Updated with proper glow effect
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import VinylRecord from './VinylRecord';
 
 const Header = ({ gameCode }) => {
   const { user, logout } = useContext(AuthContext);
@@ -40,11 +41,20 @@ const Header = ({ gameCode }) => {
             
             {/* Logo - Spinning vinyl record with neon glow */}
             <div className="flex items-center cursor-pointer group" onClick={handleGoHome}>
-              <div className="relative mr-4">
-                <div className="vinyl-record w-12 h-12 animate-vinyl-spin group-hover:animate-spin-slow">
-                  <div className="absolute inset-0 rounded-full border-2 border-neon-pink/30 group-hover:border-neon-pink/60 transition-all"></div>
-                </div>
-                <div className="absolute inset-0 rounded-full shadow-neon-purple group-hover:shadow-neon-pink transition-all"></div>
+              <div className="relative mr-6">
+                {/* Glow effect behind the vinyl */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 blur-lg scale-125 group-hover:scale-150 transition-all duration-300"></div>
+                
+                {/* Animated glow ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-neon-pink/30 animate-pulse group-hover:border-electric-purple/50 transition-all"></div>
+                
+                <VinylRecord 
+                  className="w-12 h-12 relative z-10"
+                  animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                />
+                
+                {/* Small indicator dot (optional - you can remove this if you don't want it) */}
+                {/* <div className="absolute -top-1 -right-1 w-4 h-4 bg-neon-pink rounded-full border-2 border-stage-dark animate-pulse z-20"></div> */}
               </div>
               <h1 className="text-3xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
                 HEART SONGS
@@ -96,7 +106,7 @@ const Header = ({ gameCode }) => {
         </div>
       </header>
       
-      {/* Dropdown menu - Amplifier control panel style */}
+      {/* Rest of component remains the same... */}
       {menuOpen && user && (
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black py-4 px-4 shadow-inner shadow-electric-purple/20 border-b border-electric-purple/20">
           <div className="container mx-auto">

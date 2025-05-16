@@ -5,6 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import { createGame, joinGame } from '../services/gameService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import VinylRecord from '../components/VinylRecord';
 
 const Home = () => {
   const { user, accessToken } = useContext(AuthContext);
@@ -108,7 +109,7 @@ const Home = () => {
                 ROCK THE STAGE
               </h1>
               <p className="text-xl text-silver font-medium">
-                🎵 Your music taste defines you • Let's see what you've got 🎵
+                Your music taste defines you
               </p>
             </div>
             
@@ -147,7 +148,7 @@ const Home = () => {
               <div className="bg-gradient-to-br from-electric-purple/10 to-neon-pink/10 rounded-lg p-6 border border-electric-purple/30">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-electric-purple to-neon-pink rounded-full mb-4">
-                    <span className="text-2xl">🎸</span>
+                    <span className="text-2xl">🎤</span>
                   </div>
                   <h2 className="text-2xl font-rock text-electric-purple mb-2">
                     START THE SHOW
@@ -170,9 +171,7 @@ const Home = () => {
                       </>
                     ) : (
                       <>
-                        <span className="mr-2">🚀</span>
                         CREATE GAME
-                        <span className="ml-2">🚀</span>
                       </>
                     )}
                   </span>
@@ -184,7 +183,7 @@ const Home = () => {
               <div className="bg-gradient-to-br from-turquoise/10 to-lime-green/10 rounded-lg p-6 border border-turquoise/30">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-turquoise to-lime-green rounded-full mb-4">
-                    <span className="text-2xl">🎤</span>
+                    <span className="text-2xl">🎸</span>
                   </div>
                   <h2 className="text-2xl font-rock text-turquoise mb-2">
                     JOIN THE BAND
@@ -222,9 +221,7 @@ const Home = () => {
                         </>
                       ) : (
                         <>
-                          <span className="mr-2">🎪</span>
                           JOIN GAME
-                          <span className="ml-2">🎪</span>
                         </>
                       )}
                     </span>
@@ -239,18 +236,23 @@ const Home = () => {
           <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-lg border border-gold-record/30 p-8">
             <div className="text-center mb-6">
               <h2 className="text-3xl font-rock text-gold-record mb-3 flex items-center justify-center">
-                <span className="mr-3">🤘</span>
-                HOW TO ROCK
-                <span className="ml-3">🤘</span>
+                HOW TO PLAY
               </h2>
-              <p className="text-silver">Master the stage in these simple steps</p>
             </div>
             
             <div className="grid md:grid-cols-3 gap-6">
               {/* Step 1 */}
               <div className="bg-gradient-to-b from-electric-purple/10 to-neon-pink/10 rounded-lg p-6 text-center border border-electric-purple/20">
-                <div className="vinyl-record w-16 h-16 mx-auto mb-4 relative">
-                  <div className="absolute inset-0 flex items-center justify-center text-2xl">1</div>
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <VinylRecord 
+                    className="w-16 h-16"
+                    animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-black text-white drop-shadow-[0_0_2px_black] leading-none -translate-y-[1px] relative">
+                      1
+                    </span>
+                  </div>
                 </div>
                 <h3 className="text-lg font-semibold text-electric-purple mb-2">Pick Your Songs</h3>
                 <p className="text-sm text-silver">Answer quirky questions with the perfect track</p>
@@ -258,8 +260,16 @@ const Home = () => {
               
               {/* Step 2 */}
               <div className="bg-gradient-to-b from-turquoise/10 to-lime-green/10 rounded-lg p-6 text-center border border-turquoise/20">
-                <div className="vinyl-record w-16 h-16 mx-auto mb-4 relative">
-                  <div className="absolute inset-0 flex items-center justify-center text-2xl">2</div>
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <VinylRecord 
+                    className="w-16 h-16"
+                    animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-black text-white drop-shadow-[0_0_2px_black] leading-none -translate-y-[1px] relative">
+                      2
+                    </span>
+                  </div>
                 </div>
                 <h3 className="text-lg font-semibold text-turquoise mb-2">Vote & Vibe</h3>
                 <p className="text-sm text-silver">Listen to everyone's picks and vote for favorites</p>
@@ -267,38 +277,22 @@ const Home = () => {
               
               {/* Step 3 */}
               <div className="bg-gradient-to-b from-gold-record/10 to-yellow-400/10 rounded-lg p-6 text-center border border-gold-record/20">
-                <div className="vinyl-record w-16 h-16 mx-auto mb-4 relative">
-                  <div className="absolute inset-0 flex items-center justify-center text-2xl">3</div>
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <VinylRecord 
+                    className="w-16 h-16"
+                    animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-black text-white drop-shadow-[0_0_2px_black] leading-none -translate-y-[1px] relative">
+                      3
+                    </span>
+                  </div>
                 </div>
                 <h3 className="text-lg font-semibold text-gold-record mb-2">Win the Crowd</h3>
                 <p className="text-sm text-silver">Score points and become the ultimate music maestro</p>
               </div>
             </div>
             
-            {/* Quick tips */}
-            <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-silver/20">
-              <h4 className="text-lg font-semibold text-neon-pink mb-4 text-center">
-                ⚡ Pro Tips ⚡
-              </h4>
-              <div className="grid md:grid-cols-2 gap-4 text-sm text-silver">
-                <div className="flex items-start">
-                  <span className="text-lime-green mr-2">♪</span>
-                  <span><strong>Speed Bonus:</strong> First to submit gets +1 point</span>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-turquoise mr-2">♫</span>
-                  <span><strong>Small Games:</strong> Can vote for your own songs</span>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-neon-pink mr-2">♪</span>
-                  <span><strong>Audio First:</strong> Saves data, still rocks hard</span>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-gold-record mr-2">♫</span>
-                  <span><strong>Pass Option:</strong> Can't find a song? Skip the round</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

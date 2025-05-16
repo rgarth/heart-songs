@@ -54,7 +54,7 @@ module.exports = {
         'spin-slow': 'spin 8s linear infinite',
         'pulse-neon': 'pulse 2s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
-        'vinyl-spin': 'spin 33s linear infinite',
+        'vinyl-spin': 'spin 1s linear infinite',
       },
       
       // Custom keyframes
