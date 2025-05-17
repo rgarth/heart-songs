@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js - ROCKSTAR THEME EDITION
+// client/src/components/game/VotingScreen.js - Fixed Version
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -225,7 +225,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   };
   
-  // NEW: Handle end voting with server countdown
+  // Handle end voting with server countdown
   const handleEndVotingWithCountdown = async () => {
     if (!isHost) return;
     
@@ -258,17 +258,23 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     return `https://www.youtube.com/embed/${youtubeId}`;
   };
   
+  // Generate YouTube watch URL
+  const getYouTubeWatchUrl = (youtubeId) => {
+    if (!youtubeId) return null;
+    return `https://www.youtube.com/watch?v=${youtubeId}`;
+  };
+  
   // Check if there are no votable submissions (everyone passed)
   const allPassed = votableSubmissions.length === 0;
   
-  // Loading state - ROCKSTAR THEMED
+  // Loading state
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
             <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-              🎤 VOTE FOR THE BEST ACT 🎤
+              VOTE FOR THE BEST SONG
             </h2>
             <p className="text-silver text-center mt-2">Loading the concert lineup...</p>
           </div>
@@ -293,14 +299,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     );
   }
   
-  // If everyone passed - ROCKSTAR THEMED
+  // If everyone passed
   if (allPassed) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
             <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-              🎤 VOTE FOR THE BEST ACT 🎤
+              VOTE FOR THE BEST ACT
             </h2>
           </div>
           
@@ -314,7 +320,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 </svg>
               </div>
             </div>
-            <h3 className="text-2xl font-rock text-silver mb-4">🎭 EMPTY STAGE 🎭</h3>
+            <h3 className="text-2xl font-rock text-silver mb-4">EMPTY STAGE</h3>
             <p className="text-silver mb-6">
               All band members passed on this challenge. Moving to the next round...
             </p>
@@ -329,9 +335,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <div className="p-6 border-t border-electric-purple/20 text-center">
               <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/20">
                 <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                  <span className="mr-2">🎼</span>
                   Bandleader Controls
-                  <span className="ml-2">🎼</span>
                 </p>
                 <button
                   onClick={handleEndVotingWithCountdown}
@@ -347,9 +351,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     'Countdown Active'
                   ) : (
                     <>
-                      <span className="mr-2">⏭️</span>
                       END VOTING PHASE
-                      <span className="ml-2">⏭️</span>
                     </>
                   )}
                 </button>
@@ -374,18 +376,15 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
         <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
           <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-            🎤 VOTE FOR THE BEST ACT 🎤
+            VOTE FOR THE BEST SONG
           </h2>
-          <p className="text-silver text-center mt-2">Cast your vote for the winning performance!</p>
         </div>
         
         <div className="p-6">
           <div className="text-center mb-8">
             <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
               <div className="flex items-center justify-center mb-2">
-                <div className="text-3xl mr-3">🎵</div>
-                <p className="text-xl font-bold text-neon-pink">Tonight's Challenge</p>
-                <div className="text-3xl ml-3">🎵</div>
+                <p className="text-xl font-bold text-neon-pink">The Question</p>
               </div>
               <p className="text-2xl font-rock text-yellow-400">{game.currentQuestion.text}</p>
             </div>
@@ -408,12 +407,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30">
               <div className="flex justify-between items-center">
                 <p className="text-silver font-medium">
-                  Vote for your favorite performance {isSmallGame ? "" : "(not your own)"}
+                  Vote for the best choice {isSmallGame ? "" : "(not your own)"}
                 </p>
                 <div className="flex items-center">
                   <span className="text-gold-record font-bold">{votedCount}/{totalPlayers}</span>
                   <span className="text-silver ml-2">votes cast</span>
                   <div className="ml-3 equalizer">
+                    <div className="equalizer-bar"></div>
+                    <div className="equalizer-bar"></div>
                     <div className="equalizer-bar"></div>
                     <div className="equalizer-bar"></div>
                     <div className="equalizer-bar"></div>
@@ -433,7 +434,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {passedCount > 0 && (
               <div className="bg-gradient-to-r from-silver/10 to-stage-dark/50 rounded-lg p-3 border border-silver/20">
                 <div className="flex items-center text-silver">
-                  <span className="mr-2">📝</span>
+                  <span className="mr-2">Note:</span>
                   <span><strong>Note:</strong> {passedCount} performer{passedCount !== 1 ? 's' : ''} passed on this challenge</span>
                 </div>
               </div>
@@ -442,17 +443,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {hasQuotaIssue && (
               <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 rounded-lg p-3 border border-yellow-600/40">
                 <div className="flex items-center text-yellow-200">
-                  <span className="mr-2">⚠️</span>
+                  <span className="mr-2">Note:</span>
                   <span><strong>Note:</strong> Video embeds temporarily unavailable due to daily quota limits. You can still vote!</span>
-                </div>
-              </div>
-            )}
-            
-            {isSmallGame && (
-              <div className="bg-gradient-to-r from-blue-600/20 to-turquoise/20 rounded-lg p-3 border border-blue-600/40">
-                <div className="flex items-center text-blue-200">
-                  <span className="mr-2">🎪</span>
-                  <span><strong>Small Concert:</strong> In intimate shows (2 players), you can vote for your own performance</span>
                 </div>
               </div>
             )}
@@ -460,7 +452,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {hasActivePlayers && game.activePlayers.length < game.players.length && (
               <div className="bg-gradient-to-r from-purple-600/20 to-neon-pink/20 rounded-lg p-3 border border-purple-600/40">
                 <div className="flex items-center text-purple-200">
-                  <span className="mr-2">🎭</span>
+                  <span className="mr-2">This Act:</span>
                   <span><strong>This Act:</strong> {game.activePlayers.length} of {game.players.length} players performing tonight</span>
                 </div>
               </div>
@@ -489,7 +481,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       <div className="absolute inset-0 flex items-center justify-center text-2xl">✓</div>
                     </div>
                   </div>
-                  <h3 className="text-xl font-rock text-lime-green mb-2">🎤 VOTE RECORDED! 🎤</h3>
+                  <h3 className="text-xl font-rock text-lime-green mb-2">VOTE RECORDED!</h3>
                   <p className="text-silver text-sm">
                     Your vote has been cast! Enjoy the rest of the performances while we wait.
                   </p>
@@ -497,9 +489,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   {isHost && (
                     <div className="mt-6 pt-4 border-t border-lime-green/20">
                       <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                        <span className="mr-2">🎼</span>
                         Bandleader Controls
-                        <span className="ml-2">🎼</span>
                       </p>
                       <button
                         onClick={handleEndVotingWithCountdown}
@@ -515,9 +505,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           'Countdown Active'
                         ) : (
                           <>
-                            <span className="mr-2">⏭️</span>
                             END VOTING PHASE
-                            <span className="ml-2">⏭️</span>
                           </>
                         )}
                       </button>
@@ -538,9 +526,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           
           <div className="space-y-6 mb-8">
             <h3 className="text-2xl font-rock text-center text-gold-record flex items-center justify-center">
-              <span className="mr-3">🎪</span>
-              TONIGHT'S LINEUP
-              <span className="ml-3">🎪</span>
+              THE SONGS
             </h3>
             
             {localSubmissions.map(submission => {
@@ -570,7 +556,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 >
                   {isOwnSubmission && (
                     <div className="absolute top-0 left-4 -mt-2 bg-gold-record text-vinyl-black text-xs px-3 py-1 rounded font-bold">
-                      🎤 YOUR PERFORMANCE
+                      YOUR PERFORMANCE
                     </div>
                   )}
                   
@@ -604,27 +590,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           title={`${submission.songName} by ${submission.artist}`}
                           className="rounded"
                         ></iframe>
-                        
-                        <div className="absolute top-3 right-3 flex gap-2">
-                          {submission.fromCache ? (
-                            <div className="bg-lime-green/90 text-vinyl-black text-xs px-2 py-1 rounded font-bold">
-                              🟢 CACHED
-                            </div>
-                          ) : (
-                            <div className="bg-yellow-600/90 text-vinyl-black text-xs px-2 py-1 rounded font-bold">
-                              🆕 FRESH
-                            </div>
-                          )}
-                          <div className="bg-electric-purple/90 text-white text-xs px-2 py-1 rounded font-bold">
-                            {submission.isVideo ? '📹 VIDEO' : '🎵 AUDIO'}
-                          </div>
-                        </div>
                       </div>
                     ) : (
                       <div className="h-72 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg flex items-center justify-center mb-6 border border-silver/20">
                         <div className="flex flex-col items-center text-center">
                           <div className="vinyl-record w-20 h-20 mb-4 opacity-50">
-                            <div className="absolute inset-0 flex items-center justify-center text-2xl">🚫</div>
+                            <div className="absolute inset-0 flex items-center justify-center text-2xl">Not Available</div>
                           </div>
                           <p className="text-silver text-lg">
                             {submission.quotaExhausted ? 'Video unavailable (quota)' : 
@@ -651,7 +622,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           <p className="font-bold text-white text-xl font-rock">{submission.songName}</p>
                           <p className="text-silver text-lg font-medium">{submission.artist}</p>
                           <div className="flex items-center mt-2">
-                            <span className="text-turquoise text-sm">🎤 Performed by: </span>
+                            <span className="text-turquoise text-sm">Chosen by: </span>
                             <span className="text-white font-medium ml-1">{submission.playerName}</span>
                             {isOwnSubmission && (
                               <span className="ml-2 text-gold-record font-bold">(YOU)</span>
@@ -659,7 +630,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                           </div>
                           
                           <div className="flex items-center mt-2">
-                            <span className="text-neon-pink text-sm">📊 Votes: </span>
+                            <span className="text-neon-pink text-sm">Votes: </span>
                             <span className="text-white font-bold text-lg ml-1">{submission.votes?.length || 0}</span>
                             {submission.votes?.length > 0 && (
                               <span className="text-silver text-sm ml-2">
@@ -674,13 +645,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         {(submission.youtubeId || submission.songName) && (
                           <a 
                             href={submission.youtubeId 
-                              ? `https://www.youtube.com/watch?v=${submission.youtubeId}`
+                              ? getYouTubeWatchUrl(submission.youtubeId)
                               : `https://www.youtube.com/results?search_query=${encodeURIComponent(submission.artist + ' ' + submission.songName)}`
                             }
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="btn-stage text-sm px-4 py-2 group"
+                            className="btn-stage text-sm min-w-[120px] px-4 py-2 flex justify-center group"
                           >
                             <span className="relative z-10 flex items-center">
                               <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -698,23 +669,28 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                               e.stopPropagation();
                               setSelectedSubmission(submission.id);
                             }}
-                            className={`px-6 py-3 rounded-lg font-bold transition-all ${
-                              selectedSubmission === submission.id
-                                ? 'bg-gradient-to-r from-neon-pink to-electric-purple text-white shadow-neon-pink/50 shadow-lg'
-                                : 'bg-gradient-to-r from-vinyl-black to-stage-dark text-silver border border-electric-purple/30 hover:border-neon-pink/50 hover:text-white'
+                            className={`btn-stage text-sm min-w-[120px] px-4 py-2 flex justify-center group ${
+                              selectedSubmission === submission.id ? 'bg-gradient-to-r from-neon-pink to-electric-purple border-neon-pink text-white' : ''
                             }`}
                           >
-                            {selectedSubmission === submission.id ? (
-                              <>
-                                <span className="mr-2">✓</span>
-                                SELECTED
-                              </>
-                            ) : (
-                              <>
-                                <span className="mr-2">🎤</span>
-                                CHOOSE THIS
-                              </>
-                            )}
+                            <span className="relative z-10 flex items-center">
+                              {selectedSubmission === submission.id ? (
+                                <>
+                                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                  SELECTED
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                  </svg>
+                                  CHOOSE THIS
+                                </>
+                              )}
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                           </button>
                         )}
                       </div>
@@ -724,7 +700,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       <div className="mt-4 pt-4 border-t border-electric-purple/20">
                         <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-3 border border-electric-purple/20">
                           <p className="text-sm text-silver mb-2 flex items-center">
-                            <span className="mr-2">👥</span>
                             <span className="font-medium">Fan Votes:</span>
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -756,7 +731,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {votableSubmissions.length === 0 && (
               <div className="text-center py-12">
                 <div className="vinyl-record w-20 h-20 mx-auto mb-4 opacity-50">
-                  <div className="absolute inset-0 flex items-center justify-center text-2xl">🎭</div>
+                  <div className="absolute inset-0 flex items-center justify-center text-2xl">No songs</div>
                 </div>
                 <p className="text-silver text-lg">No performances available for voting this round.</p>
               </div>
@@ -779,9 +754,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       </>
                     ) : (
                       <>
-                        <span className="mr-3">🗳️</span>
                         CAST YOUR VOTE
-                        <span className="ml-3">🗳️</span>
                       </>
                     )}
                   </span>
@@ -789,15 +762,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 </button>
                 
                 <p className="text-sm text-silver mb-4">
-                  Select your favorite performance{isSmallGame ? "" : " from another artist"}, then cast your vote
+                  Select the best song choice{isSmallGame ? "" : " from another player"}, then cast your vote
                 </p>
                 
                 {isHost && (
                   <div className="pt-4 border-t border-electric-purple/20">
                     <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                      <span className="mr-2">🎼</span>
                       Bandleader Controls
-                      <span className="ml-2">🎼</span>
                     </p>
                     <button
                       onClick={handleEndVotingWithCountdown}
@@ -813,9 +784,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         'Countdown Active'
                       ) : (
                         <>
-                          <span className="mr-2">⏭️</span>
                           END VOTING PHASE
-                          <span className="ml-2">⏭️</span>
                         </>
                       )}
                     </button>
@@ -834,45 +803,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
           )}
         </div>
         
-        <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-6 border-t border-electric-purple/20">
-          <details className="group">
-            <summary className="text-center cursor-pointer">
-              <span className="text-silver hover:text-white transition-colors font-medium">
-                🎸 Voting Tips & Concert Etiquette 🎸
-              </span>
-            </summary>
-            <div className="mt-4 grid md:grid-cols-2 gap-4 text-sm">
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-neon-pink/20">
-                <h5 className="text-neon-pink font-semibold mb-2 flex items-center">
-                  <span className="mr-2">🎭</span>
-                  Fair Play
-                </h5>
-                <p className="text-silver">{isSmallGame ? "In intimate shows, you can vote for yourself!" : "Choose performances by other artists - no self-voting in big concerts!"}</p>
-              </div>
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-turquoise/20">
-                <h5 className="text-turquoise font-semibold mb-2 flex items-center">
-                  <span className="mr-2">🎵</span>
-                  Media Options
-                </h5>
-                <p className="text-silver">Toggle between audio and video formats to suit your data usage and preference.</p>
-              </div>
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-lime-green/20">
-                <h5 className="text-lime-green font-semibold mb-2 flex items-center">
-                  <span className="mr-2">⏱️</span>
-                  Take Your Time
-                </h5>
-                <p className="text-silver">Listen to all performances before voting. The bandleader can end voting early if needed.</p>
-              </div>
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-gold-record/20">
-                <h5 className="text-gold-record font-semibold mb-2 flex items-center">
-                  <span className="mr-2">👥</span>
-                  See Who Voted
-                </h5>
-                <p className="text-silver">Vote counts and voter lists are visible to add excitement and transparency to the show!</p>
-              </div>
-            </div>
-          </details>
-        </div>
       </div>
     </div>
   );
