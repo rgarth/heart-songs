@@ -379,7 +379,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                       </svg>
                       <span>Back to Lounge</span>
                     </button>
-                    <h3 className="text-xl font-rock text-neon-pink">SETLIST SELECTION</h3>
                     <div className="w-20"></div>
                   </div>
                   
@@ -387,7 +386,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                   {customQuestionMode ? (
                     <div className="mb-6">
                       <label className="block text-silver text-sm font-medium mb-2">
-                        Write Your Own Musical Challenge
+                        WRITE YOUR OWN QUESTION
                       </label>
                       <textarea
                         value={customQuestion}
