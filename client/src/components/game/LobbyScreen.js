@@ -1,9 +1,7 @@
-// client/src/components/game/LobbyScreen.js - Cleaner Design Edition
+// client/src/components/game/LobbyScreen.js - Using Home.js How to Play with numbered steps
 import React, { useState } from 'react';
-import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
+import { getRandomQuestion, submitCustomQuestion, leaveGame } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
-import VinylRecordWithLabel from '../VinylRecordWithLabel';
-
 
 const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -14,6 +12,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [customQuestion, setCustomQuestion] = useState('');
   const [error, setError] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [leavingGame, setLeavingGame] = useState(false);
 
   // Find current user in players list
   const currentPlayer = game.players.find(p => p.user._id === currentUser.id);
@@ -38,16 +37,27 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   // Handle leaving the game - properly remove from server
   const handleLeaveGame = async () => {
     try {
-      // If player is ready, toggle them to not ready first
-      // This removes them from the active game state
+      setLeavingGame(true);
+      
+      // Get the most up-to-date token
+      const token = currentUser.accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        console.error('No authentication token available');
+        window.location.href = '/';
+        return;
+      }
+      
+      // Call the leaveGame API to properly remove player from server
+      await leaveGame(game._id, token);
+      
+      // If player is ready, toggle them to not ready first as backup
       if (currentPlayer && currentPlayer.isReady && onToggleReady) {
         await onToggleReady();
       }
       
-      // Navigate away after a short delay to ensure server update
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      // Navigate away after successful API call
+      window.location.href = '/';
     } catch (error) {
       console.error('Error leaving game:', error);
       // Still navigate away even if there's an error
@@ -310,9 +320,22 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
             <div className="text-center mb-8">
               <button
                 onClick={handleLeaveGame}
-                className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium"
+                disabled={leavingGame}
+                className="btn-stage px-8 py-3 disabled:opacity-50 group relative overflow-hidden"
               >
-                Leave Game
+                <span className="relative z-10 flex items-center justify-center">
+                  {leavingGame ? (
+                    <>
+                      <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                      LEAVING SHOW...
+                    </>
+                  ) : (
+                    <>
+                      LEAVE SHOW
+                    </>
+                  )}
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
               </button>
               
               <div className="mt-4">
@@ -364,7 +387,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                       </svg>
                       <span>Back to Lounge</span>
                     </button>
-                    <h3 className="text-xl font-rock text-neon-pink">🎵 SETLIST SELECTION 🎵</h3>
+                    <h3 className="text-xl font-rock text-neon-pink">SETLIST SELECTION</h3>
                     <div className="w-20"></div>
                   </div>
                   
@@ -372,7 +395,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                   {customQuestionMode ? (
                     <div className="mb-6">
                       <label className="block text-silver text-sm font-medium mb-2">
-                        ✏️ Write Your Own Musical Challenge
+                        Write Your Own Musical Challenge
                       </label>
                       <textarea
                         value={customQuestion}
@@ -394,7 +417,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                             </>
                           ) : (
                             <>
-                              <span className="mr-2">💾</span>
                               Use This Question
                             </>
                           )}
@@ -411,7 +433,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                     <div className="mb-6">
                       <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
                         <div className="flex items-start">
-                          <div className="text-4xl mr-4">🎭</div>
                           <div className="flex-1">
                             <p className="text-neon-pink font-bold text-xl mb-2">{nextQuestion?.text}</p>
                             <p className="text-silver text-sm">
@@ -437,7 +458,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                             </>
                           ) : (
                             <>
-                              <span className="mr-2">🔄</span>
                               Try Different Question
                             </>
                           )}
@@ -446,7 +466,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                           onClick={() => setCustomQuestionMode(true)}
                           className="btn-electric text-sm"
                         >
-                          <span className="mr-2">✏️</span>
                           Write Custom Question
                         </button>
                       </div>
@@ -469,7 +488,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                       {!allNonHostPlayersReady && (
                         <div className="mt-3 text-center">
                           <span className="text-yellow-400 text-sm">
-                            ⚡ Note: Not all players are ready. Only ready players will join the first song.
+                            Note: Not all players are ready. Only ready players will join the first song.
                           </span>
                         </div>
                       )}
@@ -487,34 +506,60 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
           )}
         </div>
         
-        {/* Stage footer with how to play - Always visible */}
+        {/* Stage footer with how to play - COPIED EXACTLY FROM HOME.JS */}
         <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-6 border-t border-electric-purple/20">
-          <h4 className="text-lg font-rock text-center text-silver mb-8">How to Play</h4>
+          <h4 className="text-lg font-rock text-center text-silver mb-6">How to Play</h4>
           
-          <div className="grid md:grid-cols-3 gap-8 justify-items-center">
-            <div className="text-center mt-10"> {/* Added margin-top to make room for label */}
-              <VinylRecordWithLabel 
-                className="w-16 h-16" 
-                label="PICK" 
-                labelColor="text-electric-purple" 
-              />
-              <p className="text-silver mt-6">Choose tracks that answer the question</p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Step 1 - Exact copy from Home.js */}
+            <div className="bg-gradient-to-b from-electric-purple/10 to-neon-pink/10 rounded-lg p-6 text-center border border-electric-purple/20">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <VinylRecord 
+                  className="w-16 h-16"
+                  animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-black text-white drop-shadow-[0_0_2px_black] leading-none -translate-y-[1px] relative">
+                    1
+                  </span>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-electric-purple mb-2">Pick Your Songs</h3>
+              <p className="text-sm text-silver">Answer quirky questions with the perfect track</p>
             </div>
-            <div className="text-center mt-10"> {/* Added margin-top to make room for label */}
-              <VinylRecordWithLabel 
-                className="w-16 h-16" 
-                label="VOTE" 
-                labelColor="text-turquoise" 
-              />
-              <p className="text-silver mt-6">Listen and vote for favorites</p>
+            
+            {/* Step 2 - Exact copy from Home.js */}
+            <div className="bg-gradient-to-b from-turquoise/10 to-lime-green/10 rounded-lg p-6 text-center border border-turquoise/20">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <VinylRecord 
+                  className="w-16 h-16"
+                  animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-black text-white drop-shadow-[0_0_2px_black] leading-none -translate-y-[1px] relative">
+                    2
+                  </span>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-turquoise mb-2">Vote & Vibe</h3>
+              <p className="text-sm text-silver">Listen to everyone's picks and vote for favorites</p>
             </div>
-            <div className="text-center mt-10"> {/* Added margin-top to make room for label */}
-              <VinylRecordWithLabel 
-                className="w-16 h-16" 
-                label="WIN" 
-                labelColor="text-gold-record" 
-              />
-              <p className="text-silver mt-6">Score points and dominate</p>
+            
+            {/* Step 3 - Exact copy from Home.js */}
+            <div className="bg-gradient-to-b from-gold-record/10 to-yellow-400/10 rounded-lg p-6 text-center border border-gold-record/20">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <VinylRecord 
+                  className="w-16 h-16"
+                  animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-black text-white drop-shadow-[0_0_2px_black] leading-none -translate-y-[1px] relative">
+                    3
+                  </span>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gold-record mb-2">Win the Crowd</h3>
+              <p className="text-sm text-silver">Score points and become the ultimate music maestro</p>
             </div>
           </div>
         </div>
@@ -540,7 +585,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                   onClick={confirmStart}
                   className="btn-gold px-6"
                 >
-                  🚀 Rock & Roll!
+                  Rock & Roll!
                 </button>
               </div>
             </div>

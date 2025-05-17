@@ -1,4 +1,4 @@
-// client/src/components/Header.js - Updated with game leave functionality
+// client/src/components/Header.js - Fixed non-clickable logo and hover effect
 import React, { useContext, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -64,14 +64,14 @@ const Header = ({ gameCode }) => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center py-4">
             
-            {/* Logo - Spinning vinyl record with neon glow */}
-            <div className="flex items-center cursor-pointer group" onClick={handleGoHome}>
-              <div className="relative mr-6">
+            {/* Logo - Spinning vinyl record with neon glow - REMOVED CLICKABLE BEHAVIOR */}
+            <div className="flex items-center">
+              <div className="relative mr-6 group"> {/* Group for hover effects */}
                 {/* Glow effect behind the vinyl */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 blur-lg scale-125 group-hover:scale-150 transition-all duration-300"></div>
                 
-                {/* Animated glow ring */}
-                <div className="absolute inset-0 rounded-full border-2 border-neon-pink/30 animate-pulse group-hover:border-electric-purple/50 transition-all"></div>
+                {/* Animated glow ring - FIXED HOVER EFFECT */}
+                <div className="absolute inset-0 rounded-full border-2 border-neon-pink/30 group-hover:border-electric-purple/50 transition-all"></div>
                 
                 <VinylRecord 
                   className="w-12 h-12 relative z-10"
@@ -115,11 +115,27 @@ const Header = ({ gameCode }) => {
                     <span className="ml-2 text-gold-record font-bold">{user.score || 0}</span>
                   </div>
                 </div>
+                
+                {/* Go Home Button */}
+                <button 
+                  onClick={handleGoHome}
+                  className="btn-electric py-2 px-4 mr-2 group relative overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    HOME
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+                
+                {/* Themed logout button */}
                 <button 
                   onClick={handleLogout}
-                  className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium text-sm hover:shadow-lg hover:shadow-stage-red/50"
+                  className="btn-stage py-2 px-4 group relative overflow-hidden"
                 >
-                  LOGOUT
+                  <span className="relative z-10 flex items-center justify-center">
+                    LOGOUT
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </button>
               </div>
             )}
@@ -160,16 +176,22 @@ const Header = ({ gameCode }) => {
                   <div className="flex flex-col gap-2">
                     <button 
                       onClick={handleGoHome}
-                      className="py-2 px-4 bg-gradient-to-r from-electric-purple to-neon-pink text-white rounded-full hover:from-neon-pink hover:to-electric-purple transition-all font-medium text-sm hover:shadow-lg hover:shadow-electric-purple/50"
-                      title={isOnGamePage ? "Leave game and go home" : "Go to home page"}
+                      className="btn-electric py-2 px-4 text-sm group relative overflow-hidden"
+                      title="Go to home page"
                     >
-                      {isOnGamePage ? "LEAVE GAME" : "HOME"}
+                      <span className="relative z-10 flex items-center justify-center">
+                        HOME
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     </button>
                     <button 
                       onClick={handleLogout}
-                      className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium text-sm hover:shadow-lg hover:shadow-stage-red/50"
+                      className="btn-stage py-2 px-4 text-sm group relative overflow-hidden"
                     >
-                      LOGOUT
+                      <span className="relative z-10 flex items-center justify-center">
+                        LOGOUT
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     </button>
                   </div>
                 </div>
@@ -180,7 +202,7 @@ const Header = ({ gameCode }) => {
                 <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0">
-                      <div className="text-silver text-sm font-medium mb-1">🎟️ GAME CODE</div>
+                      <div className="text-silver text-sm font-medium mb-1">GAME CODE</div>
                       <div className="flex items-center">
                         <span className="text-3xl font-rock neon-gold tracking-widest font-mono">
                           {gameCode}
