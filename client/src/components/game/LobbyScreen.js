@@ -2,8 +2,10 @@
 import React, { useState } from 'react';
 import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
+import VinylRecordWithLabel from '../VinylRecordWithLabel';
 
-const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
+
+const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [nextQuestion, setNextQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,26 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
   
   // Total non-host players
   const totalNonHostPlayers = game.players.length - 1;
+
+  // Handle leaving the game - properly remove from server
+  const handleLeaveGame = async () => {
+    try {
+      // If player is ready, toggle them to not ready first
+      // This removes them from the active game state
+      if (currentPlayer && currentPlayer.isReady && onToggleReady) {
+        await onToggleReady();
+      }
+      
+      // Navigate away after a short delay to ensure server update
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
+    } catch (error) {
+      console.error('Error leaving game:', error);
+      // Still navigate away even if there's an error
+      window.location.href = '/';
+    }
+  };
 
   // Copy game code to clipboard
   const copyGameCode = () => {
@@ -283,46 +305,20 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
             </div>
           </div>
           
-          {/* Player controls - Non-host */}
+          {/* Player controls - Leave game button for non-host */}
           {currentPlayer && !isHost && (
             <div className="text-center mb-8">
               <button
-                onClick={onToggleReady}
-                disabled={!hasEnoughPlayers && !currentPlayer.isReady}
-                className={`btn-rockstar relative overflow-hidden group ${
-                  currentPlayer.isReady 
-                    ? 'bg-gradient-to-r from-stage-red to-red-600 hover:from-red-700 hover:to-stage-red' 
-                    : hasEnoughPlayers
-                      ? 'bg-gradient-to-r from-lime-green to-green-600 hover:from-green-600 hover:to-lime-green'
-                      : 'bg-gray-600 cursor-not-allowed opacity-50'
-                }`}
+                onClick={handleLeaveGame}
+                className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium"
               >
-                <span className="relative z-10 flex items-center justify-center">
-                  {currentPlayer.isReady ? (
-                    <>
-                      <span className="mr-2">⏹️</span>
-                      LEAVE STAGE
-                      <span className="ml-2">⏹️</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="mr-2">🚀</span>
-                      JOIN THE JAM
-                      <span className="ml-2">🚀</span>
-                    </>
-                  )}
-                </span>
-                {hasEnoughPlayers && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                )}
+                Leave Game
               </button>
               
               <div className="mt-4">
                 {allNonHostPlayersReady ? (
                   <div className="inline-flex items-center bg-lime-green/20 rounded-full px-4 py-2 border border-lime-green/40">
-                    <span className="text-lime-green mr-2">✨</span>
-                    <span className="text-lime-green font-medium">Everyone's ready! Waiting for the bandleader...</span>
-                    <span className="text-lime-green ml-2">✨</span>
+                    <span className="text-lime-green font-medium">Waiting for the game to start...</span>
                   </div>
                 ) : (
                   <div className="inline-flex items-center bg-electric-purple/20 rounded-full px-4 py-2 border border-electric-purple/40">
@@ -346,34 +342,13 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
                         className="btn-electric group relative overflow-hidden"
                       >
                         <span className="relative z-10 flex items-center justify-center">
-                          <span className="mr-3">🎯</span>
-                          CHOOSE SETLIST & START SHOW
-                          <span className="ml-3">🎯</span>
+                          CHOOSE THE FIRST QUESTION
                         </span>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                       </button>
                     )}
                   </div>
                   
-                  <div className="mt-4">
-                    {!hasEnoughPlayers ? (
-                      <div className="inline-flex items-center bg-stage-red/20 rounded-full px-4 py-2 border border-stage-red/40">
-                        <span className="text-stage-red mr-2">⚠️</span>
-                        <span className="text-stage-red font-medium">Need at least 2 players to start the show</span>
-                        <span className="text-stage-red ml-2">⚠️</span>
-                      </div>
-                    ) : allNonHostPlayersReady ? (
-                      <div className="inline-flex items-center bg-gold-record/20 rounded-full px-4 py-2 border border-gold-record/40">
-                        <span className="text-gold-record mr-2">🎤</span>
-                        <span className="text-gold-record font-medium">Band is ready! Choose your setlist to begin</span>
-                        <span className="text-gold-record ml-2">🎤</span>
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center bg-electric-purple/20 rounded-full px-4 py-2 border border-electric-purple/40">
-                        <span className="text-silver">{readyCount}/{totalNonHostPlayers} players ready for the show</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
               ) : (
                 /* Question selection - Mixing board style */
@@ -486,9 +461,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
                         className="btn-gold group relative overflow-hidden"
                       >
                         <span className="relative z-10 flex items-center justify-center">
-                          <span className="mr-3">🚀</span>
-                          START THE SHOW
-                          <span className="ml-3">🚀</span>
+                          START ROUND 1
                         </span>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                       </button>
@@ -512,55 +485,38 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
               )}
             </>
           )}
-          
-          {/* Game information - Hidden until needed */}
-          {(!hasEnoughPlayers || game.players.length < 3) && (
-            <div className="mt-8 bg-gradient-to-r from-turquoise/10 to-lime-green/10 rounded-lg p-4 border border-turquoise/30">
-              <h4 className="text-turquoise font-semibold mb-2 text-center">🎵 Concert Info 🎵</h4>
-              <div className="text-sm text-silver space-y-2">
-                {!hasEnoughPlayers && (
-                  <div className="flex items-center">
-                    <span className="text-stage-red mr-2">⚠️</span>
-                    <span>Need <strong>2+ players</strong> for the show to begin</span>
-                  </div>
-                )}
-                {game.players.length < 3 && hasEnoughPlayers && (
-                  <div className="flex items-center">
-                    <span className="text-turquoise mr-2">ℹ️</span>
-                    <span>In small concerts (2 players), you can vote for your own performance</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
         
-        {/* Stage footer with how to play */}
+        {/* Stage footer with how to play - Always visible */}
         <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-6 border-t border-electric-purple/20">
-          <details className="group">
-            <summary className="text-center cursor-pointer">
-              <span className="text-silver hover:text-white transition-colors font-medium">
-                🎸 How to Rock the Stage 🎸
-              </span>
-            </summary>
-            <div className="mt-4 grid md:grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <div className="text-2xl mb-2">🎵</div>
-                <h5 className="text-electric-purple font-semibold mb-1">Pick Songs</h5>
-                <p className="text-silver">Choose tracks that answer the question</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl mb-2">🗳️</div>
-                <h5 className="text-turquoise font-semibold mb-1">Vote</h5>
-                <p className="text-silver">Listen and vote for favorites</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl mb-2">🏆</div>
-                <h5 className="text-gold-record font-semibold mb-1">Win</h5>
-                <p className="text-silver">Score points and dominate</p>
-              </div>
+          <h4 className="text-lg font-rock text-center text-silver mb-8">How to Play</h4>
+          
+          <div className="grid md:grid-cols-3 gap-8 justify-items-center">
+            <div className="text-center mt-10"> {/* Added margin-top to make room for label */}
+              <VinylRecordWithLabel 
+                className="w-16 h-16" 
+                label="PICK" 
+                labelColor="text-electric-purple" 
+              />
+              <p className="text-silver mt-6">Choose tracks that answer the question</p>
             </div>
-          </details>
+            <div className="text-center mt-10"> {/* Added margin-top to make room for label */}
+              <VinylRecordWithLabel 
+                className="w-16 h-16" 
+                label="VOTE" 
+                labelColor="text-turquoise" 
+              />
+              <p className="text-silver mt-6">Listen and vote for favorites</p>
+            </div>
+            <div className="text-center mt-10"> {/* Added margin-top to make room for label */}
+              <VinylRecordWithLabel 
+                className="w-16 h-16" 
+                label="WIN" 
+                labelColor="text-gold-record" 
+              />
+              <p className="text-silver mt-6">Score points and dominate</p>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -569,8 +525,7 @@ const LobbyScreen = ({ game, currentUser, onToggleReady, onStartGame }) => {
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg p-6 max-w-md w-full border border-gold-record/40 shadow-2xl">
             <div className="text-center">
-              <div className="text-4xl mb-4">🎭</div>
-              <h3 className="text-xl font-rock text-gold-record mb-4">START THE SHOW ANYWAY?</h3>
+              <h3 className="text-xl font-rock text-gold-record mb-4">START THE ROUND ANYWAY?</h3>
               <p className="text-silver mb-6">
                 Some band members aren't ready yet. Only prepared players will join the opening number.
               </p>

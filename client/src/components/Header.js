@@ -1,7 +1,8 @@
-// client/src/components/Header.js - Updated with Leave Game button and themed buttons
+// client/src/components/Header.js - Updated with game leave functionality
 import React, { useContext, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { leaveGame } from '../services/gameService';
 import VinylRecord from './VinylRecord';
 
 const Header = ({ gameCode }) => {
@@ -11,21 +12,36 @@ const Header = ({ gameCode }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   
-  // Check if we're in a game
-  const isInGame = location.pathname.startsWith('/game/');
+  // Check if we're on a game page
+  const isOnGamePage = location.pathname.startsWith('/game/');
   
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
   
-  const handleGoHome = () => {
+  const handleGoHome = async () => {
+    // If on a game page and there's a game code, try to leave the game properly
+    if (isOnGamePage && gameCode) {
+      try {
+        // Extract game ID from the current path
+        const gameId = location.pathname.split('/game/')[1];
+        
+        // Get token
+        const token = localStorage.getItem('accessToken');
+        
+        if (gameId && token) {
+          // Try to leave the game
+          await leaveGame(gameId, token);
+        }
+      } catch (error) {
+        console.error('Error leaving game from header:', error);
+        // Continue to navigate even if leaving fails
+      }
+    }
+    
+    // Navigate to home
     navigate('/');
-  };
-  
-  const handleLeaveGame = () => {
-    navigate('/');
-    setMenuOpen(false); // Close menu after leaving
   };
 
   // Copy game code to clipboard
@@ -99,37 +115,19 @@ const Header = ({ gameCode }) => {
                     <span className="ml-2 text-gold-record font-bold">{user.score || 0}</span>
                   </div>
                 </div>
-                
-                {/* Desktop action buttons */}
-                <div className="flex items-center gap-3">
-                  {isInGame && (
-                    <button 
-                      onClick={handleLeaveGame}
-                      className="btn-electric text-sm px-4 py-2 group relative overflow-hidden"
-                    >
-                      <span className="relative z-10 flex items-center">
-                        LEAVE GAME
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                    </button>
-                  )}
-                  <button 
-                    onClick={handleLogout}
-                    className="btn-stage text-sm px-4 py-2 group relative overflow-hidden"
-                  >
-                    <span className="relative z-10 flex items-center">
-                      LOGOUT
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                  </button>
-                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium text-sm hover:shadow-lg hover:shadow-stage-red/50"
+                >
+                  LOGOUT
+                </button>
               </div>
             )}
           </div>
         </div>
       </header>
       
-      {/* Mobile dropdown menu */}
+      {/* Dropdown menu */}
       {menuOpen && user && (
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black py-4 px-4 shadow-inner shadow-electric-purple/20 border-b border-electric-purple/20">
           <div className="container mx-auto">
@@ -156,37 +154,22 @@ const Header = ({ gameCode }) => {
                       <div className="flex items-center">
                         <span className="text-silver text-sm">SCORE:</span>
                         <span className="ml-2 text-gold-record font-bold text-lg">{user.score || 0}</span>
-                        <div className="ml-2 flex">
-                          <span className="text-gold-record animate-pulse">♪</span>
-                          <span className="text-neon-pink animate-pulse" style={{animationDelay: '0.5s'}}>♫</span>
-                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Mobile action buttons */}
-                  <div className="flex items-center gap-3">
-                    {isInGame && (
-                      <button 
-                        onClick={handleLeaveGame}
-                        className="btn-electric text-sm px-4 py-2 group relative overflow-hidden"
-                      >
-                        <span className="relative z-10 flex items-center">
-                          <span className="mr-2">🚪</span>
-                          LEAVE
-                        </span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                      </button>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={handleGoHome}
+                      className="py-2 px-4 bg-gradient-to-r from-electric-purple to-neon-pink text-white rounded-full hover:from-neon-pink hover:to-electric-purple transition-all font-medium text-sm hover:shadow-lg hover:shadow-electric-purple/50"
+                      title={isOnGamePage ? "Leave game and go home" : "Go to home page"}
+                    >
+                      {isOnGamePage ? "LEAVE GAME" : "HOME"}
+                    </button>
                     <button 
                       onClick={handleLogout}
-                      className="btn-stage text-sm px-4 py-2 group relative overflow-hidden"
+                      className="py-2 px-4 bg-gradient-to-r from-stage-red to-red-600 text-white rounded-full hover:from-red-600 hover:to-stage-red transition-all font-medium text-sm hover:shadow-lg hover:shadow-stage-red/50"
                     >
-                      <span className="relative z-10 flex items-center">
-                        <span className="mr-2">👋</span>
-                        LOGOUT
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      LOGOUT
                     </button>
                   </div>
                 </div>

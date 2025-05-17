@@ -39,7 +39,6 @@ const Game = () => {
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
-  const [copySuccess, setCopySuccess] = useState(false);
   
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
@@ -190,18 +189,6 @@ const Game = () => {
   }, [fetchGameState, error, game?.status]);
   
   // ALL YOUR HANDLER FUNCTIONS GO HERE (keeping them as they are)
-  // Copy game code to clipboard
-  const copyGameCode = () => {
-    if (!game || !game.gameCode) return;
-    
-    try {
-      navigator.clipboard.writeText(game.gameCode);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
   
   // Handle ready toggle
   const handleToggleReady = async () => {
