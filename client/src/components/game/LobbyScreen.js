@@ -26,14 +26,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   // Check if there are at least 2 players
   const hasEnoughPlayers = game.players.length >= 2;
   
-  // Count of ready players (excluding host)
-  const readyCount = game.players
-    .filter(p => p.user._id !== game.host._id)
-    .filter(p => p.isReady).length;
-  
-  // Total non-host players
-  const totalNonHostPlayers = game.players.length - 1;
-
   // Handle leaving the game - properly remove from server
   const handleLeaveGame = async () => {
     try {
