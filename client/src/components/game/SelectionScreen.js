@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { submitSong, startEndSelectionCountdown } from '../../services/gameService';
 import { searchSongs } from '../../services/musicService';
+import VinylRecord from '../VinylRecord';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,7 +199,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
           {/* Stage header */}
           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
             <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-              🎤 SONG SELECTION 🎤
+              SONG SELECTION
             </h2>
             
             <div className="text-center mt-4">
@@ -211,14 +212,20 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
           <div className="p-8 text-center">
             {/* Observation mode indicator */}
             <div className="mb-6">
-              <div className="vinyl-record w-24 h-24 mx-auto mb-4 opacity-50">
-                <div className="absolute inset-0 flex items-center justify-center text-2xl">👀</div>
+              <div className="relative w-24 h-24 mx-auto">
+                <VinylRecord 
+                  className="w-24 h-24 opacity-50" 
+                  animationClass=""
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-2xl">
+                  <span className="text-silver">OBSERVE</span>
+                </div>
               </div>
             </div>
             
             <h3 className="text-2xl font-rock text-electric-purple mb-4">BACKSTAGE OBSERVER</h3>
             <p className="text-silver text-lg mb-4">
-              You weren't ready when the bandleader started this set, so you're watching from the wings.
+              You weren't ready when the MC started this set, so you're watching from the wings.
             </p>
             <p className="text-turquoise text-sm mb-8">
               You'll be able to join the next song when the host starts it.
@@ -227,7 +234,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             {/* Host controls for ending selection */}
             {isHost && (
               <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                <h4 className="text-lg font-rock text-gold-record mb-4">🎛️ BANDLEADER CONTROLS 🎛️</h4>
+                <h4 className="text-lg font-rock text-gold-record mb-4">MC CONTROLS</h4>
                 <button
                   onClick={handleEndSelectionWithCountdown}
                   disabled={isStartingCountdown || game.countdown?.isActive}
@@ -235,21 +242,24 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 >
                   {isStartingCountdown ? (
                     <>
-                      <div className="vinyl-record w-5 h-5 animate-spin mr-3 inline-block"></div>
+                      <div className="relative w-5 h-5 mr-3 inline-block">
+                        <VinylRecord 
+                          className="w-5 h-5" 
+                          animationClass="animate-vinyl-spin"
+                        />
+                      </div>
                       STARTING COUNTDOWN...
                     </>
                   ) : game.countdown?.isActive ? (
-                    'COUNTDOWN ACTIVE ⏰'
+                    'COUNTDOWN ACTIVE'
                   ) : (
                     <>
-                      <span className="mr-3">⏰</span>
                       END SONG SELECTION
-                      <span className="ml-3">⏰</span>
                     </>
                   )}
                 </button>
                 <p className="text-xs text-silver mt-3">
-                  🎭 Force all non-submitted players to sit this one out
+                  Force all non-submitted players to sit this one out
                 </p>
                 {countdownError && (
                   <div className="mt-3 p-3 bg-red-900/50 text-red-200 rounded text-sm">
@@ -262,9 +272,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             {/* Show player progress */}
             <div className="mt-8 bg-gradient-to-r from-turquoise/10 to-lime-green/10 rounded-lg p-4 border border-turquoise/30">
               <div className="flex items-center justify-center text-silver">
-                <span className="mr-2">🎵</span>
                 <span>{submittedCount} of {totalPlayers} players have submitted songs</span>
-                <span className="ml-2">🎵</span>
               </div>
             </div>
           </div>
@@ -280,10 +288,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
         
         {/* Stage header */}
         <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
-          <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-            🎸 ROCK THE PLAYLIST 🎸
-          </h2>
-          
           <div className="text-center mt-4">
             <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
               <p className="text-gold-record font-bold text-xl">{game.currentQuestion.text}</p>
@@ -297,9 +301,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
           {hasActivePlayers && game.activePlayers.length < game.players.length && (
             <div className="mb-6 bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30">
               <div className="flex items-center text-purple-200">
-                <span className="mr-2">🎤</span>
                 <span className="font-medium">
-                  This set features {game.activePlayers.length} out of {game.players.length} band members. 
+                  This set features {game.activePlayers.length} out of {game.players.length} band members.
                   Only players who were ready when the show started are performing.
                 </span>
               </div>
@@ -309,14 +312,12 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
           {/* Player progress - Concert style */}
           <div className="mb-6 flex justify-between items-center">
             <div className="flex items-center">
-              <span className="text-turquoise mr-2">🎼</span>
-              <span className="text-silver">Pick a song that rocks this question</span>
             </div>
             <div className="bg-gradient-to-r from-deep-space to-stage-dark rounded-full px-4 py-2 border border-electric-purple/30">
               <span className="text-gold-record font-bold">{submittedCount}</span>
               <span className="text-silver mx-1">/</span>
               <span className="text-silver">{totalPlayers}</span>
-              <span className="text-turquoise ml-2">submitted 🎵</span>
+              <span className="text-turquoise ml-2">submitted</span>
             </div>
           </div>
           
@@ -325,34 +326,37 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             <div className="text-center py-12">
               <div className="mb-6">
                 {hasPassed ? (
-                  <div className="vinyl-record w-20 h-20 mx-auto opacity-60">
-                    <div className="absolute inset-0 flex items-center justify-center text-3xl">⏭️</div>
+                  <div className="relative w-20 h-20 mx-auto">
+                    <VinylRecord 
+                      className="w-20 h-20 opacity-60" 
+                      animationClass=""
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center text-3xl">
+                      <span className="text-silver">PASS</span>
+                    </div>
                   </div>
                 ) : (
-                  <div className="vinyl-record w-20 h-20 mx-auto animate-vinyl-spin">
-                    <div className="absolute inset-0 flex items-center justify-center text-3xl">✅</div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-lime-green rounded-full flex items-center justify-center animate-pulse">
-                      <span className="text-vinyl-black font-bold">✓</span>
-                    </div>
+                  <div className="relative w-20 h-20 mx-auto">
+                    <VinylRecord 
+                      className="w-20 h-20" 
+                      animationClass="animate-vinyl-spin"
+                    />
                   </div>
                 )}
               </div>
               
               <h3 className="text-2xl font-rock text-center mb-4">
                 {hasPassed ? (
-                  <span className="text-silver">🚫 PASSED ON THIS TRACK 🚫</span>
+                  <span className="text-silver">PASSED ON THIS TRACK</span>
                 ) : (
-                  <span className="text-lime-green">🎤 SONG SUBMITTED! 🎤</span>
+                  <span className="text-lime-green">SONG SUBMITTED!</span>
                 )}
               </h3>
               
               {!hasPassed && speedBonusEarned && (
                 <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 rounded-lg p-4 border border-gold-record/40 inline-block mb-4">
                   <div className="flex items-center text-gold-record font-bold">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                    </svg>
-                    <span>⚡ SPEED BONUS EARNED! (+1 point) ⚡</span>
+                    <span>SPEED BONUS (+1 point)</span>
                   </div>
                 </div>
               )}
@@ -360,18 +364,13 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border border-electric-purple/30 max-w-md mx-auto">
                 {hasPassed ? (
                   <p className="text-silver">
-                    You passed on this question. Waiting for other bandmates to submit their tracks...
+                    You passed on this question. Waiting for other players ...
                   </p>
                 ) : (
                   <div>
                     <p className="text-silver mb-3">
-                      Waiting for other bandmates to submit their tracks...
+                      Waiting for other players ...
                     </p>
-                    <div className="flex items-center justify-center text-xs">
-                      <span className="text-turquoise mr-2">🎵</span>
-                      <span className="text-silver">Audio will be prioritized during voting to save data</span>
-                      <span className="text-turquoise ml-2">🎵</span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -379,7 +378,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {/* Host controls when user has submitted */}
               {isHost && (
                 <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                  <h4 className="text-lg font-rock text-gold-record mb-4">🎛️ BANDLEADER CONTROLS 🎛️</h4>
+                  <h4 className="text-lg font-rock text-gold-record mb-4">MC CONTROLS</h4>
                   <button
                     onClick={handleEndSelectionWithCountdown}
                     disabled={isStartingCountdown || game.countdown?.isActive}
@@ -387,21 +386,24 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                   >
                     {isStartingCountdown ? (
                       <>
-                        <div className="vinyl-record w-5 h-5 animate-spin mr-3 inline-block"></div>
+                        <div className="relative w-5 h-5 mr-3 inline-block">
+                          <VinylRecord 
+                            className="w-5 h-5" 
+                            animationClass="animate-vinyl-spin"
+                          />
+                        </div>
                         STARTING COUNTDOWN...
                       </>
                     ) : game.countdown?.isActive ? (
-                      'COUNTDOWN ACTIVE ⏰'
+                      'COUNTDOWN ACTIVE'
                     ) : (
                       <>
-                        <span className="mr-3">⏰</span>
                         END SONG SELECTION
-                        <span className="ml-3">⏰</span>
                       </>
                     )}
                   </button>
                   <p className="text-xs text-silver mt-3">
-                    🎭 Force all non-submitted players to pass
+                    Force all non-submitted players to pass
                   </p>
                   {countdownError && (
                     <div className="mt-3 p-3 bg-red-900/50 text-red-200 rounded text-sm">
@@ -415,7 +417,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             <>
               {/* Search section - Mixing board style */}
               <div className="mb-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                <h3 className="text-lg font-rock text-neon-pink mb-4 text-center">🔍 FIND YOUR ANTHEM 🔍</h3>
+                <h3 className="text-lg font-rock text-neon-pink mb-4 text-center">FIND YOUR SONG</h3>
                 
                 <form onSubmit={handleSearch} className="space-y-4">
                   <div className="relative">
@@ -427,7 +429,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       className="w-full p-4 bg-vinyl-black text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all font-concert text-lg placeholder-silver/50"
                     />
                     <div className="absolute inset-y-0 right-4 flex items-center text-electric-purple">
-                      <span>🎵</span>
+                      <span>SEARCH</span>
                     </div>
                   </div>
                   
@@ -439,14 +441,17 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                     <span className="relative z-10 flex items-center justify-center">
                       {searchLoading ? (
                         <>
-                          <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                          <div className="relative w-5 h-5 mr-3">
+                            <VinylRecord 
+                              className="w-5 h-5" 
+                              animationClass="animate-vinyl-spin"
+                            />
+                          </div>
                           SEARCHING THE VAULT...
                         </>
                       ) : (
                         <>
-                          <span className="mr-3">🔍</span>
                           SEARCH SONGS
-                          <span className="ml-3">🔍</span>
                         </>
                       )}
                     </span>
@@ -459,7 +464,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {searchError && (
                 <div className="mb-6 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-4">
                   <div className="flex items-center text-stage-red">
-                    <span className="mr-2">⚠️</span>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
                     <span className="font-medium">{searchError}</span>
                   </div>
                 </div>
@@ -468,7 +475,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {duplicateError && (
                 <div className="mb-6 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-600/40 rounded-lg p-4">
                   <div className="flex items-center text-yellow-400">
-                    <span className="mr-2">🎵</span>
                     <span className="font-medium">{duplicateError}</span>
                   </div>
                 </div>
@@ -477,7 +483,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {/* Selected song - Featured track */}
               {selectedSong && (
                 <div className="mb-8 bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
-                  <h3 className="text-lg font-rock text-lime-green mb-4 text-center">🎸 YOUR SELECTED TRACK 🎸</h3>
+                  <h3 className="text-lg font-rock text-lime-green mb-4 text-center">YOUR SELECTED TRACK</h3>
                   
                   <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30">
                     <div className="flex items-center">
@@ -488,9 +494,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                             alt={selectedSong.name} 
                             className="w-20 h-20 rounded-lg border-2 border-gold-record"
                           />
-                          <div className="absolute -top-2 -right-2 w-8 h-8 bg-lime-green rounded-full flex items-center justify-center animate-pulse">
-                            <span className="text-vinyl-black font-bold">♪</span>
-                          </div>
                         </div>
                       )}
                       <div className="flex-1">
@@ -507,12 +510,16 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       >
                         {isSubmitting ? (
                           <>
-                            <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                            <div className="relative w-5 h-5 mr-2 inline-block">
+                              <VinylRecord 
+                                className="w-5 h-5" 
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
                             SUBMITTING...
                           </>
                         ) : (
                           <>
-                            <span className="mr-2">🚀</span>
                             SUBMIT TRACK
                           </>
                         )}
@@ -520,12 +527,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                     </div>
                   </div>
                   
-                  <div className="mt-3 text-center">
-                    <div className="inline-flex items-center bg-turquoise/10 rounded-full px-3 py-1 border border-turquoise/30">
-                      <span className="text-turquoise text-xs mr-1">💡</span>
-                      <span className="text-turquoise text-xs">Audio versions will be featured during voting by default</span>
-                    </div>
-                  </div>
                 </div>
               )}
               
@@ -533,9 +534,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {searchResults.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-lg font-rock text-neon-pink mb-4 text-center flex items-center justify-center">
-                    <span className="mr-2">🎼</span>
                     TRACK COLLECTION
-                    <span className="ml-2">🎼</span>
                   </h3>
                   
                   <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
@@ -578,7 +577,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                               )}
                               {isAlreadySelected && (
                                 <div className="flex items-center mt-2">
-                                  <span className="text-stage-red text-xs mr-1">🚫</span>
                                   <span className="text-stage-red text-xs font-medium">Already selected by another player</span>
                                 </div>
                               )}
@@ -588,7 +586,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                               <div className="text-right">
                                 {isCurrentSelection ? (
                                   <div className="flex items-center text-lime-green font-bold">
-                                    <span className="mr-1">✅</span>
+                                    <span className="mr-1">✓</span>
                                     <span>SELECTED</span>
                                   </div>
                                 ) : (
@@ -611,16 +609,11 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 {isPassConfirmShowing ? (
                   <div className="bg-gradient-to-r from-deep-space/80 to-stage-dark/80 rounded-lg p-6 border border-yellow-600/40">
                     <div className="text-center">
-                      <div className="text-4xl mb-4">🎭</div>
+                      <div className="text-4xl mb-4">PASS</div>
                       <h4 className="text-xl font-rock text-yellow-400 mb-4">SIT THIS ONE OUT?</h4>
                       <p className="text-silver mb-4">
                         Are you sure you want to pass on this question?
                       </p>
-                      <div className="bg-yellow-600/10 rounded-lg p-3 mb-6 border border-yellow-600/30">
-                        <p className="text-yellow-300 text-sm">
-                          ⚡ Note: You won't get a speed bonus and there will be fewer songs to vote for.
-                        </p>
-                      </div>
                       <div className="flex gap-4 justify-center">
                         <button
                           onClick={handlePass}
@@ -629,12 +622,16 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                         >
                           {isSubmitting ? (
                             <>
-                              <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                              <div className="relative w-5 h-5 mr-2 inline-block">
+                                <VinylRecord 
+                                  className="w-5 h-5" 
+                                  animationClass="animate-vinyl-spin"
+                                />
+                              </div>
                               PASSING...
                             </>
                           ) : (
                             <>
-                              <span className="mr-2">🚫</span>
                               YES, PASS
                             </>
                           )}
@@ -643,7 +640,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                           onClick={() => setIsPassConfirmShowing(false)}
                           className="btn-electric"
                         >
-                          <span className="mr-2">🎸</span>
                           CANCEL
                         </button>
                       </div>
@@ -655,7 +651,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       onClick={() => setIsPassConfirmShowing(true)}
                       className="bg-gradient-to-r from-deep-space to-stage-dark text-silver border border-electric-purple/30 hover:border-yellow-600/50 px-6 py-3 rounded-lg font-medium text-sm transition-all hover:text-yellow-400"
                     >
-                      <span className="mr-2">🎭</span>
                       Sit this one out
                     </button>
                     <p className="text-xs text-silver mt-2">Not feeling this question? You can pass and wait for the next round</p>
@@ -666,7 +661,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {/* Host controls for ending selection */}
               {isHost && (
                 <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                  <h4 className="text-lg font-rock text-gold-record mb-4 text-center">🎛️ BANDLEADER CONTROLS 🎛️</h4>
+                  <h4 className="text-lg font-rock text-gold-record mb-4 text-center">MC CONTROLS</h4>
                   <div className="text-center">
                     <button
                       onClick={handleEndSelectionWithCountdown}
@@ -676,23 +671,26 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       <span className="relative z-10 flex items-center justify-center">
                         {isStartingCountdown ? (
                           <>
-                            <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                            <div className="relative w-5 h-5 mr-3">
+                              <VinylRecord 
+                                className="w-5 h-5" 
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
                             STARTING COUNTDOWN...
                           </>
                         ) : game.countdown?.isActive ? (
-                          'COUNTDOWN ACTIVE ⏰'
+                          'COUNTDOWN ACTIVE'
                         ) : (
                           <>
-                            <span className="mr-3">⏰</span>
                             END SONG SELECTION
-                            <span className="ml-3">⏰</span>
                           </>
                         )}
                       </span>
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     </button>
                     <p className="text-xs text-silver mt-3">
-                      🎭 Force all non-submitted players to pass on this question
+                      Force all non-submitted players to pass on this question
                     </p>
                     {countdownError && (
                       <div className="mt-3 p-3 bg-red-900/50 text-red-200 rounded text-sm">
@@ -707,7 +705,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
               {error && (
                 <div className="mt-6 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-4">
                   <div className="flex items-center text-stage-red">
-                    <span className="mr-2">⚠️</span>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
                     <span className="font-medium">{error}</span>
                   </div>
                 </div>
@@ -715,47 +715,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             </>
           )}
         </div>
-        
-        {/* Stage footer with tips */}
-        <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-6 border-t border-electric-purple/20">
-          <details className="group">
-            <summary className="text-center cursor-pointer">
-              <span className="text-silver hover:text-white transition-colors font-medium">
-                🎸 Selection Tips & Tricks 🎸
-              </span>
-            </summary>
-            <div className="mt-4 grid md:grid-cols-2 gap-4 text-sm">
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-turquoise/20">
-                <h5 className="text-turquoise font-semibold mb-2 flex items-center">
-                  <span className="mr-2">⚡</span>
-                  Speed Bonus
-                </h5>
-                <p className="text-silver">First to submit gets +1 point! Race to find the perfect track.</p>
-              </div>
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-gold-record/20">
-                <h5 className="text-gold-record font-semibold mb-2 flex items-center">
-                  <span className="mr-2">🎵</span>
-                  Audio First
-                </h5>
-                <p className="text-silver">Songs will be shown as audio during voting by default to save data.</p>
-              </div>
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-neon-pink/20">
-                <h5 className="text-neon-pink font-semibold mb-2 flex items-center">
-                  <span className="mr-2">🎭</span>
-                  Pass Option
-                </h5>
-                <p className="text-silver">Can't find the right song? You can pass and sit this round out.</p>
-              </div>
-              <div className="bg-gradient-to-r from-deep-space/30 to-stage-dark/30 rounded-lg p-4 border border-lime-green/20">
-                <h5 className="text-lime-green font-semibold mb-2 flex items-center">
-                  <span className="mr-2">🎸</span>
-                  No Duplicates
-                </h5>
-                <p className="text-silver">Each song can only be selected once - choose wisely!</p>
-              </div>
-            </div>
-          </details>
-        </div>
+
       </div>
     </div>
   );
