@@ -52,22 +52,36 @@ useEffect(() => {
         status: game.status,
         hasGameId: !!game._id,
         hasPreviousRounds: Array.isArray(game.previousRounds),
-        previousRoundsLength: Array.isArray(game.previousRounds) ? game.previousRounds.length : 'N/A'
+        previousRoundsLength: Array.isArray(game.previousRounds) ? game.previousRounds.length : 'N/A',
+        gameId: game._id
       });
       
       // Initialize winning tracks list
       let winningTracksList = [];
       
-      // RACE CONDITION FIX: First, try to get previous rounds from localStorage if they're missing
+      // IMPROVED LOCALSTORAGE HANDLING: First, try to get previous rounds from localStorage if they're missing
       if ((!game.previousRounds || !Array.isArray(game.previousRounds) || game.previousRounds.length === 0) 
           && game.status === 'ended' && game._id) {
         
         try {
+          // Log key being used to help with debugging
+          const storageKey = `gameHistory_${game._id}`;
+          console.log(`Trying to load game history from localStorage with key: ${storageKey}`);
+          
           // Try to load game history from localStorage
-          const savedGameHistory = localStorage.getItem(`gameHistory_${game._id}`);
+          const savedGameHistory = localStorage.getItem(storageKey);
           
           if (savedGameHistory) {
+            console.log(`Found saved game history in localStorage, parsing...`);
             const parsedHistory = JSON.parse(savedGameHistory);
+            
+            console.log("Parsed history details:", {
+              hasPreviousRounds: !!parsedHistory?.previousRounds,
+              isArray: Array.isArray(parsedHistory?.previousRounds),
+              length: Array.isArray(parsedHistory?.previousRounds) ? parsedHistory.previousRounds.length : 'N/A',
+              savedAt: parsedHistory?.savedAt,
+              gameId: parsedHistory?.gameId
+            });
             
             if (parsedHistory && 
                 parsedHistory.previousRounds && 
@@ -78,6 +92,35 @@ useEffect(() => {
               
               // Use the previousRounds from localStorage
               game.previousRounds = parsedHistory.previousRounds;
+            } else {
+              console.warn(`Found game history in localStorage but it doesn't contain valid previousRounds`);
+            }
+          } else {
+            console.warn(`No game history found in localStorage with key: ${storageKey}`);
+            
+            // Try an alternative approach - maybe the key format was different
+            // Search for any key that might contain this game's history
+            let foundAlternativeHistory = false;
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.includes('gameHistory_')) {
+                console.log(`Found potential game history key: ${key}`);
+                try {
+                  const data = JSON.parse(localStorage.getItem(key));
+                  if (data && data.gameId === game._id) {
+                    console.log(`Found matching game history under key: ${key}`);
+                    game.previousRounds = data.previousRounds;
+                    foundAlternativeHistory = true;
+                    break;
+                  }
+                } catch (e) {
+                  // Ignore parsing errors
+                }
+              }
+            }
+            
+            if (!foundAlternativeHistory) {
+              console.warn(`No alternative game history found in localStorage`);
             }
           }
         } catch (localStorageError) {
@@ -144,6 +187,8 @@ useEffect(() => {
             }
           })
           .filter(Boolean); // Remove any null entries
+      } else {
+        console.warn(`No previous rounds available to process (length: ${game.previousRounds?.length || 0})`);
       }
       
       // Add current round winner if game is in results or ended state
@@ -228,7 +273,7 @@ useEffect(() => {
   
   processWinningTracks();
 }, [game]); // Keep game as the sole dependency to ensure we re-run when any part of game changes
-  
+
   // Fetch YouTube data only for tracks that don't have it
   const fetchMissingYoutubeDataForTracks = async (tracks) => {
     // Filter for tracks that need YouTube data (excluding passed rounds)
