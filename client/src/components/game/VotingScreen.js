@@ -335,7 +335,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <div className="p-6 border-t border-electric-purple/20 text-center">
               <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/20">
                 <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                  Bandleader Controls
+                  MC Controls
                 </p>
                 <button
                   onClick={handleEndVotingWithCountdown}
@@ -483,13 +483,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   </div>
                   <h3 className="text-xl font-rock text-lime-green mb-2">VOTE RECORDED!</h3>
                   <p className="text-silver text-sm">
-                    Your vote has been cast! Enjoy the rest of the performances while we wait.
+                    Your vote has been cast!
                   </p>
                   
                   {isHost && (
                     <div className="mt-6 pt-4 border-t border-lime-green/20">
                       <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                        Bandleader Controls
+                        MC Controls
                       </p>
                       <button
                         onClick={handleEndVotingWithCountdown}
@@ -556,7 +556,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 >
                   {isOwnSubmission && (
                     <div className="absolute top-0 left-4 -mt-2 bg-gold-record text-vinyl-black text-xs px-3 py-1 rounded font-bold">
-                      YOUR PERFORMANCE
+                      YOUR SONG
                     </div>
                   )}
                   
@@ -642,27 +642,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       </div>
                       
                       <div className="flex flex-col items-end gap-3 ml-4">
-                        {(submission.youtubeId || submission.songName) && (
-                          <a 
-                            href={submission.youtubeId 
-                              ? getYouTubeWatchUrl(submission.youtubeId)
-                              : `https://www.youtube.com/results?search_query=${encodeURIComponent(submission.artist + ' ' + submission.songName)}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="btn-stage text-sm min-w-[120px] px-4 py-2 flex justify-center group"
-                          >
-                            <span className="relative z-10 flex items-center">
-                              <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                              </svg>
-                              {submission.youtubeId ? 'WATCH FULL' : 'SEARCH YT'}
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                          </a>
-                        )}
-                        
                         {!hasVoted && (isSmallGame || !isOwnSubmission) && (
                           <button
                             onClick={(e) => {
@@ -709,9 +688,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                                   <span className="text-white font-medium">{voter.displayName}</span>
                                   {voter._id === currentUser.id && (
                                     <span className="text-neon-pink ml-1">(YOU)</span>
-                                  )}
-                                  {voter._id === submission.player._id && (
-                                    <span className="text-gold-record ml-1">(SELF)</span>
                                   )}
                                 </span>
                                 {index < submission.votes.length - 1 && (
@@ -768,7 +744,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 {isHost && (
                   <div className="pt-4 border-t border-electric-purple/20">
                     <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                      Bandleader Controls
+                      MC Controls
                     </p>
                     <button
                       onClick={handleEndVotingWithCountdown}
