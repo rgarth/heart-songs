@@ -466,3 +466,26 @@ export const cancelCountdown = async (gameId, token) => {
     return handleRequestError(error, 'canceling countdown');
   }
 };
+
+// Leave/remove player from game
+export const leaveGame = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for leaving game:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/leave`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'leaving game');
+  }
+};

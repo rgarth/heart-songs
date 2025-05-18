@@ -1,7 +1,8 @@
-// client/src/components/game/SelectionScreen.js - Updated for server-side countdown
+// client/src/components/game/SelectionScreen.js - Rockstar Design Edition
 import React, { useState, useEffect } from 'react';
 import { submitSong, startEndSelectionCountdown } from '../../services/gameService';
 import { searchSongs } from '../../services/musicService';
+import VinylRecord from '../VinylRecord';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -192,56 +193,88 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   if (!userIsActive) {
     return (
       <div className="max-w-3xl mx-auto">
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg text-center">
-          <h2 className="text-2xl font-bold mb-2">Song Selection</h2>
+        {/* Stage card for observers */}
+        <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
           
-          <div className="text-center mb-6">
-            <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
-          </div>
-          
-          <div className="py-10">
-            <div className="mb-4">
-              <svg className="w-16 h-16 text-purple-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+          {/* Stage header */}
+          <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
+            <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
+              SONG SELECTION
+            </h2>
+            
+            <div className="text-center mt-4">
+              <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
+                <p className="text-gold-record font-bold text-xl">{game.currentQuestion.text}</p>
+              </div>
             </div>
-            <h3 className="text-xl font-medium text-purple-400 mb-2">Observing This Round</h3>
-            <p className="text-gray-300 mb-4">
-              You weren't ready when the host started this round, so you're just observing.
-            </p>
-            <p className="text-gray-400 text-sm">
-              You'll be able to participate in the next round when the host starts it.
-            </p>
           </div>
           
-          {/* Host controls for ending selection */}
-          {isHost && (
-            <div className="mt-6 pt-4 border-t border-gray-700">
-              <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-              <button
-                onClick={handleEndSelectionWithCountdown}
-                disabled={isStartingCountdown || game.countdown?.isActive}
-                className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {isStartingCountdown ? 'Starting Countdown...' : 
-                 game.countdown?.isActive ? 'Countdown Active' : 
-                 'End Selection Phase'}
-              </button>
-              <p className="text-xs text-gray-500 mt-2">
-                Force all non-submitted players to pass
-              </p>
-              {countdownError && (
-                <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                  {countdownError}
+          <div className="p-8 text-center">
+            {/* Observation mode indicator */}
+            <div className="mb-6">
+              <div className="relative w-24 h-24 mx-auto">
+                <VinylRecord 
+                  className="w-24 h-24 opacity-50" 
+                  animationClass=""
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-2xl">
+                  <span className="text-silver">OBSERVE</span>
                 </div>
-              )}
+              </div>
             </div>
-          )}
-          
-          <div className="mt-6">
-            <p className="text-sm text-gray-400">
-              {submittedCount} of {totalPlayers} active players have submitted songs
+            
+            <h3 className="text-2xl font-rock text-electric-purple mb-4">BACKSTAGE OBSERVER</h3>
+            <p className="text-silver text-lg mb-4">
+              You weren't ready when the MC started this set, so you're watching from the wings.
             </p>
+            <p className="text-turquoise text-sm mb-8">
+              You'll be able to join the next song when the host starts it.
+            </p>
+            
+            {/* Host controls for ending selection */}
+            {isHost && (
+              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
+                <h4 className="text-lg font-rock text-gold-record mb-4">MC CONTROLS</h4>
+                <button
+                  onClick={handleEndSelectionWithCountdown}
+                  disabled={isStartingCountdown || game.countdown?.isActive}
+                  className="btn-electric disabled:opacity-50"
+                >
+                  {isStartingCountdown ? (
+                    <>
+                      <div className="relative w-5 h-5 mr-3 inline-block">
+                        <VinylRecord 
+                          className="w-5 h-5" 
+                          animationClass="animate-vinyl-spin"
+                        />
+                      </div>
+                      STARTING COUNTDOWN...
+                    </>
+                  ) : game.countdown?.isActive ? (
+                    'COUNTDOWN ACTIVE'
+                  ) : (
+                    <>
+                      END SONG SELECTION
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-silver mt-3">
+                  Force all non-submitted players to sit this one out
+                </p>
+                {countdownError && (
+                  <div className="mt-3 p-3 bg-red-900/50 text-red-200 rounded text-sm">
+                    {countdownError}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Show player progress */}
+            <div className="mt-8 bg-gradient-to-r from-turquoise/10 to-lime-green/10 rounded-lg p-4 border border-turquoise/30">
+              <div className="flex items-center justify-center text-silver">
+                <span>{submittedCount} of {totalPlayers} players have submitted songs</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -250,269 +283,439 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
   
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-2 text-center">Song Selection</h2>
+      {/* Main stage card */}
+      <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
         
-        <div className="text-center mb-6">
-          <p className="text-lg text-yellow-400 font-medium">{game.currentQuestion.text}</p>
-        </div>
-        
-        {hasActivePlayers && game.activePlayers.length < game.players.length && (
-          <div className="mb-4 p-3 bg-purple-900/50 text-purple-200 rounded-lg text-sm">
-            <p><strong>Note:</strong> This round is being played with {game.activePlayers.length} out of {game.players.length} players. Only players who were ready when the game started are participating.</p>
-          </div>
-        )}
-        
-        <div className="mb-4 flex justify-between items-center">
-          <p className="text-sm">
-            Pick a song that best answers this question or pass
-          </p>
-          <p className="text-sm text-gray-400">
-            {submittedCount} of {totalPlayers} submitted
-          </p>
-        </div>
-        
-        {hasSubmitted ? (
-          <div className="text-center py-10">
-            <div className="mb-4">
-              {hasPassed ? (
-                <svg className="w-16 h-16 text-gray-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              ) : (
-                <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
+        {/* Stage header */}
+        <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
+          <div className="text-center mt-4">
+            <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
+              <p className="text-gold-record font-bold text-xl">{game.currentQuestion.text}</p>
             </div>
-            <h3 className="text-xl font-medium text-green-500 mb-2">
-              {hasPassed ? 'Passed!' : 'Song Submitted!'}
-            </h3>
-            {!hasPassed && speedBonusEarned && (
-              <div className="bg-yellow-600/30 p-3 rounded-lg inline-block mb-2">
-                <span className="text-yellow-400 font-bold flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                  </svg>
-                  Speed Bonus Earned! (+1 point)
+          </div>
+        </div>
+        
+        <div className="p-6">
+          
+          {/* Active players info */}
+          {hasActivePlayers && game.activePlayers.length < game.players.length && (
+            <div className="mb-6 bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30">
+              <div className="flex items-center text-purple-200">
+                <span className="font-medium">
+                  This round features {game.activePlayers.length} out of {game.players.length} players.
+                  Only players who were ready when the games started.
                 </span>
               </div>
-            )}
-            <p className="text-gray-300">
-              {hasPassed ? 'You passed on this question.' : 'Waiting for other players to submit their songs...'}
-            </p>
-            {!hasPassed && (
-              <p className="text-sm text-gray-400 mt-4">
-                Audio will be prioritized during voting to save data
-              </p>
-            )}
-            
-            {/* Host controls when user has submitted */}
-            {isHost && (
-              <div className="mt-8 pt-4 border-t border-gray-700">
-                <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-                <button
-                  onClick={handleEndSelectionWithCountdown}
-                  disabled={isStartingCountdown || game.countdown?.isActive}
-                  className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                >
-                  {isStartingCountdown ? 'Starting Countdown...' : 
-                   game.countdown?.isActive ? 'Countdown Active' : 
-                   'End Selection Phase'}
-                </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Force all non-submitted players to pass
-                </p>
-                {countdownError && (
-                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                    {countdownError}
+            </div>
+          )}
+          
+          {/* Player progress - Concert style */}
+          <div className="mb-6 flex justify-between items-center">
+            <div className="flex items-center">
+            </div>
+            <div className="bg-gradient-to-r from-deep-space to-stage-dark rounded-full px-4 py-2 border border-electric-purple/30">
+              <span className="text-gold-record font-bold">{submittedCount}</span>
+              <span className="text-silver mx-1">/</span>
+              <span className="text-silver">{totalPlayers}</span>
+              <span className="text-turquoise ml-2">submitted</span>
+            </div>
+          </div>
+          
+          {hasSubmitted ? (
+            /* Submitted state - VIP section */
+            <div className="text-center py-12">
+              <div className="mb-6">
+                {hasPassed ? (
+                  <div className="relative w-20 h-20 mx-auto">
+                    <VinylRecord 
+                      className="w-20 h-20 opacity-60" 
+                      animationClass=""
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center text-3xl">
+                      <span className="text-silver">PASS</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative w-20 h-20 mx-auto">
+                    <VinylRecord 
+                      className="w-20 h-20" 
+                      animationClass="animate-vinyl-spin"
+                    />
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        ) : (
-          <>
-            <form onSubmit={handleSearch} className="mb-6">
-              <div className="flex gap-2">
-                <input 
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for a song..."
-                  className="flex-1 p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button 
-                  type="submit"
-                  disabled={searchLoading || !searchQuery.trim()}
-                  className="py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {searchLoading ? 'Searching...' : 'Search'}
-                </button>
-              </div>
-            </form>
-            
-            {searchError && (
-              <div className="bg-red-500 text-white p-3 rounded mb-4">
-                {searchError}
-              </div>
-            )}
-            
-            {duplicateError && (
-              <div className="bg-yellow-600 text-white p-3 rounded mb-4">
-                {duplicateError}
-              </div>
-            )}
-            
-            {selectedSong && (
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Selected Song</h3>
-                <div className="flex items-center bg-gray-700 p-3 rounded-lg">
-                  {selectedSong.albumArt && (
-                    <img 
-                      src={selectedSong.albumArt} 
-                      alt={selectedSong.name} 
-                      className="w-16 h-16 rounded mr-4" 
-                    />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium">{selectedSong.name}</p>
-                    <p className="text-sm text-gray-400">
-                      {selectedSong.artist}
-                    </p>
-                    {selectedSong.album && (
-                      <p className="text-xs text-gray-500">
-                        {selectedSong.album}
-                      </p>
-                    )}
+              
+              <h3 className="text-2xl font-rock text-center mb-4">
+                {hasPassed ? (
+                  <span className="text-silver">PASSED ON THIS TRACK</span>
+                ) : (
+                  <span className="text-lime-green">SONG SUBMITTED!</span>
+                )}
+              </h3>
+              
+              {!hasPassed && speedBonusEarned && (
+                <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 rounded-lg p-4 border border-gold-record/40 inline-block mb-4">
+                  <div className="flex items-center text-gold-record font-bold">
+                    <span>SPEED BONUS (+1 point)</span>
                   </div>
-                  <button 
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Confirm'}
-                  </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Note: Audio versions will be shown during voting by default to save data
-                </p>
-              </div>
-            )}
-            
-            {searchResults.length > 0 && (
-              <div>
-                <h3 className="text-lg font-medium mb-3">Search Results</h3>
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                  {searchResults.map(track => {
-                    const isAlreadySelected = isSongAlreadySelected(track.id);
-                    return (
-                      <div 
-                        key={track.id}
-                        onClick={() => !isAlreadySelected && handleSelectTrack(track)}
-                        className={`flex items-center p-3 rounded-lg transition-colors ${
-                          isAlreadySelected 
-                            ? 'bg-gray-700 opacity-60 cursor-not-allowed'
-                            : selectedSong?.id === track.id 
-                              ? 'bg-gray-700 border border-blue-500 cursor-pointer hover:bg-gray-700'
-                              : 'bg-gray-750 cursor-pointer hover:bg-gray-700'
-                        }`}
-                      >
-                        {track.albumArt && (
-                          <img 
-                            src={track.albumArt} 
-                            alt={track.name} 
-                            className="w-12 h-12 rounded mr-3" 
-                          />
-                        )}
-                        <div className="flex-1">
-                          <p className="font-medium">{track.name}</p>
-                          <p className="text-sm text-gray-400">
-                            {track.artist}
-                          </p>
-                          {track.album && (
-                            <p className="text-xs text-gray-500">
-                              {track.album}
-                            </p>
-                          )}
-                          {isAlreadySelected && (
-                            <p className="text-xs text-yellow-500 mt-1">
-                              Already selected by another player
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            
-            {/* Pass Button and Confirmation */}
-            <div className="mt-6 text-center border-t border-gray-700 pt-4">
-              {isPassConfirmShowing ? (
-                <div className="bg-gray-750 p-4 rounded-lg">
-                  <p className="text-gray-300 mb-4">Are you sure you want to pass on this question?</p>
-                  <p className="text-sm text-gray-400 mb-4">
-                    Note: You won't get a speed bonus and there will be fewer songs to vote for.
+              )}
+              
+              <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border border-electric-purple/30 max-w-md mx-auto">
+                {hasPassed ? (
+                  <p className="text-silver">
+                    You passed on this question. Waiting for other players ...
                   </p>
-                  <div className="flex gap-4 justify-center">
-                    <button
-                      onClick={handlePass}
-                      disabled={isSubmitting}
-                      className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {isSubmitting ? 'Passing...' : 'Yes, Pass'}
-                    </button>
-                    <button
-                      onClick={() => setIsPassConfirmShowing(false)}
-                      className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
-                    >
-                      Cancel
-                    </button>
+                ) : (
+                  <div>
+                    <p className="text-silver mb-3">
+                      Waiting for other players ...
+                    </p>
                   </div>
+                )}
+              </div>
+              
+              {/* Host controls when user has submitted */}
+              {isHost && (
+                <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
+                  <h4 className="text-lg font-rock text-gold-record mb-4">MC CONTROLS</h4>
+                  <button
+                    onClick={handleEndSelectionWithCountdown}
+                    disabled={isStartingCountdown || game.countdown?.isActive}
+                    className="btn-electric disabled:opacity-50"
+                  >
+                    {isStartingCountdown ? (
+                      <>
+                        <div className="relative w-5 h-5 mr-3 inline-block">
+                          <VinylRecord 
+                            className="w-5 h-5" 
+                            animationClass="animate-vinyl-spin"
+                          />
+                        </div>
+                        STARTING COUNTDOWN...
+                      </>
+                    ) : game.countdown?.isActive ? (
+                      'COUNTDOWN ACTIVE'
+                    ) : (
+                      <>
+                        END SONG SELECTION
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-silver mt-3">
+                    Force all non-submitted players to pass
+                  </p>
+                  {countdownError && (
+                    <div className="mt-3 p-3 bg-red-900/50 text-red-200 rounded text-sm">
+                      {countdownError}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <button
-                  onClick={() => setIsPassConfirmShowing(true)}
-                  className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
-                >
-                  Pass on this question
-                </button>
               )}
             </div>
-            
-            {/* Host controls for ending selection */}
-            {isHost && (
-              <div className="mt-6 pt-4 border-t border-gray-700 text-center">
-                <p className="text-sm text-gray-400 mb-3">Host Controls:</p>
-                <button
-                  onClick={handleEndSelectionWithCountdown}
-                  disabled={isStartingCountdown || game.countdown?.isActive}
-                  className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                >
-                  {isStartingCountdown ? 'Starting Countdown...' : 
-                   game.countdown?.isActive ? 'Countdown Active' : 
-                   'End Selection Phase'}
-                </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Force all non-submitted players to pass
-                </p>
-                {countdownError && (
-                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                    {countdownError}
+          ) : (
+            <>
+              {/* Search section - Mixing board style */}
+              <div className="mb-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
+                <h3 className="text-lg font-rock text-neon-pink mb-4 text-center">FIND YOUR SONG</h3>
+                
+                <form onSubmit={handleSearch} className="space-y-4">
+                  <div className="relative">
+                    <input 
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search for the perfect track..."
+                      className="w-full p-4 bg-vinyl-black text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all font-concert text-lg placeholder-silver/50"
+                    />
+                    <div className="absolute inset-y-0 right-4 flex items-center text-electric-purple">
+                      <span>SEARCH</span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    type="submit"
+                    disabled={searchLoading || !searchQuery.trim()}
+                    className="w-full btn-electric disabled:opacity-50 group"
+                  >
+                    <span className="relative z-10 flex items-center justify-center">
+                      {searchLoading ? (
+                        <>
+                          <div className="relative w-5 h-5 mr-3">
+                            <VinylRecord 
+                              className="w-5 h-5" 
+                              animationClass="animate-vinyl-spin"
+                            />
+                          </div>
+                          SEARCHING THE VAULT...
+                        </>
+                      ) : (
+                        <>
+                          SEARCH SONGS
+                        </>
+                      )}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  </button>
+                </form>
+              </div>
+              
+              {/* Error displays */}
+              {searchError && (
+                <div className="mb-6 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-4">
+                  <div className="flex items-center text-stage-red">
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">{searchError}</span>
+                  </div>
+                </div>
+              )}
+              
+              {duplicateError && (
+                <div className="mb-6 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-600/40 rounded-lg p-4">
+                  <div className="flex items-center text-yellow-400">
+                    <span className="font-medium">{duplicateError}</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Selected song - Featured track */}
+              {selectedSong && (
+                <div className="mb-8 bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
+                  <h3 className="text-lg font-rock text-lime-green mb-4 text-center">YOUR SELECTED TRACK</h3>
+                  
+                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30">
+                    <div className="flex items-center">
+                      {selectedSong.albumArt && (
+                        <div className="relative mr-4 flex-shrink-0">
+                          <img 
+                            src={selectedSong.albumArt} 
+                            alt={selectedSong.name} 
+                            className="w-20 h-20 rounded-lg border-2 border-gold-record"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-bold text-white text-lg">{selectedSong.name}</p>
+                        <p className="text-silver font-medium">{selectedSong.artist}</p>
+                        {selectedSong.album && (
+                          <p className="text-xs text-turquoise mt-1">{selectedSong.album}</p>
+                        )}
+                      </div>
+                      <button 
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="btn-gold ml-4 disabled:opacity-50"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="relative w-5 h-5 mr-2 inline-block">
+                              <VinylRecord 
+                                className="w-5 h-5" 
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
+                            SUBMITTING...
+                          </>
+                        ) : (
+                          <>
+                            SUBMIT TRACK
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                </div>
+              )}
+              
+              {/* Search results - Album collection */}
+              {searchResults.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-rock text-neon-pink mb-4 text-center flex items-center justify-center">
+                    TRACK COLLECTION
+                  </h3>
+                  
+                  <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                    {searchResults.map(track => {
+                      const isAlreadySelected = isSongAlreadySelected(track.id);
+                      const isCurrentSelection = selectedSong?.id === track.id;
+                      
+                      return (
+                        <div 
+                          key={track.id}
+                          onClick={() => !isAlreadySelected && handleSelectTrack(track)}
+                          className={`relative rounded-lg transition-all duration-200 ${
+                            isAlreadySelected 
+                              ? 'bg-gradient-to-r from-stage-red/10 to-red-600/10 border border-stage-red/30 opacity-60 cursor-not-allowed'
+                              : isCurrentSelection 
+                                ? 'bg-gradient-to-r from-lime-green/10 to-green-600/10 border border-lime-green/40 cursor-pointer'
+                                : 'bg-gradient-to-r from-vinyl-black to-stage-dark border border-electric-purple/30 cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg'
+                          }`}
+                        >
+                          <div className="flex items-center p-4">
+                            {track.albumArt && (
+                              <div className="relative mr-4 flex-shrink-0">
+                                <img 
+                                  src={track.albumArt} 
+                                  alt={track.name} 
+                                  className="w-16 h-16 rounded-lg border-2 border-silver"
+                                />
+                                {isCurrentSelection && (
+                                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-lime-green rounded-full flex items-center justify-center">
+                                    <span className="text-vinyl-black font-bold text-sm">✓</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <p className="font-semibold text-white">{track.name}</p>
+                              <p className="text-silver text-sm">{track.artist}</p>
+                              {track.album && (
+                                <p className="text-xs text-turquoise mt-1">{track.album}</p>
+                              )}
+                              {isAlreadySelected && (
+                                <div className="flex items-center mt-2">
+                                  <span className="text-stage-red text-xs font-medium">Already selected by another player</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {!isAlreadySelected && (
+                              <div className="text-right">
+                                {isCurrentSelection ? (
+                                  <div className="flex items-center text-lime-green font-bold">
+                                    <span className="mr-1">✓</span>
+                                    <span>SELECTED</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-electric-purple text-sm hover:text-neon-pink transition-colors">
+                                    Click to select →
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Pass option - Sit this one out */}
+              <div className="border-t border-electric-purple/30 pt-6">
+                {isPassConfirmShowing ? (
+                  <div className="bg-gradient-to-r from-deep-space/80 to-stage-dark/80 rounded-lg p-6 border border-yellow-600/40">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4">PASS</div>
+                      <h4 className="text-xl font-rock text-yellow-400 mb-4">SIT THIS ONE OUT?</h4>
+                      <p className="text-silver mb-4">
+                        Are you sure you want to pass on this question?
+                      </p>
+                      <div className="flex gap-4 justify-center">
+                        <button
+                          onClick={handlePass}
+                          disabled={isSubmitting}
+                          className="btn-stage disabled:opacity-50"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <div className="relative w-5 h-5 mr-2 inline-block">
+                                <VinylRecord 
+                                  className="w-5 h-5" 
+                                  animationClass="animate-vinyl-spin"
+                                />
+                              </div>
+                              PASSING...
+                            </>
+                          ) : (
+                            <>
+                              YES, PASS
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setIsPassConfirmShowing(false)}
+                          className="btn-electric"
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <button
+                      onClick={() => setIsPassConfirmShowing(true)}
+                      className="bg-gradient-to-r from-deep-space to-stage-dark text-silver border border-electric-purple/30 hover:border-yellow-600/50 px-6 py-3 rounded-lg font-medium text-sm transition-all hover:text-yellow-400"
+                    >
+                      Sit this one out
+                    </button>
+                    <p className="text-xs text-silver mt-2">Not feeling this question? You can pass and wait for the next round</p>
                   </div>
                 )}
               </div>
-            )}
-            
-            {error && (
-              <div className="mt-4 bg-red-500 text-white p-3 rounded">
-                {error}
-              </div>
-            )}
-          </>
-        )}
+              
+              {/* Host controls for ending selection */}
+              {isHost && (
+                <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
+                  <h4 className="text-lg font-rock text-gold-record mb-4 text-center">MC CONTROLS</h4>
+                  <div className="text-center">
+                    <button
+                      onClick={handleEndSelectionWithCountdown}
+                      disabled={isStartingCountdown || game.countdown?.isActive}
+                      className="btn-electric disabled:opacity-50 group"
+                    >
+                      <span className="relative z-10 flex items-center justify-center">
+                        {isStartingCountdown ? (
+                          <>
+                            <div className="relative w-5 h-5 mr-3">
+                              <VinylRecord 
+                                className="w-5 h-5" 
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
+                            STARTING COUNTDOWN...
+                          </>
+                        ) : game.countdown?.isActive ? (
+                          'COUNTDOWN ACTIVE'
+                        ) : (
+                          <>
+                            END SONG SELECTION
+                          </>
+                        )}
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                    <p className="text-xs text-silver mt-3">
+                      Force all non-submitted players to pass on this question
+                    </p>
+                    {countdownError && (
+                      <div className="mt-3 p-3 bg-red-900/50 text-red-200 rounded text-sm">
+                        {countdownError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* General error display */}
+              {error && (
+                <div className="mt-6 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-4">
+                  <div className="flex items-center text-stage-red">
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">{error}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
       </div>
     </div>
   );

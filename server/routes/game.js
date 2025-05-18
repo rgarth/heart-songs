@@ -145,7 +145,7 @@ router.post('/join', async (req, res) => {
     if (!existingPlayer) {
       game.players.push({
         user: user._id,
-        isReady: false,
+        isReady: true,
         score: 0
       });
       await game.save();
@@ -167,6 +167,81 @@ router.post('/join', async (req, res) => {
   } catch (error) {
     console.error('Error joining game:', error);
     res.status(500).json({ error: 'Failed to join game' });
+  }
+});
+
+// Leave game - remove player from the game entirely
+router.post('/leave', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Can't leave if game is in progress
+    if (game.status !== 'waiting') {
+      return res.status(400).json({ error: 'Cannot leave game in progress' });
+    }
+    
+    // Find and remove the player
+    const playerIndex = game.players.findIndex(p => p.user.toString() === user._id.toString());
+    
+    if (playerIndex === -1) {
+      return res.status(404).json({ error: 'Player not found in this game' });
+    }
+    
+    // Check if player is the host
+    const isHost = game.host.toString() === user._id.toString();
+    
+    if (isHost) {
+      // If host is leaving and there are other players, transfer host to first player
+      if (game.players.length > 1) {
+        const newHost = game.players.find(p => p.user.toString() !== user._id.toString());
+        game.host = newHost.user;
+        
+        // Remove the leaving host from players
+        game.players = game.players.filter(p => p.user.toString() !== user._id.toString());
+      } else {
+        // If host is the only player, delete the game
+        await Game.findByIdAndDelete(game._id);
+        return res.json({ 
+          message: 'Game deleted - host was the only player',
+          gameDeleted: true 
+        });
+      }
+    } else {
+      // Remove the player
+      game.players = game.players.filter(p => p.user.toString() !== user._id.toString());
+    }
+    
+    await game.save();
+    
+    // Populate the updated game data
+    await game.populate('host', 'displayName');
+    await game.populate('players.user', 'displayName');
+    
+    res.json({
+      message: 'Successfully left the game',
+      gameId: game._id,
+      newHost: isHost ? game.host : null,
+      players: game.players
+    });
+    
+  } catch (error) {
+    console.error('Error leaving game:', error);
+    res.status(500).json({ error: 'Failed to leave game' });
   }
 });
 

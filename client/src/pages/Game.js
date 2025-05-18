@@ -1,4 +1,4 @@
-// client/src/pages/Game.js - Fixed and cleaned up
+// client/src/pages/Game.js - Fixed history persistence for all users
 import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -39,12 +39,119 @@ const Game = () => {
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
-  const [copySuccess, setCopySuccess] = useState(false);
   
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
-    previousRounds: []
+    previousRounds: [],
+    storageChecked: false // Flag to track if we've checked localStorage already
   });
+  
+  // Improved function to load game history from localStorage
+  const loadGameHistoryFromStorage = useCallback(() => {
+    if (!gameId || gameHistory.storageChecked) return null;
+    
+    try {
+      // Try multiple key formats to increase chances of finding data
+      const possibleKeys = [
+        `gameHistory_${gameId}`,
+        `game_history_${gameId}`,
+        `history_${gameId}`
+      ];
+      
+      // Also check for any key that contains this gameId
+      const allKeys = Object.keys(localStorage);
+      const matchingKeys = allKeys.filter(key => 
+        key.includes('gameHistory') && key.includes(gameId)
+      );
+      
+      // Combine all possible keys
+      const keysToCheck = [...new Set([...possibleKeys, ...matchingKeys])];
+      
+      console.log(`Checking ${keysToCheck.length} possible storage keys for game history`);
+      
+      // Try each key
+      for (const key of keysToCheck) {
+        const savedData = localStorage.getItem(key);
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData);
+            
+            if (parsedData && 
+                parsedData.previousRounds && 
+                Array.isArray(parsedData.previousRounds) && 
+                parsedData.previousRounds.length > 0) {
+              
+              console.log(`Successfully loaded ${parsedData.previousRounds.length} rounds from localStorage using key: ${key}`);
+              
+              // Mark as checked so we don't try again
+              setGameHistory(prev => ({
+                ...prev,
+                previousRounds: parsedData.previousRounds,
+                storageChecked: true
+              }));
+              
+              return parsedData.previousRounds;
+            }
+          } catch (parseError) {
+            console.warn(`Failed to parse data from key ${key}:`, parseError);
+          }
+        }
+      }
+      
+      // If we get here, we checked all possible keys but found nothing
+      console.log('No valid game history found in localStorage');
+      setGameHistory(prev => ({
+        ...prev,
+        storageChecked: true
+      }));
+      
+    } catch (storageError) {
+      console.error('Error accessing localStorage:', storageError);
+      setGameHistory(prev => ({
+        ...prev,
+        storageChecked: true
+      }));
+    }
+    
+    return null;
+  }, [gameId, gameHistory.storageChecked]);
+  
+  // Save history to localStorage
+  const saveGameHistoryToStorage = useCallback((rounds, gameData) => {
+    if (!gameId || !rounds || !Array.isArray(rounds) || rounds.length === 0) return;
+    
+    try {
+      // Use a consistent key format
+      const storageKey = `gameHistory_${gameId}`;
+      
+      const dataToStore = {
+        previousRounds: rounds,
+        gameId: gameId,
+        gameCode: gameData?.gameCode || 'unknown',
+        roundsCount: rounds.length,
+        savedAt: new Date().toISOString()
+      };
+      
+      // Convert to string and save
+      const jsonData = JSON.stringify(dataToStore);
+      localStorage.setItem(storageKey, jsonData);
+      
+      console.log(`Successfully saved ${rounds.length} rounds to localStorage with key: ${storageKey}`);
+      
+      // For troubleshooting, also save a second copy with timestamp
+      const timestampKey = `gameHistory_${gameId}_${Date.now()}`;
+      localStorage.setItem(timestampKey, jsonData);
+      console.log(`Backup saved with key: ${timestampKey}`);
+      
+    } catch (storageError) {
+      console.error('Failed to save game history to localStorage:', storageError);
+    }
+  }, [gameId]);
+  
+  // Load history on mount
+  useEffect(() => {
+    loadGameHistoryFromStorage();
+  }, [loadGameHistoryFromStorage]);
   
   // Fetch game state with optimized polling
   const fetchGameState = useCallback(async () => {
@@ -67,9 +174,25 @@ const Game = () => {
     
     try {
       const gameData = await getGameState(gameId, token);
+      
       // Reset retry counter on success
-      if (retryCount > 0) {
-        setRetryCount(0);
+      if (retryCount > 0) setRetryCount(0);
+      
+      // If game is ended, make sure we have history
+      if (gameData.status === 'ended') {
+        // Check if we need to load history from localStorage
+        if (!gameData.previousRounds || !Array.isArray(gameData.previousRounds) || gameData.previousRounds.length === 0) {
+          // Try to load from localStorage if we haven't checked already
+          if (!gameHistory.storageChecked) {
+            const loadedRounds = loadGameHistoryFromStorage();
+            if (loadedRounds) {
+              gameData.previousRounds = loadedRounds;
+            }
+          } else if (gameHistory.previousRounds.length > 0) {
+            // Use our stored history
+            gameData.previousRounds = gameHistory.previousRounds;
+          }
+        }
       }
       
       // Only update state if something important has changed
@@ -123,17 +246,20 @@ const Game = () => {
           // Save the previous round data
           if (prevGame.status === 'results' && gameData.status === 'selecting') {
             // Add current round data to game history
-            setGameHistory(prev => {
-              const roundData = {
-                question: prevGame.currentQuestion,
-                submissions: [...prevGame.submissions]
-              };
-              
-              return {
-                ...prev,
-                previousRounds: [...prev.previousRounds, roundData]
-              };
-            });
+            const roundData = {
+              question: prevGame.currentQuestion,
+              submissions: [...prevGame.submissions]
+            };
+            
+            const updatedRounds = [...gameHistory.previousRounds, roundData];
+            
+            setGameHistory(prev => ({
+              ...prev,
+              previousRounds: updatedRounds
+            }));
+            
+            // Save to localStorage every time we add a round
+            saveGameHistoryToStorage(updatedRounds, gameData);
           }
 
           // If we get finalRoundData from the server, save it
@@ -166,7 +292,7 @@ const Game = () => {
         setInitialLoad(false);
       }
     }
-  }, [gameId, accessToken, initialLoad, retryCount]);
+  }, [gameId, accessToken, initialLoad, retryCount, gameHistory, loadGameHistoryFromStorage, saveGameHistoryToStorage]);
   
   // Set up polling
   useEffect(() => {
@@ -188,20 +314,6 @@ const Game = () => {
       clearInterval(intervalId);
     };
   }, [fetchGameState, error, game?.status]);
-  
-  // ALL YOUR HANDLER FUNCTIONS GO HERE (keeping them as they are)
-  // Copy game code to clipboard
-  const copyGameCode = () => {
-    if (!game || !game.gameCode) return;
-    
-    try {
-      navigator.clipboard.writeText(game.gameCode);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
   
   // Handle ready toggle
   const handleToggleReady = async () => {
@@ -283,15 +395,12 @@ const Game = () => {
         return;
       }
       
-      // Deep copy the current game state to use for final results
-      const finalGameState = JSON.parse(JSON.stringify(game));
-      
       // Store current round data in game history before ending
-      if (finalGameState && finalGameState.status === 'results' && finalGameState.submissions && finalGameState.submissions.length > 0) {
+      if (game && game.status === 'results' && game.submissions && game.submissions.length > 0) {
         // Create the roundData for the current final round
         const roundData = {
-          question: finalGameState.currentQuestion,
-          submissions: [...finalGameState.submissions].sort((a, b) => {
+          question: game.currentQuestion,
+          submissions: [...game.submissions].sort((a, b) => {
             const votesA = a?.votes?.length || 0;
             const votesB = b?.votes?.length || 0;
             return votesB - votesA;
@@ -299,29 +408,28 @@ const Game = () => {
         };
         
         // Update game history with the final round included
-        const updatedPreviousRounds = [...(gameHistory.previousRounds || []), roundData];
+        const updatedPreviousRounds = [...gameHistory.previousRounds, roundData];
         
         // Update local game history state
-        setGameHistory(prevHistory => ({
-          ...prevHistory,
+        setGameHistory(prev => ({
+          ...prev,
           previousRounds: updatedPreviousRounds
         }));
+        
+        // Save the updated rounds to localStorage
+        saveGameHistoryToStorage(updatedPreviousRounds, game);
         
         // Call API to end the game on the server
         await endGame(gameId, token);
         
         // Update game status with all the data we need to render final results
-        setGame(prevGame => {
-          const updatedGame = {
-            ...prevGame,
-            status: 'ended',
-            previousRounds: updatedPreviousRounds, // Add our local copy of all rounds including final round
-            finalRoundData: roundData, // Add the final round explicitly as a separate property
-            allRoundsCount: updatedPreviousRounds.length // Add a count for debugging
-          };
-          return updatedGame;
-        });
-        
+        setGame(prevGame => ({
+          ...prevGame,
+          status: 'ended',
+          previousRounds: updatedPreviousRounds,
+          finalRoundData: roundData,
+          allRoundsCount: updatedPreviousRounds.length
+        }));
       } else {
         // Call API to end the game on the server
         await endGame(gameId, token);
@@ -428,7 +536,7 @@ const Game = () => {
     );
   }
 
-  // Calculate current countdown time left if active - MOVED TO THE RIGHT PLACE!
+  // Calculate current countdown time left if active
   const currentTimeLeft = game.countdown?.isActive ? getTimeLeft(game.countdown) : 0;
   
   // Render appropriate game screen based on game status
@@ -438,58 +546,19 @@ const Game = () => {
       
       {/* Server-side Countdown Banner */}
       <CountdownBanner
-      isActive={game.countdown?.isActive && currentTimeLeft > 0}
-      initialSeconds={currentTimeLeft}
-      message={game.countdown?.message || ''}
-      onComplete={() => {
-        // Don't do anything here - the server handles the countdown completion
-      }}
-      onCancel={handleCountdownCancel}
-      showCancelButton={user && game.host._id === user.id}
-    />
+        isActive={game.countdown?.isActive && currentTimeLeft > 0}
+        initialSeconds={currentTimeLeft}
+        message={game.countdown?.message || ''}
+        onComplete={() => {
+          // Don't do anything here - the server handles the countdown completion
+        }}
+        onCancel={handleCountdownCancel}
+        showCancelButton={user && game.host._id === user.id}
+      />
       
       {/* Add top padding when countdown is active */}
       <div className={`container mx-auto px-4 py-6 flex-1 ${game.countdown?.isActive ? 'mt-16' : ''}`}>
-      {/* Display game code prominently in waiting status */}
-        {game.status === 'waiting' && (
-          <div className="mb-6 text-center">
-            <div className="bg-gray-800 rounded-lg py-3 px-4 inline-block mx-auto">
-              <p className="text-sm text-gray-400 mb-1">Game Code:</p>
-              <div className="flex items-center justify-center">
-                <p className="text-3xl font-bold tracking-wider bg-gray-700 px-4 py-2 rounded-lg text-yellow-400 font-mono">
-                  {game.gameCode}
-                </p>
-                <button 
-                  onClick={copyGameCode}
-                  className="ml-2 p-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 focus:outline-none"
-                  aria-label="Copy game code"
-                  title="Copy game code"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                  </svg>
-                </button>
-              </div>
-              {copySuccess && (
-                <p className="text-green-400 text-sm mt-1">
-                  Copied to clipboard!
-                </p>
-              )}
-              <p className="text-xs text-gray-400 mt-2">Share this code with friends to let them join</p>
-            </div>
-          </div>
-        )}
         
-        <div className="flex justify-end mb-6">
-          <button
-            onClick={handleLeaveGame}
-            className="py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Leave Game
-          </button>
-        </div>
-
         {game.status === 'waiting' && (
           <LobbyScreen 
             game={game} 
@@ -539,7 +608,10 @@ const Game = () => {
           <FinalResultsScreen 
             game={{
               ...game,
-              previousRounds: gameHistory.previousRounds
+              // Combine previousRounds sources - prioritize server data, then local history
+              previousRounds: game.previousRounds?.length > 0 
+                ? game.previousRounds 
+                : gameHistory.previousRounds
             }}
             currentUser={{
               ...user,

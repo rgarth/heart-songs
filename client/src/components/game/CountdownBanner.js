@@ -1,4 +1,4 @@
-// client/src/components/game/CountdownBanner.js - Fixed useCallback
+// client/src/components/game/CountdownBanner.js - Refined Rockstar Design
 import React, { useState, useEffect, useCallback } from 'react';
 
 const CountdownBanner = ({ 
@@ -61,48 +61,48 @@ const CountdownBanner = ({
     return null;
   }
   
-  // Determine color based on time left
+  // Determine color based on time left - with enhanced gold gradient and better contrast
   const getColorClasses = () => {
-    if (timeLeft <= 3) return 'bg-red-600 border-red-500';
-    if (timeLeft <= 5) return 'bg-yellow-600 border-yellow-500';
-    return 'bg-orange-600 border-orange-500';
+    if (timeLeft <= 3) return 'bg-gradient-to-r from-electric-purple to-neon-pink border-electric-purple shadow-neon-pink/30';
+    if (timeLeft <= 5) return 'bg-gradient-to-r from-amber-600 via-gold-record to-yellow-500 border-amber-600 shadow-amber-600/30';
+    return 'bg-gradient-to-r from-turquoise to-lime-green border-turquoise shadow-turquoise/30';
   };
   
   return (
-    <div className={`fixed top-0 left-0 right-0 z-40 ${getColorClasses()} border-b-2 transition-all duration-300`}>
-      <div className="container mx-auto px-4 py-3">
+    <div className={`fixed top-0 left-0 right-0 z-40 ${getColorClasses()} shadow-md border-b-2 transition-colors duration-300 ease-in-out`}>
+      <div className="container mx-auto py-3 px-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center text-white">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-5 w-5 mr-2" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
-              />
-            </svg>
-            <span className="font-medium">{message}</span>
+          {/* Message with clearer text */}
+          <div className="flex items-center">
+            <span className="font-concert text-white font-medium text-lg tracking-wide">
+              {message}
+            </span>
           </div>
           
-          <div className="flex items-center text-white">
-            <span className="text-2xl font-bold mr-4 tabular-nums">{timeLeft}s</span>
+          <div className="flex items-center">
+            {/* Countdown with better readability */}
+            <div className="flex items-center bg-vinyl-black/40 rounded-lg px-4 py-1 border border-white/30 mr-3">
+              <span className="text-3xl font-rock font-bold tabular-nums text-white">
+                {timeLeft}
+              </span>
+              <span className="text-sm font-medium text-white ml-1">sec</span>
+            </div>
+            
+            {/* Cancel button with refined style */}
             {showCancelButton && onCancel && (
               <button
                 onClick={onCancel}
-                className="py-1 px-3 bg-black bg-opacity-20 text-white rounded hover:bg-opacity-30 transition-all text-sm"
+                className="py-1 px-4 bg-vinyl-black/40 text-white rounded-lg border border-white/30 hover:bg-white/20 transition-colors"
               >
-                Cancel
+                CANCEL
               </button>
             )}
           </div>
         </div>
       </div>
+      
+      {/* Subtle light effect at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/20"></div>
     </div>
   );
 };
