@@ -259,12 +259,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     return `https://www.youtube.com/embed/${youtubeId}`;
   };
   
-  // Generate YouTube watch URL
-  const getYouTubeWatchUrl = (youtubeId) => {
-    if (!youtubeId) return null;
-    return `https://www.youtube.com/watch?v=${youtubeId}`;
-  };
-  
   // Check if there are no votable submissions (everyone passed)
   const allPassed = votableSubmissions.length === 0;
   
