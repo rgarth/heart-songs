@@ -302,8 +302,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
             <div className="mb-6 bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30">
               <div className="flex items-center text-purple-200">
                 <span className="font-medium">
-                  This set features {game.activePlayers.length} out of {game.players.length} band members.
-                  Only players who were ready when the show started are performing.
+                  This round features {game.activePlayers.length} out of {game.players.length} players.
+                  Only players who were ready when the games started.
                 </span>
               </div>
             </div>

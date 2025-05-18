@@ -593,11 +593,6 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
               <p className="text-silver mb-6">
                 Are you sure you want to end the game? This will reveal the final scores and winning songs from all rounds.
               </p>
-              <div className="bg-electric-purple/10 rounded-lg p-3 mb-6 border border-electric-purple/30">
-                <p className="text-electric-purple text-sm">
-                  Everyone will get to see their top songs and the ultimate winner!
-                </p>
-              </div>
               <div className="flex gap-4 justify-center">
                 <button 
                   onClick={handleCancelEndGame}
