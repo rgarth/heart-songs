@@ -306,7 +306,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
             <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-              VOTE FOR THE BEST ACT
+              VOTE FOR THE BES SONG CHOICE
             </h2>
           </div>
           
@@ -322,11 +322,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             </div>
             <h3 className="text-2xl font-rock text-silver mb-4">EMPTY STAGE</h3>
             <p className="text-silver mb-6">
-              All band members passed on this challenge. Moving to the next round...
+              All players passed on this challenge. Moving to the next round...
             </p>
             <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 inline-block border border-electric-purple/20">
               <p className="text-sm text-silver">
-                {passedCount} performer{passedCount !== 1 ? 's' : ''} passed on this question
+                {passedCount} player{passedCount !== 1 ? 's' : ''} passed on this question
               </p>
             </div>
           </div>
@@ -435,7 +435,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               <div className="bg-gradient-to-r from-silver/10 to-stage-dark/50 rounded-lg p-3 border border-silver/20">
                 <div className="flex items-center text-silver">
                   <span className="mr-2">Note:</span>
-                  <span><strong>Note:</strong> {passedCount} performer{passedCount !== 1 ? 's' : ''} passed on this challenge</span>
+                  <span><strong>Note:</strong> {passedCount} player{passedCount !== 1 ? 's' : ''} passed on this challenge</span>
                 </div>
               </div>
             )}
@@ -452,8 +452,8 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             {hasActivePlayers && game.activePlayers.length < game.players.length && (
               <div className="bg-gradient-to-r from-purple-600/20 to-neon-pink/20 rounded-lg p-3 border border-purple-600/40">
                 <div className="flex items-center text-purple-200">
-                  <span className="mr-2">This Act:</span>
-                  <span><strong>This Act:</strong> {game.activePlayers.length} of {game.players.length} players performing tonight</span>
+                  <span className="mr-2">This Round:</span>
+                  <span><strong>This Round:</strong> {game.activePlayers.length} of {game.players.length} players</span>
                 </div>
               </div>
             )}
@@ -709,7 +709,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 <div className="vinyl-record w-20 h-20 mx-auto mb-4 opacity-50">
                   <div className="absolute inset-0 flex items-center justify-center text-2xl">No songs</div>
                 </div>
-                <p className="text-silver text-lg">No performances available for voting this round.</p>
+                <p className="text-silver text-lg">No songs available for voting this round.</p>
               </div>
             )}
           </div>

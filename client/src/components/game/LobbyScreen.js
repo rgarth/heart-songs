@@ -302,7 +302,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                   </button>
                 </div>
                 
-                <p className="text-xs text-silver mt-3">Send the code or invite link to your bandmates</p>
+                <p className="text-xs text-silver mt-3">Send the code or invite link to your friends</p>
               </div>
             </div>
           </div>
@@ -563,7 +563,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
             <div className="text-center">
               <h3 className="text-xl font-rock text-gold-record mb-4">START THE ROUND ANYWAY?</h3>
               <p className="text-silver mb-6">
-                Some band members aren't ready yet. Only prepared players will join the opening number.
+                Some players aren't ready yet.
               </p>
               <div className="flex gap-4 justify-center">
                 <button 
