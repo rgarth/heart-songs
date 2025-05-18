@@ -523,7 +523,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                           className="btn-gold group"
                         >
                           <span className="relative z-10 flex items-center justify-center">
-                            START ROUND {game.previousRounds ? game.previousRounds.length + 2 : 2}
+                            {Array.isArray(game.previousRounds) && game.previousRounds.length > 0 
+                              ? `START ROUND ${game.previousRounds.length + 2}` 
+                              : "START NEXT ROUND"}
                           </span>
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         </button>

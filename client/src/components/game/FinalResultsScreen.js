@@ -33,29 +33,65 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
   
   // Check if there's a tie for first place
   const isTie = sortedPlayers.length > 1 && sortedPlayers[0].score === sortedPlayers[1].score;
-  
-  // Process the winning tracks from each round
-  useEffect(() => {
-    const processWinningTracks = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+
+//process winning tracks
+useEffect(() => {
+  const processWinningTracks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Safety checks for game object
+      if (!game) {
+        setError('Game data is not available');
+        setLoading(false);
+        return;
+      }
+      
+      console.log("Processing game data:", {
+        status: game.status,
+        hasGameId: !!game._id,
+        hasPreviousRounds: Array.isArray(game.previousRounds),
+        previousRoundsLength: Array.isArray(game.previousRounds) ? game.previousRounds.length : 'N/A'
+      });
+      
+      // Initialize winning tracks list
+      let winningTracksList = [];
+      
+      // RACE CONDITION FIX: First, try to get previous rounds from localStorage if they're missing
+      if ((!game.previousRounds || !Array.isArray(game.previousRounds) || game.previousRounds.length === 0) 
+          && game.status === 'ended' && game._id) {
         
-        // Safety checks for game object
-        if (!game) {
-          setError('Game data is not available');
-          setLoading(false);
-          return;
-        }
-        
-        // Initialize winning tracks list
-        let winningTracksList = [];
-        
-        // Check if we should use tracks from previousRounds
-        if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
+        try {
+          // Try to load game history from localStorage
+          const savedGameHistory = localStorage.getItem(`gameHistory_${game._id}`);
           
-          // Process each round to find the winning song
-          winningTracksList = game.previousRounds.map((round, index) => {
+          if (savedGameHistory) {
+            const parsedHistory = JSON.parse(savedGameHistory);
+            
+            if (parsedHistory && 
+                parsedHistory.previousRounds && 
+                Array.isArray(parsedHistory.previousRounds) && 
+                parsedHistory.previousRounds.length > 0) {
+              
+              console.log(`Loaded ${parsedHistory.previousRounds.length} rounds from localStorage`);
+              
+              // Use the previousRounds from localStorage
+              game.previousRounds = parsedHistory.previousRounds;
+            }
+          }
+        } catch (localStorageError) {
+          console.error('Error loading game history from localStorage:', localStorageError);
+        }
+      }
+      
+      // Now process previous rounds with the localStorage enhancement
+      if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
+        console.log(`Processing ${game.previousRounds.length} previous rounds`);
+        
+        // Process each round to find the winning song
+        winningTracksList = game.previousRounds
+          .map((round, index) => {
             if (!round || !round.submissions || !Array.isArray(round.submissions) || round.submissions.length === 0) {
               return null;
             }
@@ -79,8 +115,8 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
               
               // Sort actual submissions by votes
               const sortedSubmissions = [...actualSubmissions].sort((a, b) => {
-                const votesA = a && a.votes && Array.isArray(a.votes) ? a.votes.length : 0;
-                const votesB = b && b.votes && Array.isArray(b.votes) ? b.votes.length : 0;
+                const votesA = a.votes?.length || 0;
+                const votesB = b.votes?.length || 0;
                 return votesB - votesA;
               });
               
@@ -106,97 +142,92 @@ const FinalResultsScreen = ({ game, currentUser, accessToken }) => {
               console.error(`Error processing round ${index}:`, error);
               return null;
             }
-          }).filter(Boolean); // Remove any null entries
+          })
+          .filter(Boolean); // Remove any null entries
+      }
+      
+      // Add current round winner if game is in results or ended state
+      const finalRoundNumber = winningTracksList.length + 1;
+      
+      if ((game.status === 'results' || game.status === 'ended') && 
+          game.submissions && Array.isArray(game.submissions) && game.submissions.length > 0) {
+        
+        try {
+          // Filter out passed submissions
+          const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
           
-        }
-
-        // Add current round winner if game is in results or ended state
-        if ((game.status === 'results' || game.status === 'ended') && 
-            game.submissions && Array.isArray(game.submissions) && game.submissions.length > 0) {
-          
-          try {
-            // Filter out passed submissions
-            const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
+          if (actualSubmissions.length === 0) {
+            // All players passed on this round
+            const finalRoundTrack = {
+              songId: 'ALL_PASSED_FINAL',
+              songName: 'All players passed',
+              artist: '',
+              albumCover: '',
+              question: game.currentQuestion || null,
+              roundNumber: finalRoundNumber,
+              allPassed: true
+            };
             
-            if (actualSubmissions.length === 0) {
-              // All players passed on this round
+            winningTracksList.push(finalRoundTrack);
+          } else {
+            // Sort by votes
+            const sortedSubmissions = [...actualSubmissions].sort((a, b) => {
+              const votesA = a.votes?.length || 0;
+              const votesB = b.votes?.length || 0;
+              return votesB - votesA;
+            });
+            
+            // Get the current winner
+            const currentWinner = sortedSubmissions[0];
+            
+            if (currentWinner && currentWinner.songId) {
               const finalRoundTrack = {
-                songId: 'ALL_PASSED_FINAL',
-                songName: 'All players passed',
-                artist: '',
-                albumCover: '',
+                songId: currentWinner.songId,
+                songName: currentWinner.songName || 'Unknown Song',
+                artist: currentWinner.artist || 'Unknown Artist',
+                albumCover: currentWinner.albumCover || '',
                 question: game.currentQuestion || null,
-                roundNumber: winningTracksList.length + 1,
-                allPassed: true
+                roundNumber: finalRoundNumber,
+                // Include any YouTube data that was already fetched
+                youtubeId: currentWinner.youtubeId || null,
+                preferredType: 'audio' // Default to audio
               };
               
-              winningTracksList.push(finalRoundTrack);
-            } else {
-              // Sort by votes
-              const sortedSubmissions = [...actualSubmissions].sort((a, b) => {
-                const votesA = a && a.votes && Array.isArray(a.votes) ? a.votes.length : 0;
-                const votesB = b && b.votes && Array.isArray(b.votes) ? b.votes.length : 0;
-                return votesB - votesA;
-              });
+              // Check if this is a duplicate
+              const isDuplicate = winningTracksList.some(track => track.songId === currentWinner.songId);
               
-              // Get the current winner
-              const currentWinner = sortedSubmissions[0];
-              
-              if (currentWinner && currentWinner.songId) {
-                const finalRoundTrack = {
-                  songId: currentWinner.songId,
-                  songName: currentWinner.songName || 'Unknown Song',
-                  artist: currentWinner.artist || 'Unknown Artist',
-                  albumCover: currentWinner.albumCover || '',
-                  question: game.currentQuestion || null,
-                  roundNumber: winningTracksList.length + 1,
-                  // Include any YouTube data that was already fetched
-                  youtubeId: currentWinner.youtubeId || null,
-                  preferredType: 'audio' // Default to audio
-                };
-                
-                // Check if this is a duplicate
-                const isDuplicate = winningTracksList.some(track => track.songId === currentWinner.songId);
-                
-                if (!isDuplicate) {
-                  winningTracksList.push(finalRoundTrack);
-                }
+              if (!isDuplicate) {
+                winningTracksList.push(finalRoundTrack);
               }
             }
-          } catch (error) {
-            console.error('Error processing current round submissions:', error);
           }
+        } catch (error) {
+          console.error('Error processing current round submissions:', error);
         }
-        
-        // Remove any potential duplicates before setting state
-        const uniqueTracks = [];
-        const seenIds = new Set();
-    
-        for (const track of winningTracksList) {
-          if (!seenIds.has(track.songId)) {
-            uniqueTracks.push(track);
-            seenIds.add(track.songId);
-          }
-        }
-        
-        setWinningTracks(uniqueTracks);
-        
-        // Now fetch YouTube data for tracks that don't have it and aren't passed rounds
-        const tracksNeedingYoutube = uniqueTracks.filter(track => !track.youtubeId && !track.allPassed);
-        if (tracksNeedingYoutube.length > 0) {
-          await fetchMissingYoutubeDataForTracks(uniqueTracks);
-        }
-        
-      } catch (error) {
-        console.error('Error processing winning tracks:', error);
-        setError('Failed to process winning songs');
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    processWinningTracks();
-  }, [game]);
+      
+      // Log the final list for debugging
+      console.log(`Processed ${winningTracksList.length} winning tracks`);
+      
+      // Update state with all winning tracks
+      setWinningTracks(winningTracksList);
+      
+      // Now fetch YouTube data for tracks that don't have it and aren't passed rounds
+      const tracksNeedingYoutube = winningTracksList.filter(track => !track.youtubeId && !track.allPassed);
+      if (tracksNeedingYoutube.length > 0) {
+        await fetchMissingYoutubeDataForTracks(winningTracksList);
+      }
+      
+    } catch (error) {
+      console.error('Error processing winning tracks:', error);
+      setError('Failed to process winning songs');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  processWinningTracks();
+}, [game]); // Keep game as the sole dependency to ensure we re-run when any part of game changes
   
   // Fetch YouTube data only for tracks that don't have it
   const fetchMissingYoutubeDataForTracks = async (tracks) => {

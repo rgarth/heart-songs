@@ -293,6 +293,17 @@ const Game = () => {
           ...prevHistory,
           previousRounds: updatedPreviousRounds
         }));
+
+        try {
+        localStorage.setItem(`gameHistory_${gameId}`, JSON.stringify({
+          previousRounds: updatedPreviousRounds,
+          savedAt: new Date().toISOString()
+        }));
+        console.log(`Saved game history to localStorage for game ${gameId}`);
+      } catch (storageError) {
+        console.error('Failed to save game history to localStorage:', storageError);
+      }
+
         
         // Call API to end the game on the server
         await endGame(gameId, token);
