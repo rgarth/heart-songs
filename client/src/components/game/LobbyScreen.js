@@ -221,7 +221,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                         <div className="relative mr-4">
                           <VinylRecord
                             className="w-12 h-12 relative z-10"
-                            animationClass="animate-vinyl-spin group-hover:animate-spin-slow" />
+                            animationClass="animate-vinyl-spin group-hover:animate-vinyl-spin" />
                         </div>
 
                         <div>
