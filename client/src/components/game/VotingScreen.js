@@ -1,8 +1,9 @@
-// client/src/components/game/VotingScreen.js - Fixed Version
+// client/src/components/game/VotingScreen.js - Cleaned Version
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VideoPreferenceToggle from './VideoPreferenceToggle';
+import VinylRecord from '../VinylRecord';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(true);
@@ -283,7 +284,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             <div className="text-lg text-yellow-400 font-medium mb-8">{game.currentQuestion.text}</div>
             
             <div className="flex justify-center items-center mb-4">
-              <div className="vinyl-record w-16 h-16 animate-spin mr-4"></div>
+              <div className="mr-4 relative">
+                <VinylRecord 
+                  className="w-16 h-16"
+                  animationClass="animate-vinyl-spin"
+                />
+              </div>
               <div className="equalizer">
                 <div className="equalizer-bar"></div>
                 <div className="equalizer-bar"></div>
@@ -344,7 +350,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 >
                   {isStartingCountdown ? (
                     <>
-                      <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                      <div className="relative inline-block mr-2">
+                        <VinylRecord 
+                          className="w-5 h-5"
+                          animationClass="animate-vinyl-spin"
+                        />
+                      </div>
                       Starting Countdown...
                     </>
                   ) : game.countdown?.isActive ? (
@@ -477,8 +488,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 
                 <div className="relative z-10">
                   <div className="mb-4">
-                    <div className="vinyl-record w-16 h-16 mx-auto animate-spin-slow">
-                      <div className="absolute inset-0 flex items-center justify-center text-2xl">✓</div>
+                    <div className="mx-auto relative">
+                      <VinylRecord 
+                        className="w-16 h-16 mx-auto"
+                        animationClass="animate-spin-slow"
+                      />
                     </div>
                   </div>
                   <h3 className="text-xl font-rock text-lime-green mb-2">VOTE RECORDED!</h3>
@@ -498,7 +512,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       >
                         {isStartingCountdown ? (
                           <>
-                            <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                            <div className="relative inline-block mr-2">
+                              <VinylRecord 
+                                className="w-5 h-5"
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
                             Starting Countdown...
                           </>
                         ) : game.countdown?.isActive ? (
@@ -565,7 +584,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       <div className="h-72 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg flex items-center justify-center mb-6 border border-electric-purple/20">
                         <div className="flex flex-col items-center">
                           <div className="flex items-center mb-4">
-                            <div className="vinyl-record w-12 h-12 animate-spin mr-4"></div>
+                            <div className="relative mr-4">
+                              <VinylRecord 
+                                className="w-12 h-12"
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
                             <div className="equalizer">
                               <div className="equalizer-bar"></div>
                               <div className="equalizer-bar"></div>
@@ -594,8 +618,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     ) : (
                       <div className="h-72 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg flex items-center justify-center mb-6 border border-silver/20">
                         <div className="flex flex-col items-center text-center">
-                          <div className="vinyl-record w-20 h-20 mb-4 opacity-50">
-                            <div className="absolute inset-0 flex items-center justify-center text-2xl">Not Available</div>
+                          <div className="relative mx-auto mb-4">
+                            <VinylRecord 
+                              className="w-20 h-20 opacity-50"
+                              animationClass=""
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center text-2xl">
+                              <span className="text-white">Not Available</span>
+                            </div>
                           </div>
                           <p className="text-silver text-lg">
                             {submission.quotaExhausted ? 'Video unavailable (quota)' : 
@@ -706,8 +736,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             
             {votableSubmissions.length === 0 && (
               <div className="text-center py-12">
-                <div className="vinyl-record w-20 h-20 mx-auto mb-4 opacity-50">
-                  <div className="absolute inset-0 flex items-center justify-center text-2xl">No songs</div>
+                <div className="relative mx-auto mb-4">
+                  <VinylRecord 
+                    className="w-20 h-20 opacity-50"
+                    animationClass=""
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center text-2xl">
+                    <span className="text-white">No songs</span>
+                  </div>
                 </div>
                 <p className="text-silver text-lg">No songs available for voting this round.</p>
               </div>
@@ -725,7 +761,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   <span className="relative z-10 flex items-center justify-center">
                     {isVoting ? (
                       <>
-                        <div className="vinyl-record w-6 h-6 animate-spin mr-3"></div>
+                        <div className="relative inline-block mr-3">
+                          <VinylRecord 
+                            className="w-6 h-6"
+                            animationClass="animate-vinyl-spin"
+                          />
+                        </div>
                         CASTING VOTE...
                       </>
                     ) : (
@@ -753,7 +794,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     >
                       {isStartingCountdown ? (
                         <>
-                          <div className="vinyl-record w-5 h-5 animate-spin mr-2 inline-block"></div>
+                          <div className="relative inline-block mr-2">
+                            <VinylRecord 
+                              className="w-5 h-5"
+                              animationClass="animate-vinyl-spin"
+                            />
+                          </div>
                           Starting Countdown...
                         </>
                       ) : game.countdown?.isActive ? (
