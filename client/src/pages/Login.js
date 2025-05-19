@@ -1,4 +1,4 @@
-// client/src/pages/Login.js - Updated with Terms Checkbox
+// client/src/pages/Login.js - Updated to remove auto-checking terms
 import React, { useContext, useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -17,7 +17,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedUsername, setGeneratedUsername] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(localStorage.getItem('termsAccepted') === 'true');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   
   // Get the redirect path from location state (if it exists)
   const redirectPath = location.state?.from || '/';
@@ -51,11 +51,7 @@ const Login = () => {
   // Handle terms checkbox change
   const handleTermsChange = (e) => {
     setTermsAccepted(e.target.checked);
-    if (e.target.checked) {
-      localStorage.setItem('termsAccepted', 'true');
-    } else {
-      localStorage.removeItem('termsAccepted');
-    }
+    // No localStorage persistence - simple state toggle
   };
   
   // Handle form submission
@@ -105,7 +101,7 @@ const Login = () => {
         throw new Error('No session token received from server');
       }
       
-      // Login with the returned data
+      // Login with the returned data - no terms persistence in localStorage
       login(data.user, data.sessionToken);
       
       // Navigate based on redirect path

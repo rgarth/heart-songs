@@ -1,6 +1,7 @@
-// client/src/components/TermsCheckbox.js
+// client/src/components/TermsCheckbox.js - Using styled checkbox
 import React from 'react';
 import { Link } from 'react-router-dom';
+import StyledCheckbox from './StyledCheckbox';
 
 /**
  * A checkbox component for terms acceptance that can be integrated
@@ -12,46 +13,36 @@ import { Link } from 'react-router-dom';
  */
 const TermsCheckbox = ({ checked, onChange, disabled = false }) => {
   return (
-    <div className="mt-4">
-      <div className="flex items-start">
-        <div className="flex items-center h-5">
-          <input
-            id="terms"
-            name="terms"
-            type="checkbox"
-            checked={checked}
-            onChange={onChange}
-            disabled={disabled}
-            className={`h-4 w-4 rounded border-gray-600 focus:ring-2 focus:ring-blue-500 bg-gray-700 ${
-              disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
-            required
-          />
-        </div>
-        <div className="ml-3 text-sm">
-          <label htmlFor="terms" className={`text-gray-300 ${disabled ? 'opacity-50' : ''}`}>
-            I accept the{' '}
-            <Link to="/terms" className="text-blue-400 hover:text-blue-300 underline" target="_blank">
-              Terms of Service
-            </Link>{' '}
-            and agree to be bound by the{' '}
-            <a 
-              href="https://www.youtube.com/t/terms" 
-              className="text-blue-400 hover:text-blue-300 underline"
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              YouTube Terms of Service
-            </a>
-          </label>
-        </div>
-      </div>
+    <StyledCheckbox
+      id="terms"
+      name="terms"
+      checked={checked}
+      onChange={onChange}
+      disabled={disabled}
+      required={true}
+    >
+      <span>
+        I accept the{' '}
+        <Link to="/terms" className="text-electric-purple hover:text-neon-pink transition-colors" target="_blank">
+          Terms of Service
+        </Link>{' '}
+        and agree to be bound by the{' '}
+        <a 
+          href="https://www.youtube.com/t/terms" 
+          className="text-electric-purple hover:text-neon-pink transition-colors"
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          YouTube Terms of Service
+        </a>
+      </span>
+      
       {!checked && (
-        <p className="mt-2 text-sm text-yellow-500">
+        <div className="mt-2 text-sm text-yellow-400">
           You must accept the terms to use Heart Songs
-        </p>
+        </div>
       )}
-    </div>
+    </StyledCheckbox>
   );
 };
 

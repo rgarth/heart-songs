@@ -1,10 +1,14 @@
-// client/src/pages/TermsDeclined.js
+// client/src/pages/TermsDeclined.js - Updated to improve YouTube compliance
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const TermsDeclined = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+      <Header />
+      
       <div className="container mx-auto px-4 py-12 flex-1 flex items-center justify-center">
         <div className="max-w-xl mx-auto">
           <div className="bg-gray-800 rounded-lg shadow-2xl border border-red-500/30 overflow-hidden">
@@ -28,11 +32,13 @@ const TermsDeclined = () => {
               </p>
               
               <div className="mb-8 bg-gray-700/50 rounded-lg p-6 border border-gray-600/30">
+                <h3 className="text-xl font-bold mb-3 text-white">Why do I need to accept these terms?</h3>
+                
                 <p className="text-white mb-4">
-                  Heart Songs uses YouTube's API services to provide music playback functionality. To use these features, you must agree to both our Terms of Service and the YouTube Terms of Service.
+                  Heart Songs uses YouTube's API services to provide music playback functionality. To use these features and comply with Google's requirements, you must explicitly agree to both our Terms of Service and the YouTube Terms of Service.
                 </p>
                 
-                <p className="text-blue-400">
+                <p className="text-blue-400 mb-2">
                   <a 
                     href="https://www.youtube.com/t/terms" 
                     target="_blank" 
@@ -42,20 +48,31 @@ const TermsDeclined = () => {
                     Read the YouTube Terms of Service
                   </a>
                 </p>
+                
+                <p className="text-blue-400">
+                  <Link 
+                    to="/terms" 
+                    className="underline hover:text-blue-300 transition-colors"
+                  >
+                    Read our Terms of Service
+                  </Link>
+                </p>
               </div>
               
               <div className="flex justify-center space-x-4">
                 <Link
-                  to="/"
+                  to="/login"
                   className="py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Return and Accept Terms
+                  Return to Login
                 </Link>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
