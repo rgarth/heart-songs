@@ -529,7 +529,6 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 </div>
               )}
 
-              {/* Search results - Album collection */}
               {searchResults.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-lg font-rock text-neon-pink mb-4 text-center flex items-center justify-center">
@@ -545,7 +544,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                         <div 
                           key={track.id}
                           onClick={() => !isAlreadySelected && handleSelectTrack(track)}
-                          className={`relative rounded-lg transition-all duration-200 selection-song-item ${
+                          className={`selection-song-item relative rounded-lg transition-all duration-200 ${
                             isAlreadySelected 
                               ? 'bg-gradient-to-r from-stage-red/10 to-red-600/10 border border-stage-red/30 opacity-60 cursor-not-allowed'
                               : isCurrentSelection 
@@ -553,6 +552,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                                 : 'bg-gradient-to-r from-vinyl-black to-stage-dark border border-electric-purple/30 cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg'
                           }`}
                         >
+                          {/* Explicitly use a div with display:flex for desktop and this will be overridden on mobile */}
                           <div className="flex items-center p-4 song-info">
                             {track.albumArt && (
                               <div className="relative mr-4 flex-shrink-0 album-art">
@@ -568,7 +568,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                                 )}
                               </div>
                             )}
-                            <div className="flex-1">
+                            <div className="flex-1 track-details">
                               <p className="font-semibold text-white">{track.name}</p>
                               <p className="text-silver text-sm">{track.artist}</p>
                               {track.album && (
@@ -602,7 +602,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                   </div>
                 </div>
               )}
-              
+            
               {/* Pass option - Sit this one out */}
               <div className="border-t border-electric-purple/30 pt-6">
                 {isPassConfirmShowing ? (

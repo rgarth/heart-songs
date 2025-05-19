@@ -401,35 +401,52 @@ code {
 
 /* Mobile optimizations for the SelectionScreen component */
 @media (max-width: 640px) {
-  /* Selection screen song items */
+  /* Selection screen song items - MORE SPECIFIC selectors to override defaults */
   .selection-song-item {
     display: flex !important;
     flex-direction: column !important;
   }
   
+  /* Force song-info to stack content on mobile */
   .selection-song-item .song-info {
     width: 100% !important;
-    margin-bottom: 0.75rem !important;
-    flex-direction: row !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    margin-bottom: 0 !important;
   }
   
+  /* Center the track details */
+  .selection-song-item .track-details,
+  .selection-song-item .flex-1 {
+    width: 100% !important;
+    text-align: center !important;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Make sure album art is centered */
+  .selection-song-item .album-art {
+    width: 4rem !important;
+    height: 4rem !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Force selection actions to be full width and centered */
   .selection-song-item .selection-actions {
     width: 100% !important;
     display: flex !important;
     justify-content: center !important;
-    margin-top: 1rem !important;
+    margin-top: 0.5rem !important;
     margin-left: 0 !important;
+    margin-right: 0 !important;
+    text-align: center !important;
   }
   
-  /* Ensure album art has proper sizing */
-  .selection-song-item .album-art {
-    width: 3.5rem !important;
-    height: 3.5rem !important;
-    margin-right: 0.75rem !important;
-    flex-shrink: 0 !important;
-  }
-  
-  /* Make selection button more prominent on mobile */
+  /* Style the select button to be more prominent and full width on mobile */
   .selection-song-item .select-button {
     width: 100% !important;
     max-width: 200px !important;
@@ -445,7 +462,7 @@ code {
     transition: all 0.2s ease-in-out !important;
   }
   
-  /* Make the already selected song indicator more visible */
+  /* Special style for selected button */
   .selection-song-item.selected .select-button {
     background: linear-gradient(to right, #65A30D, #4D7C0F) !important;
   }
@@ -479,11 +496,23 @@ code {
     flex-direction: column !important;
     align-items: center !important;
     text-align: center !important;
+    padding: 1rem 0.5rem !important;
   }
   
   .selection-song-item .album-art {
     margin-right: 0 !important;
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .selection-song-item .album-art img {
+    width: 4rem !important;
+    height: 4rem !important;
+  }
+  
+  /* Make the button full width */
+  .selection-song-item .select-button {
+    width: 100% !important;
+    max-width: none !important;
   }
   
   /* Adjust button sizes for very small screens */
