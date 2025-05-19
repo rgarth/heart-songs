@@ -1,9 +1,10 @@
-// client/src/pages/Login.js - Rockstar Design Edition
+// client/src/pages/Login.js - Updated with Terms Checkbox
 import React, { useContext, useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { registerAnonymous, checkUsernameAvailability } from '../services/AuthService';
 import { generateUsername, isValidUsername } from '../utils/usernameGenerator';
+import TermsCheckbox from '../components/TermsCheckbox';
 import VinylRecord from '../components/VinylRecord';
 
 const Login = () => {
@@ -16,6 +17,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedUsername, setGeneratedUsername] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(localStorage.getItem('termsAccepted') === 'true');
   
   // Get the redirect path from location state (if it exists)
   const redirectPath = location.state?.from || '/';
@@ -46,9 +48,25 @@ const Login = () => {
     if (error) setError(null);
   };
   
+  // Handle terms checkbox change
+  const handleTermsChange = (e) => {
+    setTermsAccepted(e.target.checked);
+    if (e.target.checked) {
+      localStorage.setItem('termsAccepted', 'true');
+    } else {
+      localStorage.removeItem('termsAccepted');
+    }
+  };
+  
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if terms are accepted
+    if (!termsAccepted) {
+      setError('You must accept the Terms of Service to continue');
+      return;
+    }
     
     try {
       setLoading(true);
@@ -107,20 +125,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen stage-bg flex items-center justify-center p-4">
-      {/* Concert venue background */}
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-10 left-10 w-64 h-64 bg-electric-purple/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 right-10 w-64 h-64 bg-neon-pink/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-turquoise/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-10 left-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-10 right-10 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       </div>
       
       <div className="relative z-10 w-full max-w-md">
-        {/* Main stage card */}
-        <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
+        {/* Main card */}
+        <div className="bg-gray-800 rounded-lg shadow-2xl border border-purple-500/30 overflow-hidden">
           
-          {/* Stage header with logo */}
-          <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-8 text-center border-b border-electric-purple/30">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-8 text-center border-b border-purple-500/30">
             {/* Spinning vinyl logo */}
             <div className="relative inline-block mb-4">
                <VinylRecord 
@@ -129,10 +147,10 @@ const Login = () => {
                 />
             </div>
             
-            <h1 className="text-4xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-blue-400 mb-2">
               HEART SONGS
             </h1>
-            <p className="text-silver text-sm font-medium">
+            <p className="text-gray-400 text-sm font-medium">
               Where Music Meets Personality
             </p>
           </div>
@@ -140,28 +158,28 @@ const Login = () => {
           {/* Join notification */}
           {redirectPath && redirectPath.startsWith('/join/') && (
             <div className="mx-6 -mt-4 relative z-10">
-              <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 border border-gold-record/40 rounded-lg p-3 text-center">
-                <div className="flex items-center justify-center text-gold-record text-sm font-medium">
-                  Ready to join the concert!
+              <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/40 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center text-yellow-400 text-sm font-medium">
+                  Ready to join the game!
                 </div>
               </div>
             </div>
           )}
           
           <div className="p-8">
-            {/* Username selection - simplified UI */}
+            {/* Username selection */}
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* Username section with rock styling */}
-              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/20">
+              {/* Username section */}
+              <div className="bg-gradient-to-r from-gray-900/50 to-gray-800/50 rounded-lg p-4 border border-purple-500/20">
                 <div className="flex justify-between items-center mb-3">
-                  <label className="text-silver text-sm font-medium flex items-center">
-                    🏷️ Your Stage Name
+                  <label className="text-gray-300 text-sm font-medium flex items-center">
+                    🏷️ Your Display Name
                   </label>
                   <button 
                     type="button"
                     onClick={toggleCustomUsername}
-                    className="text-xs font-medium text-neon-pink hover:text-electric-purple transition-colors"
+                    className="text-xs font-medium text-pink-400 hover:text-purple-400 transition-colors"
                   >
                     {customUsername ? '✨ Use Generated' : '✏️ Customize'}
                   </button>
@@ -174,23 +192,23 @@ const Login = () => {
                       value={username}
                       onChange={handleUsernameChange}
                       placeholder="e.g. rock_star_1234"
-                      className="w-full p-3 bg-vinyl-black text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all font-mono"
+                      className="w-full p-3 bg-gray-900 text-white rounded-lg border border-purple-500/30 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 transition-all font-mono"
                     />
-                    <p className="text-xs text-silver">
+                    <p className="text-xs text-gray-400">
                       Format: word_word_1234 (lowercase)
                     </p>
                   </div>
                 ) : (
                   <div className="flex items-center">
-                    <div className="flex-1 bg-vinyl-black rounded-lg p-3 border border-gold-record/40 text-center">
-                      <span className="text-gold-record font-bold text-lg font-mono">
+                    <div className="flex-1 bg-gray-900 rounded-lg p-3 border border-yellow-500/40 text-center">
+                      <span className="text-yellow-400 font-bold text-lg font-mono">
                         {generatedUsername}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={handleRegenerateUsername}
-                      className="ml-3 p-3 bg-gradient-to-r from-electric-purple to-neon-pink rounded-lg hover:shadow-neon-purple/50 hover:shadow-lg transition-all group"
+                      className="ml-3 p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition-all group"
                       title="Generate new username"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white group-hover:scale-110 transition-transform" viewBox="0 0 20 20" fill="currentColor">
@@ -201,10 +219,16 @@ const Login = () => {
                 )}
               </div>
               
+              {/* Terms of Service Checkbox */}
+              <TermsCheckbox 
+                checked={termsAccepted} 
+                onChange={handleTermsChange} 
+              />
+              
               {/* Error display */}
               {error && (
-                <div className="bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3 text-center">
-                  <div className="flex items-center justify-center text-stage-red">
+                <div className="bg-gradient-to-r from-red-500/20 to-red-600/20 border border-red-500/40 rounded-lg p-3 text-center">
+                  <div className="flex items-center justify-center text-red-400">
                     <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
@@ -213,49 +237,47 @@ const Login = () => {
                 </div>
               )}
               
-              {/* Get on stage button */}
+              {/* Submit button */}
               <button 
                 type="submit"
-                disabled={loading}
-                className="w-full btn-electric relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !termsAccepted}
+                className={`w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium transition-all transform hover:translate-y-[-2px] hover:shadow-lg hover:shadow-purple-500/40 ${
+                  loading || !termsAccepted ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                <span className="relative z-10 flex items-center justify-center">
-                  {loading ? (
-                    <>
-                      <div className="vinyl-record w-6 h-6 animate-spin mr-3"></div>
-                      GETTING READY...
-                    </>
-                  ) : (
-                    <>
-                      GET ON STAGE
-                    </>
-                  )}
-                </span>
-                {/* Stage lights effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Getting Ready...
+                  </div>
+                ) : (
+                  "Start Playing"
+                )}
               </button>
             </form>
             
             {/* Temporary account notice */}
             <div className="mt-6 text-center">
-              <div className="inline-flex items-center bg-turquoise/10 rounded-full px-4 py-2 border border-turquoise/30">
-                <svg className="w-4 h-4 text-turquoise mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <div className="inline-flex items-center bg-blue-500/10 rounded-full px-4 py-2 border border-blue-500/30">
+                <svg className="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                <span className="text-turquoise text-xs font-medium">
+                <span className="text-blue-400 text-xs font-medium">
                   Temporary session • No signup required
                 </span>
               </div>
             </div>
           </div>
           
-          {/* Stage footer with musical notes */}
-          <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-4 text-center border-t border-electric-purple/20">
-            <div className="flex justify-center items-center space-x-4 text-silver/50">
+          {/* Footer */}
+          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 text-center border-t border-purple-500/20">
+            <div className="flex justify-center items-center space-x-4 text-gray-400">
             </div>
           </div>
         </div>
-        
       </div>
     </div>
   );
