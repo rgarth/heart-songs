@@ -399,6 +399,101 @@ code {
   }
 }
 
+/* Mobile optimizations for the SelectionScreen component */
+@media (max-width: 640px) {
+  /* Selection screen song items */
+  .selection-song-item {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .selection-song-item .song-info {
+    width: 100% !important;
+    margin-bottom: 0.75rem !important;
+    flex-direction: row !important;
+  }
+  
+  .selection-song-item .selection-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin-top: 1rem !important;
+    margin-left: 0 !important;
+  }
+  
+  /* Ensure album art has proper sizing */
+  .selection-song-item .album-art {
+    width: 3.5rem !important;
+    height: 3.5rem !important;
+    margin-right: 0.75rem !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Make selection button more prominent on mobile */
+  .selection-song-item .select-button {
+    width: 100% !important;
+    max-width: 200px !important;
+    margin-top: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: linear-gradient(to right, #9333EA, #EC4899) !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out !important;
+  }
+  
+  /* Make the already selected song indicator more visible */
+  .selection-song-item.selected .select-button {
+    background: linear-gradient(to right, #65A30D, #4D7C0F) !important;
+  }
+  
+  /* Fix the layout of the selected track component */
+  .selected-track-container .flex {
+    flex-direction: column !important;
+  }
+  
+  .selected-track-container .flex > div:first-child {
+    margin-bottom: 1rem !important;
+    margin-right: 0 !important;
+    text-align: center !important;
+  }
+  
+  .selected-track-container .flex > div.flex-1 {
+    text-align: center !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .selected-track-container .flex > button {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Adjustments for extremely small screens */
+@media (max-width: 400px) {
+  .selection-song-item .song-info {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+  
+  .selection-song-item .album-art {
+    margin-right: 0 !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Adjust button sizes for very small screens */
+  button.btn-electric, button.btn-gold, button.btn-stage {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
 /* Fix for YouTube iframes to ensure minimum size requirements */
 iframe[src*="youtube.com"] {
   max-width: 100%;

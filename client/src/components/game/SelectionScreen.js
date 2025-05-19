@@ -485,7 +485,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 <div className="mb-8 bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
                   <h3 className="text-lg font-rock text-lime-green mb-4 text-center">YOUR SELECTED TRACK</h3>
                   
-                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30">
+                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30 selected-track-container">
                     <div className="flex items-center">
                       {selectedSong.albumArt && (
                         <div className="relative mr-4 flex-shrink-0">
@@ -526,10 +526,9 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       </button>
                     </div>
                   </div>
-                  
                 </div>
               )}
-              
+
               {/* Search results - Album collection */}
               {searchResults.length > 0 && (
                 <div className="mb-8">
@@ -546,17 +545,17 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                         <div 
                           key={track.id}
                           onClick={() => !isAlreadySelected && handleSelectTrack(track)}
-                          className={`relative rounded-lg transition-all duration-200 ${
+                          className={`relative rounded-lg transition-all duration-200 selection-song-item ${
                             isAlreadySelected 
                               ? 'bg-gradient-to-r from-stage-red/10 to-red-600/10 border border-stage-red/30 opacity-60 cursor-not-allowed'
                               : isCurrentSelection 
-                                ? 'bg-gradient-to-r from-lime-green/10 to-green-600/10 border border-lime-green/40 cursor-pointer'
+                                ? 'bg-gradient-to-r from-lime-green/10 to-green-600/10 border border-lime-green/40 cursor-pointer selected'
                                 : 'bg-gradient-to-r from-vinyl-black to-stage-dark border border-electric-purple/30 cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg'
                           }`}
                         >
-                          <div className="flex items-center p-4">
+                          <div className="flex items-center p-4 song-info">
                             {track.albumArt && (
-                              <div className="relative mr-4 flex-shrink-0">
+                              <div className="relative mr-4 flex-shrink-0 album-art">
                                 <img 
                                   src={track.albumArt} 
                                   alt={track.name} 
@@ -583,15 +582,15 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                             </div>
                             
                             {!isAlreadySelected && (
-                              <div className="text-right">
+                              <div className="text-right selection-actions">
                                 {isCurrentSelection ? (
-                                  <div className="flex items-center text-lime-green font-bold">
+                                  <div className="flex items-center justify-center text-white font-bold select-button">
                                     <span className="mr-1">✓</span>
                                     <span>SELECTED</span>
                                   </div>
                                 ) : (
-                                  <div className="text-electric-purple text-sm hover:text-neon-pink transition-colors">
-                                    Click to select →
+                                  <div className="text-white text-sm hover:text-white select-button">
+                                    Click to select
                                   </div>
                                 )}
                               </div>
