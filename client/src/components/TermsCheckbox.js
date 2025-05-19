@@ -1,4 +1,4 @@
-// client/src/components/TermsCheckbox.js - Using styled checkbox
+// client/src/components/TermsCheckbox.js - Updated to include Privacy Policy
 import React from 'react';
 import { Link } from 'react-router-dom';
 import StyledCheckbox from './StyledCheckbox';
@@ -26,6 +26,10 @@ const TermsCheckbox = ({ checked, onChange, disabled = false }) => {
         <Link to="/terms" className="text-electric-purple hover:text-neon-pink transition-colors" target="_blank">
           Terms of Service
         </Link>{' '}
+        and{' '}
+        <Link to="/privacy" className="text-electric-purple hover:text-neon-pink transition-colors" target="_blank">
+          Privacy Policy
+        </Link>{', '}
         and agree to be bound by the{' '}
         <a 
           href="https://www.youtube.com/t/terms" 

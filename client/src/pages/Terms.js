@@ -1,4 +1,4 @@
-// client/src/pages/Terms.js - Themed version
+// client/src/pages/Terms.js - Updated with Privacy Policy references
 import React from 'react';
 import { Link } from 'react-router-dom';
 import VinylRecord from '../components/VinylRecord';
@@ -29,6 +29,17 @@ const Terms = () => {
             </div>
             
             <div className="p-8">
+              {/* Privacy Policy Callout - Added at the top for visibility */}
+              <div className="mb-8 bg-gradient-to-r from-gold-record/10 to-yellow-400/10 rounded-lg p-6 border border-gold-record/30">
+                <h2 className="text-xl font-bold text-gold-record mb-3">Important Privacy Information</h2>
+                <p className="mb-3">
+                  Please review our <Link to="/privacy" className="text-gold-record font-semibold underline hover:text-yellow-300">Privacy Policy</Link> which explains how we collect, use, and share your information, including our use of YouTube API Services.
+                </p>
+                <p className="mb-0">
+                  By using Heart Songs, you agree to our Privacy Policy and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-gold-record font-semibold underline hover:text-yellow-300">Google Privacy Policy</a>.
+                </p>
+              </div>
+              
               {/* Content with improved readability */}
               <div className="prose max-w-none">
                 {/* Using a more readable color scheme */}
@@ -36,7 +47,7 @@ const Terms = () => {
                   <section className="mb-8">
                     <h2 className="text-xl font-bold text-turquoise mb-3">1. Introduction</h2>
                     <p className="mb-3">
-                      Welcome to Heart Songs ("Service"). These Terms of Service ("Terms") govern your use of the Heart Songs application and website available at https://heart-songs.vercel.app.
+                      Welcome to Heart Songs ("Service"). These Terms of Service ("Terms") govern your use of the Heart Songs application and website available at https://heartsongs.app.
                     </p>
                     <p className="mb-3">
                       By accessing or using Heart Songs, you agree to be bound by these Terms. If you do not agree to these Terms, you may not access or use the Service.
@@ -84,10 +95,27 @@ const Terms = () => {
                     </ul>
                   </section>
                   
+                  {/* NEW SECTION: PRIVACY POLICY */}
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">5. User Content</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">5. Privacy Policy</h2>
                     <p className="mb-3">
-                      You retain ownership of your User Content. However, by submitting User Content to Heart Songs, you grant Heart Songs a worldwide, non-exclusive, royalty-free license to use, reproduce, and display your User Content solely for the purpose of providing and improving the Service.
+                      Your privacy is important to us. Our <Link to="/privacy" className="text-electric-purple hover:text-neon-pink underline">Privacy Policy</Link> explains how we collect, use, and protect your personal information when you use our Service.
+                    </p>
+                    <p className="mb-3">
+                      The Privacy Policy includes important information about:
+                    </p>
+                    <ul className="list-disc pl-5 mb-4 space-y-1 text-silver/90">
+                      <li>What information we collect, including information related to your use of YouTube API Services</li>
+                      <li>How we use cookies and similar technologies</li>
+                      <li>How we use and share your information</li>
+                      <li>Your rights regarding your information</li>
+                      <li>Our data retention practices</li>
+                    </ul>
+                    <p className="mb-3">
+                      By using our Service, you agree to our Privacy Policy. Our use of information received from Google APIs will adhere to the <a href="https://developers.google.com/youtube/terms/api-services-terms-of-service" target="_blank" rel="noopener noreferrer" className="text-electric-purple hover:text-neon-pink underline">Google API Services User Data Policy</a>.
+                    </p>
+                    <p className="mb-3">
+                      For more information about how Google treats your data, please review the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-electric-purple hover:text-neon-pink underline">Google Privacy Policy</a>.
                     </p>
                   </section>
                   
@@ -123,51 +151,47 @@ const Terms = () => {
                   
                   {/* Additional sections would continue here... */}
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">8. Privacy</h2>
-                    <p className="mb-3">
-                      We only collect the minimal information necessary to provide the Service. For anonymous users, this includes a temporary identifier, display name, and game activities.
-                    </p>
-                  </section>
-                  
-                  <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">9. Disclaimers</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">8. Disclaimers</h2>
                     <p className="mb-3">
                       Heart Songs is provided on an "as is" and "as available" basis. We do not guarantee that the Service will be available at all times or free of errors.
                     </p>
                   </section>
                   
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">10. Limitation of Liability</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">9. Limitation of Liability</h2>
                     <p className="mb-3">
                       To the maximum extent permitted by law, in no event shall Heart Songs, its creators, or its affiliates be liable for any indirect, incidental, special, consequential, or punitive damages.
                     </p>
                   </section>
                   
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">11. Modifications to Terms</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">10. Modifications to Terms</h2>
                     <p className="mb-3">
                       We reserve the right to modify these Terms at any time. If we make material changes to these Terms, we will notify you by posting the new Terms on our website or through the Service.
                     </p>
                   </section>
                   
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">12. Termination</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">11. Termination</h2>
                     <p className="mb-3">
                       We may terminate or suspend your access to the Service immediately, without prior notice or liability, for any reason whatsoever, including but not limited to a breach of these Terms.
                     </p>
                   </section>
                   
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">13. Governing Law</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">12. Governing Law</h2>
                     <p className="mb-3">
                       These Terms shall be governed by and construed in accordance with applicable laws, without regard to its conflict of law provisions.
                     </p>
                   </section>
                   
                   <section className="mb-8">
-                    <h2 className="text-xl font-bold text-turquoise mb-3">14. Contact Us</h2>
+                    <h2 className="text-xl font-bold text-turquoise mb-3">13. Contact Us</h2>
                     <p className="mb-3">
-                      If you have any questions about these Terms, please contact us at support@heartsongsgame.app.
+                      If you have any questions about these Terms or our <Link to="/privacy" className="text-electric-purple hover:text-neon-pink underline">Privacy Policy</Link>, please contact us at:
+                    </p>
+                    <p className="mb-3 text-electric-purple">
+                      support@heartsongsgame.app
                     </p>
                   </section>
                 </div>
@@ -175,10 +199,6 @@ const Terms = () => {
               
             </div>
             
-            {/* Footer section - decorative accent */}
-            <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 p-4 text-center border-t border-electric-purple/20">
-              <div className="h-1 bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise opacity-30 rounded-full"></div>
-            </div>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-// client/src/App.js - Updated with proper terms handling
+// Updated App.js with Privacy Policy route
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -9,7 +9,7 @@ import Game from './pages/Game';
 import JoinGame from './pages/JoinGame';
 import PrivateRoute from './components/PrivateRoute';
 import Terms from './pages/Terms';
-import TermsDeclined from './pages/TermsDeclined';
+import Privacy from './pages/Privacy';  // Import the new Privacy component
 
 function App() {
   return (
@@ -51,8 +51,8 @@ function App() {
               {/* Terms of Service page */}
               <Route path="/terms" element={<Terms />} />
               
-              {/* Terms Declined page */}
-              <Route path="/terms-declined" element={<TermsDeclined />} />
+              {/* Privacy Policy page */}
+              <Route path="/privacy" element={<Privacy />} />
               
               {/* Redirect all other routes to home */}
               <Route path="*" element={<Navigate to="/" replace />} />
