@@ -1,5 +1,5 @@
-// client/src/components/PrivateRoute.js
-import React, { useContext, useEffect } from 'react';
+// client/src/components/PrivateRoute.js - Simplified without terms persistence
+import React, { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -35,6 +35,7 @@ const PrivateRoute = ({ children }) => {
   }
 
   // If authenticated, render the protected component
+  // We assume if they're logged in, they've already agreed to terms
   return children;
 };
 
