@@ -1,10 +1,10 @@
-// client/src/components/Footer.js - Updated with Privacy Policy link
+// client/src/components/Footer.js - Fixed to prevent bottom border from scrolling
 import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 border-t border-gray-700">
+    <footer className="bg-gray-800 border-t border-gray-700 relative">
       <div className="container mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center">
           
@@ -39,8 +39,8 @@ const Footer = () => {
           </div>
         </div>
         
-        {/* Stage lighting decoration */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 via-blue-500 via-green-500 to-yellow-500 opacity-50"></div>
+        {/* Stage lighting decoration - FIXED to stay at the bottom */}
+        <div className="fixed bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 via-blue-500 via-green-500 to-yellow-500 opacity-50 z-10"></div>
       </div>
     </footer>
   );
