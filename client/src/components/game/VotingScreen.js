@@ -485,7 +485,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                     <div className="mx-auto relative">
                       <VinylRecord 
                         className="w-16 h-16 mx-auto"
-                        animationClass="animate-spin-slow"
+                        animationClass="animate-vinyl-spin"
                       />
                     </div>
                   </div>

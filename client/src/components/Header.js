@@ -75,7 +75,7 @@ const Header = ({ gameCode }) => {
                 
                 <VinylRecord 
                   className="w-12 h-12 relative z-10"
-                  animationClass="animate-vinyl-spin group-hover:animate-spin-slow"
+                  animationClass="animate-vinyl-spin group-hover:animate-vinyl-spin"
                 />
               </div>
               <h1 className="text-3xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
