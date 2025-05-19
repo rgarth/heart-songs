@@ -23,11 +23,11 @@ const TermsCheckbox = ({ checked, onChange, disabled = false }) => {
     >
       <span>
         I accept the{' '}
-        <Link to="/terms" className="text-electric-purple hover:text-neon-pink transition-colors" target="_blank">
+        <Link to="/terms" className="text-electric-purple hover:text-neon-pink transition-colors">
           Terms of Service
         </Link>{' '}
         and{' '}
-        <Link to="/privacy" className="text-electric-purple hover:text-neon-pink transition-colors" target="_blank">
+        <Link to="/privacy" className="text-electric-purple hover:text-neon-pink transition-colors">
           Privacy Policy
         </Link>{', '}
         and agree to be bound by the{' '}
