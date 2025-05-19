@@ -1,5 +1,7 @@
-// client/src/pages/Game.js - Fixed history persistence for all users
-import React, { useContext, useEffect, useState, useCallback } from 'react';
+// Modify client/src/pages/Game.js to add the scroll-to-top functionality
+// The key changes are adding a useEffect that watches for game.status changes
+
+import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getGameState, toggleReady, startNewRound, startGame, endGame, cancelCountdown } from '../services/gameService';
@@ -40,11 +42,25 @@ const Game = () => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   
+  // Add a ref to track the previous game status
+  const prevGameStatusRef = useRef(null);
+  
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
     previousRounds: [],
     storageChecked: false // Flag to track if we've checked localStorage already
   });
+  
+  // Scroll to top when game status changes
+  useEffect(() => {
+    if (game && game.status !== prevGameStatusRef.current) {
+      // Game status has changed, scroll to top
+      window.scrollTo(0, 0);
+      
+      // Update the previous status ref
+      prevGameStatusRef.current = game.status;
+    }
+  }, [game?.status]);
   
   // Improved function to load game history from localStorage
   const loadGameHistoryFromStorage = useCallback(() => {
