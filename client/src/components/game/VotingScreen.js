@@ -554,7 +554,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               return (
                 <div 
                   key={`${submission.id}-${submission.songId}`}
-                  className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg overflow-hidden border transition-all ${
+                  className={`submission-item bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg overflow-hidden border transition-all ${
                     !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg' : 'border-electric-purple/30'
                   } ${
                     selectedSubmission === submission.id ? 'border-neon-pink shadow-neon-pink/50 shadow-lg' : ''
@@ -596,17 +596,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                       </div>
                     ) : submission.youtubeId ? (
-                      <div className="relative rounded-lg overflow-hidden border border-electric-purple/30">
+                      <div className="youtube-container">
                         <iframe 
                           key={`${submission.id}-${submission.youtubeId}-${preferVideo}`}
                           src={getYouTubeEmbedUrl(submission.youtubeId)}
-                          width="100%" 
-                          height="300"
                           frameBorder="0" 
-                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                           allowFullScreen
                           title={`${submission.songName} by ${submission.artist}`}
-                          className="rounded"
                         ></iframe>
                       </div>
                     ) : (
@@ -630,10 +627,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       </div>
                     )}
                     
-                    <div className="flex items-center justify-between">
+                    <div className="flex-1 song-info items-center justify-between">
                       <div className="flex-1">
                         {submission.albumCover && (
-                          <div className="float-left mr-4 mb-2">
+                          <div className="float-left mr-4 mb-2 album-cover">
                             <img 
                               src={submission.albumCover} 
                               alt={submission.songName} 
@@ -653,7 +650,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                             )}
                           </div>
                           
-                          <div className="flex items-center mt-2">
+                          <div className="flex items-center mt-2 votes-display">
                             <span className="text-neon-pink text-sm">Votes: </span>
                             <span className="text-white font-bold text-lg ml-1">{submission.votes?.length || 0}</span>
                             {submission.votes?.length > 0 && (
@@ -665,14 +662,14 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-3 ml-4">
+                      <div className="flex flex-col items-end gap-3 ml-4 vote-actions">
                         {!hasVoted && (isSmallGame || !isOwnSubmission) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedSubmission(submission.id);
                             }}
-                            className={`btn-stage text-sm min-w-[120px] px-4 py-2 flex justify-center group ${
+                            className={`vote-button btn-stage text-sm min-w-[120px] px-4 py-2 flex justify-center group ${
                               selectedSubmission === submission.id ? 'bg-gradient-to-r from-neon-pink to-electric-purple border-neon-pink text-white' : ''
                             }`}
                           >

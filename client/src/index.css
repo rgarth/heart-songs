@@ -1,4 +1,4 @@
-/* client/src/index.css - Enhanced with Rockstar Theme */
+/* client/src/index.css - Enhanced with Rockstar Theme and Mobile Optimizations */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -287,4 +287,140 @@ code {
     min-width: 60px;
     min-height: 60px;
   }
+}
+
+/* MOBILE OPTIMIZATIONS - Screens under 500px */
+@media (max-width: 500px) {
+  .container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    max-width: 100% !important;
+  }
+  
+  /* Game panels - reduce horizontal padding on mobile */
+  .max-w-4xl, .max-w-3xl {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  
+  .p-6 {
+    padding: 1.25rem 0.75rem !important;
+  }
+  
+  .p-8 {
+    padding: 2rem 0.75rem !important;
+  }
+  
+  .px-6 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  /* Keep vertical padding */
+  .py-6, .py-8, .py-12 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+  
+  /* For Footer */
+  .px-4 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  /* Make buttons slightly smaller */
+  .btn-rockstar {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Adjust grid layouts */
+  .grid.md\:grid-cols-2, .grid.md\:grid-cols-3 {
+    grid-template-columns: 1fr !important; /* Force single column on mobile */
+    gap: 0.75rem !important;
+  }
+  
+  /* Convert the submission item layout to column on mobile */
+  .submission-item {
+    flex-direction: column !important;
+  }
+  
+  /* Song info takes full width */
+  .song-info {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Action buttons go below song info and centered */
+  .vote-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin-top: 0.5rem !important;
+    margin-left: 0 !important;
+  }
+  
+  /* Center the votes display */
+  .votes-display {
+    justify-content: center !important;
+    margin-top: 0.75rem !important;
+  }
+  
+  /* Ensure album cover fits properly */
+  .album-cover {
+    width: 4rem !important;
+    height: 4rem !important;
+    margin-right: 0.75rem !important;
+  }
+}
+
+/* For extremely small screens */
+@media (max-width: 400px) {
+  .p-6, .p-8 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  /* Make fonts slightly smaller */
+  .text-xl {
+    font-size: 1.1rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Make buttons take full width on very small screens */
+  .vote-button {
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+  }
+}
+
+/* Fix for YouTube iframes to ensure minimum size requirements */
+iframe[src*="youtube.com"] {
+  max-width: 100%;
+  width: 100%;
+  min-height: 200px; /* YouTube minimum height requirement */
+  min-width: 200px; /* YouTube minimum width requirement */
+}
+
+/* Ensure YouTube embeds have proper aspect ratio */
+.youtube-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+  max-width: 100%;
+  margin-bottom: 1rem;
+}
+
+.youtube-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }

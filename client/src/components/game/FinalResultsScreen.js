@@ -727,16 +727,13 @@ useEffect(() => {
                                   </div>
                               </div>
                             ) : track.youtubeId ? (
-                              <div className="relative rounded-lg overflow-hidden">
-                                <iframe
+                              <div className="youtube-container">
+                                <iframe 
                                   src={getYouTubeEmbedUrl(track.youtubeId)}
-                                  width="100%" 
-                                  height="350"
                                   frameBorder="0" 
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                   allowFullScreen
-                                  title={`${track.songName || 'Song'} by ${track.artist || 'Artist'}`}
-                                  className="rounded-lg shadow-lg"
+                                  title={`${track.songName} by ${track.artist}`}
                                 ></iframe>
                               </div>
                             ) : (
