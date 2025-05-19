@@ -1,6 +1,6 @@
-// client/src/components/TermsOfService.js
+// client/src/components/TermsOfService.js - Updated with Privacy Policy reference
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const TermsOfService = ({ onAccept }) => {
   const [accepted, setAccepted] = useState(false);
@@ -12,11 +12,6 @@ const TermsOfService = ({ onAccept }) => {
     if (onAccept) {
       onAccept();
     }
-  };
-  
-  const handleDecline = () => {
-    // Redirect to a "declined terms" page or back to home
-    navigate('/terms-declined');
   };
   
   return (
@@ -45,12 +40,15 @@ const TermsOfService = ({ onAccept }) => {
             <h2>3. Description of Service</h2>
             <p>Heart Songs is a social music game where players select songs to answer random questions, then vote for their favorites. The Service enables players to search for songs and share them with friends in a game format.</p>
             
-            {/* Additional TOS sections would continue here */}
             <h2>4. User Registration and Accounts</h2>
             <p>Heart Songs allows you to play with a temporary anonymous account. Your temporary account data is stored for a limited time and automatically expires after 7 days of inactivity.</p>
             
+            <h2>5. Privacy Policy</h2>
+            <p>Your privacy is important to us. Our <Link to="/privacy" className="text-electric-purple underline">Privacy Policy</Link> explains how we collect, use, and protect your personal information. By using Heart Songs, you also agree to our Privacy Policy.</p>
+            <p>Our Privacy Policy includes information about our use of YouTube API Services and how we handle information received through these services, in compliance with the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-electric-purple underline">Google Privacy Policy</a>.</p>
+            
             <h2>14. Contact Us</h2>
-            <p>If you have any questions about these Terms, please contact us at [contact@example.com].</p>
+            <p>If you have any questions about these Terms, please contact us at support@heartsongsgame.app.</p>
           </div>
         </div>
         
@@ -65,17 +63,19 @@ const TermsOfService = ({ onAccept }) => {
               className="text-gold-record underline hover:text-yellow-400"
             >
               YouTube Terms of Service
-            </a>
+            </a>{' '}
+            and acknowledge our{' '}
+            <Link 
+              to="/privacy" 
+              className="text-gold-record underline hover:text-yellow-400"
+            >
+              Privacy Policy
+            </Link>{' '}
+            which explains how we use information from Google APIs.
           </p>
         </div>
         
         <div className="flex justify-center space-x-4">
-          <button
-            onClick={handleDecline}
-            className="btn-stage py-2 px-4 bg-gradient-to-r from-stage-dark to-vinyl-black text-white border-2 border-electric-purple hover:border-neon-pink"
-          >
-            Decline
-          </button>
           <button
             onClick={handleAccept}
             className="btn-gold py-2 px-4 bg-gradient-to-r from-gold-record to-yellow-400 text-vinyl-black hover:shadow-xl hover:shadow-gold-record/40"

@@ -93,12 +93,6 @@ const StyledCheckbox = ({
         </label>
       </div>
       
-      {/* Indication for required checkbox */}
-      {required && !checked && (
-        <p className="mt-2 text-sm text-yellow-500 ml-8">
-          Required
-        </p>
-      )}
     </div>
   );
 };

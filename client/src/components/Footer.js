@@ -1,4 +1,4 @@
-// client/src/components/Footer.js - Updated with Terms Links
+// client/src/components/Footer.js - Updated with Privacy Policy link
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -18,11 +18,14 @@ const Footer = () => {
             </div>
           </div>
           
-          {/* Important terms notice */}
+          {/* Important links notice */}
           <div className="text-center md:text-right text-sm text-gray-400 mb-4 md:mb-0">
-            By using Heart Songs, you agree to be bound by our{' '}
+            By using Heart Songs, you agree to our{' '}
             <Link to="/terms" className="text-blue-400 hover:text-blue-300 underline">
               Terms of Service
+            </Link>{', '}
+            <Link to="/privacy" className="text-blue-400 hover:text-blue-300 underline">
+              Privacy Policy
             </Link>{' '}
             and the{' '}
             <a 
