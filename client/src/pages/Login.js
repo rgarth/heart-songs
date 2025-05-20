@@ -1,6 +1,6 @@
 // client/src/pages/Login.js - Updated to remove auto-checking terms
 import React, { useContext, useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { registerAnonymous, checkUsernameAvailability } from '../services/AuthService';
 import { generateUsername, isValidUsername } from '../utils/usernameGenerator';

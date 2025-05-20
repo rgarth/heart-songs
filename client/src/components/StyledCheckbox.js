@@ -21,13 +21,6 @@ const StyledCheckbox = ({
   required = false,
   children 
 }) => {
-  // Handler to toggle checkbox when the custom visual element is clicked
-  const handleCustomCheckboxClick = () => {
-    if (!disabled) {
-      onChange({ target: { checked: !checked } });
-    }
-  };
-
   return (
     <div className="mt-4">
       <div className="flex items-start">

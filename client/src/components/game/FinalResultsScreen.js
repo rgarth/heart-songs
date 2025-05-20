@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VinylRecord from '../VinylRecord';
+import YouTubeIcon from '../YouTubeIcon';
+import YouTubeOfficialLogo from '../YouTubeOfficialLogo';
 
 // Simple SVG Crown component - classic crown silhouette
 const CrownIcon = ({ className = "w-6 h-6" }) => (
@@ -614,36 +616,27 @@ useEffect(() => {
           
           {/* Greatest hits collection */}
           {winningTracks.filter(track => track.youtubeId).length > 0 && (
-            <div className="mb-10">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-rock text-center mb-3">
-                  WINNING SONG COLLECTION
-                </h3>
-                <p className="text-silver">Listen to all the winning songs from each round</p>
-              </div>
-              
-              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30 text-center">
-                <button
-                  onClick={handleOpenPlaylist}
-                  className="btn-electric group relative overflow-hidden mb-4"
-                >
-                  <span className="relative z-10 flex items-center justify-center">
-                    <svg className="h-6 w-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62-4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
-                    </svg>
-                    <svg className="h-6 w-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M2 3h20v14H2V3zm2 2v10h8V5H4zm12 0v10h4V5h-4zM4 19h16v2H4v-2z" />
-                    </svg>
-                    <span className="text-lg font-bold">PLAY ALL SONGS</span>
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                </button>
-                
-                <p className="text-silver text-sm">
-                  <span className="text-neon-pink font-semibold">{winningTracks.filter(track => track.youtubeId).length}</span> winning songs • Auto-queued playlist
-                </p>
-              </div>
+          <div className="mb-10">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-rock text-center mb-3">
+                WINNING PLAYLIST
+              </h3>
+              <p className="text-silver">Listen to all the winning songs from each round</p>
             </div>
+            <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30 text-center">
+              <button
+                onClick={handleOpenPlaylist}
+                className="btn-stage py-3 px-8 inline-block mb-4 relative overflow-hidden group"
+              >
+                <span className="relative z-10 inline-flex items-center">
+                  <span className="text-xl font-bold mr-3">PLAY ALL SONGS ON</span>
+                  <YouTubeOfficialLogo className="h-5 w-auto" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              </button>
+              
+            </div>
+          </div>
           )}
           
           {/* Winning songs showcase */}
