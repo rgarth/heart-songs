@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { submitSong, startEndSelectionCountdown } from '../../services/gameService';
 import { searchSongs } from '../../services/musicService';
 import VinylRecord from '../VinylRecord';
+import LastFmIcon from '../LastFmIcon';
 
 const SelectionScreen = ({ game, currentUser, accessToken }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -503,27 +504,44 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                           <p className="text-xs text-turquoise mt-1">{selectedSong.album}</p>
                         )}
                       </div>
-                      <button 
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="btn-gold ml-4 disabled:opacity-50"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <div className="relative w-5 h-5 mr-2 inline-block">
-                              <VinylRecord 
-                                className="w-5 h-5" 
-                                animationClass="animate-vinyl-spin"
-                              />
-                            </div>
-                            SUBMITTING...
-                          </>
-                        ) : (
-                          <>
-                            SUBMIT TRACK
-                          </>
-                        )}
-                      </button>
+                      
+                      <div className="flex items-center">
+                        {/* Last.fm attribution aligned with submit button */}
+                        <a 
+                          href={`https://www.last.fm/music/${encodeURIComponent(selectedSong.artist)}/_/${encodeURIComponent(selectedSong.name)}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-electric-purple hover:text-neon-pink opacity-60 hover:opacity-100 transition-opacity mr-4"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="flex items-center">
+                            <span className="mr-1">via</span>
+                            <LastFmIcon className="h-3" />
+                          </span>
+                        </a>
+                        
+                        <button 
+                          onClick={handleSubmit}
+                          disabled={isSubmitting}
+                          className="btn-gold disabled:opacity-50"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <div className="relative w-5 h-5 mr-2 inline-block">
+                                <VinylRecord 
+                                  className="w-5 h-5" 
+                                  animationClass="animate-vinyl-spin"
+                                />
+                              </div>
+                              SUBMITTING...
+                            </>
+                          ) : (
+                            <>
+                              SUBMIT TRACK
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
