@@ -486,7 +486,7 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                 <div className="mb-8 bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
                   <h3 className="text-lg font-rock text-lime-green mb-4 text-center">YOUR SELECTED TRACK</h3>
                   
-                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30 selected-track-container">
+                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30 selected-track-container relative">
                     <div className="flex items-center">
                       {selectedSong.albumArt && (
                         <div className="relative mr-4 flex-shrink-0">
@@ -505,47 +505,45 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                         )}
                       </div>
                       
-                      <div className="flex items-center">
-                        {/* Last.fm attribution aligned with submit button */}
-                        <a 
-                          href={`https://www.last.fm/music/${encodeURIComponent(selectedSong.artist)}/_/${encodeURIComponent(selectedSong.name)}`}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-electric-purple hover:text-neon-pink opacity-60 hover:opacity-100 transition-opacity mr-4"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="flex items-center">
-                            <span className="mr-1">via</span>
-                            <LastFmIcon className="h-3" />
-                          </span>
-                        </a>
-                        
-                        <button 
-                          onClick={handleSubmit}
-                          disabled={isSubmitting}
-                          className="btn-gold disabled:opacity-50"
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <div className="relative w-5 h-5 mr-2 inline-block">
-                                <VinylRecord 
-                                  className="w-5 h-5" 
-                                  animationClass="animate-vinyl-spin"
-                                />
-                              </div>
-                              SUBMITTING...
-                            </>
-                          ) : (
-                            <>
-                              SUBMIT TRACK
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      <button 
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="btn-gold disabled:opacity-50"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="relative w-5 h-5 mr-2 inline-block">
+                              <VinylRecord 
+                                className="w-5 h-5" 
+                                animationClass="animate-vinyl-spin"
+                              />
+                            </div>
+                            SUBMITTING...
+                          </>
+                        ) : (
+                          <>
+                            SUBMIT TRACK
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    
+                    {/* Improved Last.fm attribution - bottom aligned and more visible */}
+                    <div className="mt-4 pt-3 border-t border-lime-green/20 flex justify-end">
+                      <a 
+                        href={`https://www.last.fm/music/${encodeURIComponent(selectedSong.artist)}/_/${encodeURIComponent(selectedSong.name)}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-base text-electric-purple hover:text-neon-pink transition-colors flex items-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="mr-2">Music data from Last.fm</span>
+                        <LastFmIcon className="h-5 w-auto" fill="#FFFFFF" />
+                      </a>
                     </div>
                   </div>
                 </div>
-              )}
+)}
 
               {searchResults.length > 0 && (
                 <div className="mb-8">

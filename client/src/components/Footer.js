@@ -1,6 +1,8 @@
 // client/src/components/Footer.js - Fixed to prevent bottom border from scrolling
 import React from 'react';
 import { Link } from 'react-router-dom';
+import LastFmIcon from './LastFmIcon';
+import YouTubeIcon from './YouTubeIcon';
 
 const Footer = () => {
   return (
@@ -35,6 +37,33 @@ const Footer = () => {
               className="text-blue-400 hover:text-blue-300 underline"
             >
               YouTube Terms of Service
+            </a>
+          </div>
+        </div>
+        {/* Attribution section with both icons */}
+        <div className="flex items-center justify-center mt-4 mb-4">
+          <span className="text-gray-400 text-sm mr-3">Powered by</span>
+          <div className="flex items-center space-x-4">
+            {/* Last.fm attribution */}
+            <a 
+              href="https://www.last.fm" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="opacity-80 hover:opacity-100 transition-opacity flex items-center"
+              title="Last.fm API"
+            >
+              <LastFmIcon className="h-5 text-gray-400" />
+            </a>
+            
+            {/* YouTube attribution */}
+            <a 
+              href="https://developers.google.com/youtube/terms/api-services-terms-of-service" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="opacity-80 hover:opacity-100 transition-opacity flex items-center"
+              title="YouTube API"
+            >
+              <YouTubeIcon className="h-5 text-red-500" />
             </a>
           </div>
         </div>
