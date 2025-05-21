@@ -14,7 +14,7 @@ const Footer = () => {
           <div className="text-center md:text-left mb-6 md:mb-0">
             <div className="text-gray-400 text-sm mb-2">
               © {new Date().getFullYear()} 
-              <span className="text-yellow-400 font-semibold ml-1">Rob Garth</span>
+              <span className="text-yellow-400 font-semibold ml-1">Heartsongs</span>
               <span className="text-purple-400 ml-1">•</span>
               <span className="ml-1">All rights reserved</span>
             </div>
