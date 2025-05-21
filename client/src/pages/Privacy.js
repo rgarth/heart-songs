@@ -31,11 +31,26 @@ const Privacy = () => {
           As part of using YouTube API Services, this application is subject to the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-electric-purple hover:text-neon-pink underline">Google Privacy Policy</a>. We encourage you to review Google's Privacy Policy to understand how Google treats your information.
         </p>
       </section>
+
+      <section className="mb-8">
+        <h2 className="text-xl font-bold text-turquoise mb-3">3. Last.fm Integration</h2>
+        <p className="mb-3">
+          Heart Songs uses the Last.fm API to provide song search functionality. When you search for songs:
+        </p>
+        <ul className="list-disc pl-5 mb-4 space-y-1 text-silver/90">
+          <li>Your search queries are sent to Last.fm</li>
+          <li>We receive and display song metadata from Last.fm including artist names, track titles, and album artwork</li>
+          <li>We do not share your personal information with Last.fm</li>
+        </ul>
+        <p className="mb-3">
+          For more information about how Last.fm handles data, please see the <a href="https://www.last.fm/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-electric-purple hover:text-neon-pink underline">Last.fm Privacy Policy</a>.
+        </p>
+      </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">3. Information We Collect</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">4. Information We Collect</h2>
         
-        <h3 className="text-lg font-semibold text-electric-purple mb-2">3.1 Information You Provide</h3>
+        <h3 className="text-lg font-semibold text-electric-purple mb-2">4.1 Information You Provide</h3>
         <p className="mb-3">
           We collect information you provide directly to us when you use our Service:
         </p>
@@ -45,7 +60,7 @@ const Privacy = () => {
           <li><strong>Song Selections:</strong> When you search for and select songs within the game, we collect information about your song choices, including song titles, artist names, and related metadata.</li>
         </ul>
         
-        <h3 className="text-lg font-semibold text-electric-purple mb-2">3.2 Information Collected Through YouTube API Services</h3>
+        <h3 className="text-lg font-semibold text-electric-purple mb-2">4.2 Information Collected Through YouTube API Services</h3>
         <p className="mb-3">
           When you use features that interact with YouTube through our Service, we may receive the following information:
         </p>
@@ -58,7 +73,7 @@ const Privacy = () => {
           We do not receive or collect your YouTube account information, watch history, or other personal information from YouTube.
         </p>
         
-        <h3 className="text-lg font-semibold text-electric-purple mb-2">3.3 Information Collected Automatically</h3>
+        <h3 className="text-lg font-semibold text-electric-purple mb-2">4.3 Information Collected Automatically</h3>
         <p className="mb-3">
           When you use our Service, we automatically collect certain information:
         </p>
@@ -70,7 +85,7 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">4. How We Use Your Information</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">5. How We Use Your Information</h2>
         <p className="mb-3">
           We use the information we collect for the following purposes:
         </p>
@@ -86,7 +101,7 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">5. Information Sharing and Disclosure</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">6. Information Sharing and Disclosure</h2>
         <p className="mb-3">
           We may share your information in the following circumstances:
         </p>
@@ -103,7 +118,7 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">6. Data Retention</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">7. Data Retention</h2>
         <p className="mb-3">
           Heart Songs is designed to provide temporary gaming sessions with minimal data retention:
         </p>
@@ -115,19 +130,19 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">7. Cookies and Similar Technologies</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">8. Cookies and Similar Technologies</h2>
         <p className="mb-3">
           Heart Songs uses cookies and similar technologies to collect and store information when you visit our Service. Cookies are small text files that are stored on your device.
         </p>
         
-        <h3 className="text-lg font-semibold text-electric-purple mb-2">7.1 Types of Cookies We Use</h3>
+        <h3 className="text-lg font-semibold text-electric-purple mb-2">8.1 Types of Cookies We Use</h3>
         <ul className="list-disc pl-5 mb-4 space-y-1 text-silver/90">
           <li><strong>Session Cookies:</strong> These are temporary cookies that expire when you close your browser. They are used to maintain your session and authentication state while using the Service.</li>
           <li><strong>Persistent Cookies:</strong> These remain on your device between browsing sessions. They are used to remember your preferences and settings.</li>
           <li><strong>LocalStorage:</strong> We use browser local storage to maintain game state, session tokens, and temporary data needed for the application to function.</li>
         </ul>
         
-        <h3 className="text-lg font-semibold text-electric-purple mb-2">7.2 How We Use Cookies</h3>
+        <h3 className="text-lg font-semibold text-electric-purple mb-2">8.2 How We Use Cookies</h3>
         <p className="mb-3">
           We use cookies and similar technologies for the following purposes:
         </p>
@@ -141,7 +156,7 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">8. Your Rights and Choices</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">9. Your Rights and Choices</h2>
         <p className="mb-3">
           You have certain rights and choices regarding your information:
         </p>
@@ -153,7 +168,7 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">9. Children's Privacy</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">10. Children's Privacy</h2>
         <p className="mb-3">
           Our Service is not directed to children under the age of 13, and we do not knowingly collect personal information from children under 13. If we learn that we have collected personal information from a child under 13, we will take steps to delete that information.
         </p>
@@ -170,7 +185,7 @@ const Privacy = () => {
       </section>
       
       <section className="mb-8">
-        <h2 className="text-xl font-bold text-turquoise mb-3">10. Contact Us</h2>
+        <h2 className="text-xl font-bold text-turquoise mb-3">11. Contact Us</h2>
         <p className="mb-3">
           If you have any questions about this Privacy Policy, please contact us at:
         </p>

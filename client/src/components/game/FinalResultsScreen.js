@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import VinylRecord from '../VinylRecord';
-import YouTubeIcon from '../YouTubeIcon';
 import YouTubeOfficialLogo from '../YouTubeOfficialLogo';
 
 // Simple SVG Crown component - classic crown silhouette

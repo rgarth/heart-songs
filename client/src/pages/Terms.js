@@ -112,6 +112,13 @@ const Terms = () => {
       </section>
       
       <section className="mb-8">
+        <h2 className="text-xl font-bold text-turquoise mb-3">Last.fm API Usage</h2>
+        <p className="mb-3">
+          Heart Songs uses the Last.fm API for song search functionality. By using Heart Songs, you agree to comply with the <a href="https://www.last.fm/api/tos" target="_blank" rel="noopener noreferrer" className="text-electric-purple hover:text-neon-pink underline">Last.fm API Terms of Service</a>.
+        </p>
+      </section>
+
+      <section className="mb-8">
         <h2 className="text-xl font-bold text-turquoise mb-3">8. Disclaimers</h2>
         <p className="mb-3">
           Heart Songs is provided on an "as is" and "as available" basis. We do not guarantee that the Service will be available at all times or free of errors.
