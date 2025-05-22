@@ -490,29 +490,6 @@ export const leaveGame = async (gameId, token) => {
   }
 };
 
-// Move game to question-selection phase (host only)
-export const moveToQuestionSelection = async (gameId, token) => {
-  try {
-    if (!gameId || !token) {
-      console.error("Missing required parameters for moving to question selection:", { 
-        hasGameId: !!gameId, 
-        hasToken: !!token 
-      });
-      throw new Error('Missing required parameters: gameId and token are required');
-    }
-    
-    const response = await axios.post(
-      `${API_URL}/game/move-to-question-selection`, 
-      { gameId },
-      createHeaders(token)
-    );
-    
-    return response.data;
-  } catch (error) {
-    return handleRequestError(error, 'moving to question selection');
-  }
-};
-
 // Set winner's selected question
 export const setWinnerSelectedQuestion = async (gameId, questionData, token) => {
   try {
@@ -538,6 +515,29 @@ export const setWinnerSelectedQuestion = async (gameId, questionData, token) => 
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'setting winner question');
+  }
+};
+
+// Move game to question-selection phase (host only)
+export const moveToQuestionSelection = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for moving to question selection:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/move-to-question-selection`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'moving to question selection');
   }
 };
 

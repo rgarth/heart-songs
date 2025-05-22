@@ -1,9 +1,9 @@
-// client/src/components/game/QuestionSelectionScreen.js
+// client/src/components/game/QuestionSelectionScreen.js - Updated Version
 import React, { useState } from 'react';
 import { getRandomQuestion, submitCustomQuestion, setWinnerSelectedQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 
-const QuestionSelectionScreen = ({ game, currentUser, isWinner, onQuestionSelected, onStartRound }) => {
+const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
   const [selectedQuestion, setSelectedQuestion] = useState(game.winnerSelectedQuestion || null);
   const [loading, setLoading] = useState(false);
   const [customQuestionMode, setCustomQuestionMode] = useState(false);
@@ -12,21 +12,10 @@ const QuestionSelectionScreen = ({ game, currentUser, isWinner, onQuestionSelect
 
   const isHost = game.host._id === currentUser.id;
   
-  // Get the winner's info for display
-  const getWinnerInfo = () => {
-    if (!game.submissions || game.submissions.length === 0) return null;
-    
-    const nonPassedSubmissions = game.submissions.filter(s => !s.hasPassed);
-    if (nonPassedSubmissions.length === 0) return null;
-    
-    const sortedSubmissions = [...nonPassedSubmissions].sort((a, b) => 
-      (b.votes?.length || 0) - (a.votes?.length || 0)
-    );
-    
-    return sortedSubmissions[0]?.player;
-  };
-
-  const winner = getWinnerInfo();
+  // Get the winner's info using the provided function
+  const winnerInfo = getWinnerInfo ? getWinnerInfo() : { winner: null, isTie: false, reason: 'no_winner' };
+  const { winner, isTie, tiedPlayers } = winnerInfo;
+  const isWinner = winner && winner._id === currentUser.id;
 
   // Handle getting a random question (winner only)
   const handleGetRandomQuestion = async () => {
@@ -123,7 +112,13 @@ const QuestionSelectionScreen = ({ game, currentUser, isWinner, onQuestionSelect
               </div>
               <h3 className="text-xl font-rock text-gold-record mb-2">
                 ROUND WINNER: {winner?.displayName}
+                {isWinner && <span className="text-neon-pink ml-2">(You!)</span>}
               </h3>
+              {isTie && tiedPlayers && (
+                <p className="text-silver text-sm mb-2">
+                  Tied with: {tiedPlayers.filter(p => p._id !== winner._id).map(p => p.displayName).join(', ')}
+                </p>
+              )}
               <p className="text-silver text-sm">
                 Gets to choose the next question
               </p>
@@ -259,20 +254,39 @@ const QuestionSelectionScreen = ({ game, currentUser, isWinner, onQuestionSelect
             </div>
           )}
 
-          {/* Host Controls - Start Round */}
-          {isHost && selectedQuestion && (
+          {/* Host Controls - Start Round or Override */}
+          {isHost && (
             <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
               <h4 className="text-lg font-rock text-gold-record mb-4 text-center">MC CONTROLS</h4>
-              <div className="text-center">
-                <button
-                  onClick={() => onStartRound(selectedQuestion)}
-                  className="btn-gold"
-                >
-                  START NEXT ROUND
-                </button>
-                <p className="text-xs text-silver mt-2">
-                  Begin the round with {winner?.displayName}'s selected question
-                </p>
+              
+              <div className="flex flex-col gap-4">
+                {/* Start Round Button (only if question is selected) */}
+                {selectedQuestion && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => onStartRound(selectedQuestion)}
+                      className="btn-gold"
+                    >
+                      START NEXT ROUND
+                    </button>
+                    <p className="text-xs text-silver mt-2">
+                      Begin the round with {winner?.displayName}'s selected question
+                    </p>
+                  </div>
+                )}
+                
+                {/* Host Override Button */}
+                <div className="text-center">
+                  <button
+                    onClick={onHostOverride}
+                    className="btn-stage"
+                  >
+                    HOST OVERRIDE - CHOOSE QUESTION YOURSELF
+                  </button>
+                  <p className="text-xs text-silver mt-2">
+                    Skip winner selection and choose the question yourself
+                  </p>
+                </div>
               </div>
             </div>
           )}

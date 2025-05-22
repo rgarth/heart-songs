@@ -1,9 +1,9 @@
-// client/src/components/game/ResultsScreen.js - Modified Rockstar Design Edition
+// client/src/components/game/ResultsScreen.js - Fixed Version
 import React, { useState } from 'react';
 import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 
-const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
+const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQuestionSelection, getWinnerInfo }) => {
   // Separate passed and non-passed submissions
   const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
   const passedSubmissions = game.submissions.filter(s => s.hasPassed);
@@ -16,7 +16,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
   
-  // Get winner info using the helper from Game.js
+  // Get winner info using the provided function
   const winnerInfo = getWinnerInfo ? getWinnerInfo() : { winner: null, isTie: false, reason: 'no_winner_function' };
   const { winner, isTie, reason, tiedPlayers } = winnerInfo;
   const isCurrentUserWinner = winner && winner._id === currentUser.id;
@@ -29,6 +29,61 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
   const [customQuestion, setCustomQuestion] = useState('');
   const [error, setError] = useState(null);
   const [showEndGameConfirmation, setShowEndGameConfirmation] = useState(false);
+  
+  // Function to render winner announcement
+  const renderWinnerAnnouncement = () => {
+    if (reason === 'no_submissions') {
+      return (
+        <div className="mb-8 text-center">
+          <div className="bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-electric-purple/30">
+            <h3 className="text-xl font-rock text-electric-purple mb-2">NO WINNER THIS ROUND</h3>
+            <p className="text-silver">All players passed on this question</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!winner) {
+      return null;
+    }
+
+    return (
+      <div className="mb-8 text-center">
+        <div className="bg-gradient-to-r from-gold-record/30 to-yellow-400/30 rounded-lg p-6 border-2 border-gold-record shadow-lg shadow-gold-record/20">
+          <div className="flex items-center justify-center mb-4">
+            <div className="relative">
+              <VinylRecord 
+                className="w-16 h-16"
+                animationClass="animate-vinyl-spin"
+              />
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="text-2xl">👑</span>
+              </div>
+            </div>
+          </div>
+          
+          <h3 className="text-2xl font-rock text-gold-record mb-2">
+            {isTie ? 'TIE BROKEN!' : 'ROUND WINNER!'}
+          </h3>
+          
+          <p className="text-white text-lg font-bold mb-2">
+            {winner.displayName}
+            {isCurrentUserWinner && <span className="text-neon-pink ml-2">(That's You!)</span>}
+          </p>
+          
+          {isTie && tiedPlayers && (
+            <p className="text-silver text-sm mb-2">
+              Tied with: {tiedPlayers.filter(p => p._id !== winner._id).map(p => p.displayName).join(', ')}
+            </p>
+          )}
+          
+          <p className="text-gold-record font-medium">
+            Gets to choose the next question!
+          </p>
+        </div>
+      </div>
+    );
+  };
   
   // Function to fetch next question preview
   const handleShowNextQuestion = async () => {
@@ -126,14 +181,14 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
         
         <div className="p-6">
           
-          {/* NEW: Winner Announcement */}
+          {/* Winner Announcement */}
           {renderWinnerAnnouncement()}
 
           {/* Pass Information */}
           {passedSubmissions.length > 0 && (
             <div className="mb-6 bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-4 border border-electric-purple/30">
               <div className="flex items-center text-silver">
-                <span className="mr-2"></span>
+                <span className="mr-2">ℹ️</span>
                 <span>
                   <strong>Players who sat this one out:</strong> {passedSubmissions.map(s => s.player.displayName).join(', ')}
                 </span>
@@ -145,9 +200,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
           {actualSubmissions.length > 0 ? (
             <div className="mb-8">
               <h3 className="text-2xl font-rock text-center mb-6 flex items-center justify-center">
-                <span className="mr-3"></span>
+                <span className="mr-3">🎵</span>
                 SONGS & VOTES
-                <span className="ml-3"></span>
+                <span className="ml-3">🎵</span>
               </h3>
               
               <div className="space-y-6">
@@ -275,9 +330,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
           {/* Scoreboard - Leaderboard style */}
           <div className="mb-8">
             <h3 className="text-2xl font-rock text-center mb-6 flex items-center justify-center">
-              <span className="mr-3"></span>
+              <span className="mr-3">🏆</span>
               LEADERBOARD
-              <span className="ml-3"></span>
+              <span className="ml-3">🏆</span>
             </h3>
             
             <div className="space-y-3">
@@ -324,7 +379,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                                 ? 'bg-amber-600 text-white' 
                                 : 'bg-electric-purple text-white'
                         }`}>
-                          {isLeader ? '#1' : `#${index + 1}`}
+                          {isLeader ? '👑' : `#${index + 1}`}
                         </div>
                         
                         {/* Player avatar */}
@@ -337,7 +392,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                             />
                             {isLeader && (
                               <div className="absolute -top-2 -right-2 w-6 h-6 bg-gold-record rounded-full flex items-center justify-center">
-                                <span className="text-xs"></span>
+                                <span className="text-xs">👑</span>
                               </div>
                             )}
                           </div>
@@ -387,7 +442,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
             </div>
           </div>
           
-          {/* UPDATED: Host Controls Section */}
+          {/* Host Controls Section */}
           {isHost && (
             <div className="bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-electric-purple/40">
               <h3 className="text-xl font-rock text-center mb-6 text-gold-record">
@@ -395,7 +450,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
               </h3>
               
               {winner && reason !== 'no_submissions' ? (
-                /* NEW: Winner Question Selection Flow */
+                /* Winner Question Selection Flow */
                 <div className="text-center space-y-4">
                   <button
                     onClick={onMoveToQuestionSelection}
@@ -411,7 +466,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                   </p>
                 </div>
               ) : (
-                /* OLD: Host Question Selection (when no winner) */
+                /* Host Question Selection (when no winner) */
                 <>
                   {!showQuestionPreview ? (
                     <div className="text-center">
