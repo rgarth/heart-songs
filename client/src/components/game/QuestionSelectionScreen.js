@@ -61,20 +61,48 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
 
   // Confirm question selection (winner only)
   const handleConfirmQuestion = async () => {
-    if (!isWinner || !selectedQuestion) return;
+    console.log('🎯 QuestionSelectionScreen: handleConfirmQuestion called');
+    console.log('Is winner:', isWinner);
+    console.log('Selected question:', selectedQuestion);
+    console.log('Game ID:', game._id);
+    console.log('Access token exists:', !!currentUser.accessToken);
+    
+    if (!isWinner) {
+      console.log('❌ User is not the winner');
+      setError('Only the round winner can select the question');
+      return;
+    }
+    
+    if (!selectedQuestion) {
+      console.log('❌ No selected question');
+      setError('Please select a question first');
+      return;
+    }
     
     try {
       setLoading(true);
+      setError(null);
       
-      // Send question to server
-      await setWinnerSelectedQuestion(game._id, selectedQuestion, currentUser.accessToken);
+      console.log('🎯 Calling setWinnerSelectedQuestion API...');
       
+      // Call the API to save the winner's selected question
+      const result = await setWinnerSelectedQuestion(
+        game._id, 
+        selectedQuestion, 
+        currentUser.accessToken
+      );
+      
+      console.log('✅ setWinnerSelectedQuestion API response:', result);
+      
+      // Call the callback to notify Game.js
       if (onQuestionSelected) {
+        console.log('🎯 Calling onQuestionSelected callback');
         onQuestionSelected(selectedQuestion);
       }
+      
     } catch (error) {
-      console.error('Error confirming question:', error);
-      setError('Failed to confirm question. Please try again.');
+      console.error('❌ Error confirming question:', error);
+      setError(`Failed to confirm question: ${error.message}`);
     } finally {
       setLoading(false);
     }

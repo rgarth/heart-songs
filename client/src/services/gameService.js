@@ -501,6 +501,10 @@ export const setWinnerSelectedQuestion = async (gameId, questionData, token) => 
       });
       throw new Error('Missing required parameters: gameId, questionData and token are required');
     }
+
+    console.log('🎯 Frontend: Calling set-winner-question API');
+    console.log('Game ID:', gameId);
+    console.log('Question:', questionData);
     
     const response = await axios.post(
       `${API_URL}/game/set-winner-question`, 
@@ -512,8 +516,10 @@ export const setWinnerSelectedQuestion = async (gameId, questionData, token) => 
       createHeaders(token)
     );
     
+    console.log('✅ Set winner question response:', response.data);
     return response.data;
   } catch (error) {
+    console.error('❌ Error setting winner question:', error);
     return handleRequestError(error, 'setting winner question');
   }
 };

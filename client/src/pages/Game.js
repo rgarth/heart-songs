@@ -2,7 +2,10 @@
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getGameState, toggleReady, startNewRound, startGame, endGame, cancelCountdown } from '../services/gameService';
+import { 
+  getGameState, toggleReady, startNewRound, startGame, endGame, cancelCountdown,
+  moveToQuestionSelection, setWinnerSelectedQuestion, hostOverrideQuestion
+} from '../services/gameService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LobbyScreen from '../components/game/LobbyScreen';
@@ -398,37 +401,6 @@ const Game = () => {
     }
   };
 
-  // NEW: Handle moving to question selection phase
-  const handleMoveToQuestionSelection = async () => {
-    try {
-      const token = accessToken || localStorage.getItem('accessToken');
-      
-      if (!token) {
-        setError('Authentication error. Please login again.');
-        return;
-      }
-      
-      // Call API to move game to question-selection status
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api'}/game/move-to-question-selection`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ gameId })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to move to question selection');
-      }
-      
-      // Game state will update via polling
-    } catch (error) {
-      console.error('Error moving to question selection:', error);
-      setError('Failed to move to question selection. Please try again.');
-    }
-  };
-
   // NEW: Handle when winner selects a question
   const handleWinnerQuestionSelected = async (questionData) => {
     try {
@@ -464,8 +436,10 @@ const Game = () => {
     }
   };
 
-  // NEW: Handle host override (fallback to normal question selection)
+  // Handle host override
   const handleHostOverride = async () => {
+    console.log('🎯 Game.js: handleHostOverride called');
+    
     try {
       const token = accessToken || localStorage.getItem('accessToken');
       
@@ -474,23 +448,17 @@ const Game = () => {
         return;
       }
       
-      // Move back to results so host can use normal question selection
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api'}/game/host-override-question`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ gameId })
-      });
+      console.log('🎯 Calling hostOverrideQuestion service...');
       
-      if (!response.ok) {
-        throw new Error('Failed to override question selection');
-      }
+      // Use the service function
+      await hostOverrideQuestion(gameId, token);
+      
+      console.log('✅ Host override successful');
+      // Game state will update via polling
       
     } catch (error) {
-      console.error('Error with host override:', error);
-      setError('Failed to override question selection. Please try again.');
+      console.error('❌ Error with host override:', error);
+      setError(`Failed to override question selection: ${error.message}`);
     }
   };
   
