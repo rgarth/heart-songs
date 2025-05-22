@@ -1,6 +1,4 @@
-// Modify client/src/pages/Game.js to add the scroll-to-top functionality
-// The key changes are adding a useEffect that watches for game.status changes
-
+// client/src/pages/Game.js - Complete with Winner Question Selection
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -11,6 +9,7 @@ import LobbyScreen from '../components/game/LobbyScreen';
 import SelectionScreen from '../components/game/SelectionScreen';
 import VotingScreen from '../components/game/VotingScreen';
 import ResultsScreen from '../components/game/ResultsScreen';
+import QuestionSelectionScreen from '../components/game/QuestionSelectionScreen';
 import FinalResultsScreen from '../components/game/FinalResultsScreen';
 import CountdownBanner from '../components/game/CountdownBanner';
 
@@ -31,6 +30,52 @@ const getTimeLeft = (countdown) => {
   return timeLeft;
 };
 
+// Helper to get winner information with edge case handling
+const getWinnerInfo = (game) => {
+  if (!game.submissions || game.submissions.length === 0) {
+    return { winner: null, isTie: false, reason: 'no_submissions' };
+  }
+
+  const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
+  
+  if (actualSubmissions.length === 0) {
+    return { winner: null, isTie: false, reason: 'no_submissions' };
+  }
+  
+  // Sort by votes, then by submission time (speed bonus consideration)
+  const sortedSubmissions = [...actualSubmissions].sort((a, b) => {
+    const voteDiff = (b.votes?.length || 0) - (a.votes?.length || 0);
+    if (voteDiff !== 0) return voteDiff;
+    
+    // Tie-breaker: earlier submission wins (speed bonus logic)
+    return new Date(a.submittedAt) - new Date(b.submittedAt);
+  });
+  
+  const topSubmission = sortedSubmissions[0];
+  const topVotes = topSubmission.votes?.length || 0;
+  
+  // Check for ties at the top
+  const tiedSubmissions = sortedSubmissions.filter(s => 
+    (s.votes?.length || 0) === topVotes
+  );
+  
+  if (tiedSubmissions.length > 1) {
+    // Handle tie case - use submission time as tie-breaker
+    const earliestSubmission = tiedSubmissions.sort((a, b) => 
+      new Date(a.submittedAt) - new Date(b.submittedAt)
+    )[0];
+    
+    return { 
+      winner: earliestSubmission.player, 
+      isTie: true, 
+      reason: 'tie_broken_by_speed',
+      tiedPlayers: tiedSubmissions.map(s => s.player)
+    };
+  }
+  
+  return { winner: topSubmission.player, isTie: false, reason: 'clear_winner' };
+};
+
 const Game = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
@@ -48,44 +93,35 @@ const Game = () => {
   // Add state to track game history for the final results
   const [gameHistory, setGameHistory] = useState({
     previousRounds: [],
-    storageChecked: false // Flag to track if we've checked localStorage already
+    storageChecked: false
   });
   
   // Scroll to top when game status changes
   useEffect(() => {
     if (game && game.status !== prevGameStatusRef.current) {
-      // Game status has changed, scroll to top
       window.scrollTo(0, 0);
-      
-      // Update the previous status ref
       prevGameStatusRef.current = game.status;
     }
-  }, [game?.status]);
+  }, [game]);
   
-  // Improved function to load game history from localStorage
+  // Load game history from localStorage
   const loadGameHistoryFromStorage = useCallback(() => {
     if (!gameId || gameHistory.storageChecked) return null;
     
     try {
-      // Try multiple key formats to increase chances of finding data
       const possibleKeys = [
         `gameHistory_${gameId}`,
         `game_history_${gameId}`,
         `history_${gameId}`
       ];
       
-      // Also check for any key that contains this gameId
       const allKeys = Object.keys(localStorage);
       const matchingKeys = allKeys.filter(key => 
         key.includes('gameHistory') && key.includes(gameId)
       );
       
-      // Combine all possible keys
       const keysToCheck = [...new Set([...possibleKeys, ...matchingKeys])];
       
-      console.log(`Checking ${keysToCheck.length} possible storage keys for game history`);
-      
-      // Try each key
       for (const key of keysToCheck) {
         const savedData = localStorage.getItem(key);
         if (savedData) {
@@ -97,9 +133,6 @@ const Game = () => {
                 Array.isArray(parsedData.previousRounds) && 
                 parsedData.previousRounds.length > 0) {
               
-              console.log(`Successfully loaded ${parsedData.previousRounds.length} rounds from localStorage using key: ${key}`);
-              
-              // Mark as checked so we don't try again
               setGameHistory(prev => ({
                 ...prev,
                 previousRounds: parsedData.previousRounds,
@@ -114,8 +147,6 @@ const Game = () => {
         }
       }
       
-      // If we get here, we checked all possible keys but found nothing
-      console.log('No valid game history found in localStorage');
       setGameHistory(prev => ({
         ...prev,
         storageChecked: true
@@ -137,7 +168,6 @@ const Game = () => {
     if (!gameId || !rounds || !Array.isArray(rounds) || rounds.length === 0) return;
     
     try {
-      // Use a consistent key format
       const storageKey = `gameHistory_${gameId}`;
       
       const dataToStore = {
@@ -148,16 +178,11 @@ const Game = () => {
         savedAt: new Date().toISOString()
       };
       
-      // Convert to string and save
       const jsonData = JSON.stringify(dataToStore);
       localStorage.setItem(storageKey, jsonData);
       
-      console.log(`Successfully saved ${rounds.length} rounds to localStorage with key: ${storageKey}`);
-      
-      // For troubleshooting, also save a second copy with timestamp
       const timestampKey = `gameHistory_${gameId}_${Date.now()}`;
       localStorage.setItem(timestampKey, jsonData);
-      console.log(`Backup saved with key: ${timestampKey}`);
       
     } catch (storageError) {
       console.error('Failed to save game history to localStorage:', storageError);
@@ -178,7 +203,6 @@ const Game = () => {
       return;
     }
     
-    // Get the most up-to-date token
     const token = accessToken || localStorage.getItem('accessToken');
     
     if (!token) {
@@ -191,42 +215,32 @@ const Game = () => {
     try {
       const gameData = await getGameState(gameId, token);
       
-      // Reset retry counter on success
       if (retryCount > 0) setRetryCount(0);
       
-      // If game is ended, make sure we have history
       if (gameData.status === 'ended') {
-        // Check if we need to load history from localStorage
         if (!gameData.previousRounds || !Array.isArray(gameData.previousRounds) || gameData.previousRounds.length === 0) {
-          // Try to load from localStorage if we haven't checked already
           if (!gameHistory.storageChecked) {
             const loadedRounds = loadGameHistoryFromStorage();
             if (loadedRounds) {
               gameData.previousRounds = loadedRounds;
             }
           } else if (gameHistory.previousRounds.length > 0) {
-            // Use our stored history
             gameData.previousRounds = gameHistory.previousRounds;
           }
         }
       }
       
-      // Only update state if something important has changed
       setGame(prevGame => {
-        // Always update on initial load
         if (!prevGame) return gameData;
         
-        // Check if important properties changed before updating
         const hasStatusChanged = prevGame.status !== gameData.status;
         const hasSubmissionsCountChanged = 
           (prevGame.submissions?.length || 0) !== (gameData.submissions?.length || 0);
         
-        // Check countdown changes
         const hasCountdownChanged = 
           prevGame.countdown?.isActive !== gameData.countdown?.isActive ||
           prevGame.countdown?.type !== gameData.countdown?.type;
         
-        // Compare votes by stringifying arrays of vote counts
         const prevVotesCounts = JSON.stringify(
           prevGame.submissions?.map(s => s.votes?.length) || []
         );
@@ -235,19 +249,20 @@ const Game = () => {
         );
         const hasVotesChanged = prevVotesCounts !== newVotesCounts;
         
-        // Compare players ready status
         const prevReadyCounts = (prevGame.players || []).filter(p => p.isReady).length;
         const newReadyCounts = (gameData.players || []).filter(p => p.isReady).length;
         const hasReadyStatusChanged = prevReadyCounts !== newReadyCounts;
         
-        // Check if players have changed
         const hasPlayersChanged = 
           (prevGame.players?.length || 0) !== (gameData.players?.length || 0);
           
-        // Check if activePlayers have changed
         const prevActivePlayers = JSON.stringify(prevGame.activePlayers || []);
         const newActivePlayers = JSON.stringify(gameData.activePlayers || []);
         const hasActivePlayersChanged = prevActivePlayers !== newActivePlayers;
+
+        // Check for winner selected question changes
+        const hasWinnerQuestionChanged = 
+          JSON.stringify(prevGame.winnerSelectedQuestion) !== JSON.stringify(gameData.winnerSelectedQuestion);
         
         if (
           hasStatusChanged || 
@@ -256,12 +271,10 @@ const Game = () => {
           hasReadyStatusChanged || 
           hasPlayersChanged ||
           hasActivePlayersChanged ||
-          hasCountdownChanged
+          hasCountdownChanged ||
+          hasWinnerQuestionChanged
         ) {
-          // If status changed from results to selecting, it means a new round started
-          // Save the previous round data
           if (prevGame.status === 'results' && gameData.status === 'selecting') {
-            // Add current round data to game history
             const roundData = {
               question: prevGame.currentQuestion,
               submissions: [...prevGame.submissions]
@@ -274,11 +287,9 @@ const Game = () => {
               previousRounds: updatedRounds
             }));
             
-            // Save to localStorage every time we add a round
             saveGameHistoryToStorage(updatedRounds, gameData);
           }
 
-          // If we get finalRoundData from the server, save it
           if (gameData.finalRoundData) {
             gameData.finalRoundSubmissions = gameData.finalRoundData.submissions;
           }
@@ -286,10 +297,9 @@ const Game = () => {
           return gameData;
         }
         
-        return prevGame; // No important change, prevent re-render
+        return prevGame;
       });
       
-      // Only update loading state on initial load
       if (initialLoad) {
         setLoading(false);
         setInitialLoad(false);
@@ -297,11 +307,9 @@ const Game = () => {
     } catch (error) {
       console.error('Error fetching game state:', error);
       
-      // Increment retry counter
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
       
-      // If we've exceeded max retries, show error
       if (newRetryCount >= MAX_RETRY_ATTEMPTS) {
         setError('Failed to load game after multiple attempts. Please try again.');
         setLoading(false);
@@ -315,10 +323,8 @@ const Game = () => {
     let isMounted = true;
     let intervalId;
 
-    // Initial fetch
     fetchGameState();
     
-    // Setup polling
     intervalId = setInterval(() => {
       if (isMounted && !error && game?.status !== 'ended') {
         fetchGameState();
@@ -339,7 +345,6 @@ const Game = () => {
         return;
       }
       
-      // Get the most up-to-date token
       const token = accessToken || localStorage.getItem('accessToken');
       
       if (!token) {
@@ -362,7 +367,6 @@ const Game = () => {
         return;
       }
       
-      // Get the most up-to-date token
       const token = accessToken || localStorage.getItem('accessToken');
       
       if (!token) {
@@ -380,7 +384,6 @@ const Game = () => {
   // Handle starting a new round with selected or custom question
   const handleNextRound = async (questionData) => {
     try {
-      // Get the most up-to-date token
       const token = accessToken || localStorage.getItem('accessToken');
       
       if (!token) {
@@ -394,6 +397,102 @@ const Game = () => {
       setError('Failed to start new round. Please try again.');
     }
   };
+
+  // NEW: Handle moving to question selection phase
+  const handleMoveToQuestionSelection = async () => {
+    try {
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication error. Please login again.');
+        return;
+      }
+      
+      // Call API to move game to question-selection status
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api'}/game/move-to-question-selection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ gameId })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to move to question selection');
+      }
+      
+      // Game state will update via polling
+    } catch (error) {
+      console.error('Error moving to question selection:', error);
+      setError('Failed to move to question selection. Please try again.');
+    }
+  };
+
+  // NEW: Handle when winner selects a question
+  const handleWinnerQuestionSelected = async (questionData) => {
+    try {
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication error. Please login again.');
+        return;
+      }
+      
+      // Call API to save winner's selected question
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api'}/game/set-winner-question`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          gameId, 
+          questionText: questionData.text,
+          questionCategory: questionData.category 
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to set winner question');
+      }
+      
+      // Game state will update via polling
+    } catch (error) {
+      console.error('Error setting winner question:', error);
+      setError('Failed to set winner question. Please try again.');
+    }
+  };
+
+  // NEW: Handle host override (fallback to normal question selection)
+  const handleHostOverride = async () => {
+    try {
+      const token = accessToken || localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Authentication error. Please login again.');
+        return;
+      }
+      
+      // Move back to results so host can use normal question selection
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api'}/game/host-override-question`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ gameId })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to override question selection');
+      }
+      
+    } catch (error) {
+      console.error('Error with host override:', error);
+      setError('Failed to override question selection. Please try again.');
+    }
+  };
   
   // Handle ending the game
   const handleEndGame = async () => {
@@ -403,7 +502,6 @@ const Game = () => {
         return;
       }
       
-      // Get the most up-to-date token
       const token = accessToken || localStorage.getItem('accessToken');
       
       if (!token) {
@@ -411,9 +509,7 @@ const Game = () => {
         return;
       }
       
-      // Store current round data in game history before ending
       if (game && game.status === 'results' && game.submissions && game.submissions.length > 0) {
-        // Create the roundData for the current final round
         const roundData = {
           question: game.currentQuestion,
           submissions: [...game.submissions].sort((a, b) => {
@@ -423,22 +519,17 @@ const Game = () => {
           })
         };
         
-        // Update game history with the final round included
         const updatedPreviousRounds = [...gameHistory.previousRounds, roundData];
         
-        // Update local game history state
         setGameHistory(prev => ({
           ...prev,
           previousRounds: updatedPreviousRounds
         }));
         
-        // Save the updated rounds to localStorage
         saveGameHistoryToStorage(updatedPreviousRounds, game);
         
-        // Call API to end the game on the server
         await endGame(gameId, token);
         
-        // Update game status with all the data we need to render final results
         setGame(prevGame => ({
           ...prevGame,
           status: 'ended',
@@ -447,10 +538,8 @@ const Game = () => {
           allRoundsCount: updatedPreviousRounds.length
         }));
       } else {
-        // Call API to end the game on the server
         await endGame(gameId, token);
         
-        // Just update the status if no round data to save
         setGame(prevGame => ({
           ...prevGame,
           status: 'ended'
@@ -472,7 +561,6 @@ const Game = () => {
     if (!game || !game.countdown?.isActive) return;
     
     try {
-      // Get the most up-to-date token
       const token = accessToken || localStorage.getItem('accessToken');
       
       if (!token) {
@@ -603,7 +691,7 @@ const Game = () => {
             game={game}
             currentUser={user}
             accessToken={accessToken}
-            sessionToken={accessToken} // Updated: Pass accessToken as sessionToken
+            sessionToken={accessToken}
           />
         )}
         
@@ -617,6 +705,23 @@ const Game = () => {
             accessToken={accessToken || localStorage.getItem('accessToken')}
             onNextRound={handleNextRound}
             onEndGame={handleEndGame}
+            onMoveToQuestionSelection={handleMoveToQuestionSelection}
+            getWinnerInfo={() => getWinnerInfo(game)}
+          />
+        )}
+
+        {/* NEW: Question Selection Screen */}
+        {game.status === 'question-selection' && (
+          <QuestionSelectionScreen 
+            game={game}
+            currentUser={{
+              ...user,
+              accessToken: accessToken || localStorage.getItem('accessToken')
+            }}
+            onQuestionSelected={handleWinnerQuestionSelected}
+            onStartRound={handleNextRound}
+            onHostOverride={handleHostOverride}
+            getWinnerInfo={() => getWinnerInfo(game)}
           />
         )}
         
@@ -624,7 +729,6 @@ const Game = () => {
           <FinalResultsScreen 
             game={{
               ...game,
-              // Combine previousRounds sources - prioritize server data, then local history
               previousRounds: game.previousRounds?.length > 0 
                 ? game.previousRounds 
                 : gameHistory.previousRounds

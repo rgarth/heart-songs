@@ -9,7 +9,7 @@ const GameSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['waiting', 'selecting', 'voting', 'results', 'ended'],
+    enum: ['waiting', 'selecting', 'voting', 'results', 'question-selection', 'ended'],
     default: 'waiting'
   },
   host: {
@@ -184,7 +184,18 @@ const GameSchema = new mongoose.Schema({
       date.setDate(date.getDate() + 7);
       return date;
     }
+  },
+
+  winnerSelectedQuestion: {
+    text: String,
+    category: String,
+    selectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    selectedAt: Date
   }
+
 });
 
 module.exports = mongoose.model('Game', GameSchema);

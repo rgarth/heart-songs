@@ -16,6 +16,11 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
   
+  // Get winner info using the helper from Game.js
+  const winnerInfo = getWinnerInfo ? getWinnerInfo() : { winner: null, isTie: false, reason: 'no_winner_function' };
+  const { winner, isTie, reason, tiedPlayers } = winnerInfo;
+  const isCurrentUserWinner = winner && winner._id === currentUser.id;
+  
   // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -121,6 +126,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
         
         <div className="p-6">
           
+          {/* NEW: Winner Announcement */}
+          {renderWinnerAnnouncement()}
+
           {/* Pass Information */}
           {passedSubmissions.length > 0 && (
             <div className="mb-6 bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-4 border border-electric-purple/30">
@@ -379,168 +387,175 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
             </div>
           </div>
           
-          {/* Next Round Section - MC controls */}
+          {/* UPDATED: Host Controls Section */}
           {isHost && (
             <div className="bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-electric-purple/40">
               <h3 className="text-xl font-rock text-center mb-6 text-gold-record">
                 MC CONTROLS
               </h3>
               
-              {!showQuestionPreview ? (
-                <div className="text-center">
+              {winner && reason !== 'no_submissions' ? (
+                /* NEW: Winner Question Selection Flow */
+                <div className="text-center space-y-4">
                   <button
-                    onClick={handleShowNextQuestion}
-                    disabled={loading}
-                    className="btn-electric disabled:opacity-50 group"
+                    onClick={onMoveToQuestionSelection}
+                    className="btn-electric group"
                   >
                     <span className="relative z-10 flex items-center justify-center">
-                      {loading ? (
-                        <>
-                          <div className="w-5 h-5 animate-spin mr-3">
-                            <VinylRecord 
-                              className="w-5 h-5"
-                              animationClass="animate-vinyl-spin"
-                            />
-                          </div>
-                          LOADING...
-                        </>
-                      ) : (
-                        <>
-                          CHOOSE THE NEXT QUESTION
-                        </>
-                      )}
+                      LET {winner.displayName.toUpperCase()} CHOOSE QUESTION
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                   </button>
-                  
-                  <div className="mt-4">
-                    <button
-                      onClick={handleShowEndGameConfirmation}
-                      className="btn-stage group"
-                    >
-                      <span className="relative z-10 flex items-center justify-center">
-                        END GAME
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                    </button>
-                  </div>
+                  <p className="text-xs text-silver">
+                    {isCurrentUserWinner ? "You" : winner.displayName} will pick the next question as the round winner
+                  </p>
                 </div>
               ) : (
-                /* Question preview */
-                <div className="space-y-6">
-                  <h4 className="text-lg font-rock text-neon-pink text-center">NEXT QUESTION PREVIEW</h4>
-                  
-                  {customQuestionMode ? (
-                    /* Custom question input */
-                    <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-electric-purple/30">
-                      <label className="block text-silver text-sm font-medium mb-3">
-                        Write Your Own Question
-                      </label>
-                      <textarea
-                        value={customQuestion}
-                        onChange={(e) => setCustomQuestion(e.target.value)}
-                        placeholder="e.g., What song would you play at a robot wedding?"
-                        className="w-full p-4 bg-deep-space text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all"
-                        rows={3}
-                      />
-                      <div className="flex justify-center gap-3 mt-4">
-                        <button
-                          onClick={handleSubmitCustomQuestion}
-                          disabled={loading || !customQuestion.trim()}
-                          className="btn-gold text-sm disabled:opacity-50"
-                        >
+                /* OLD: Host Question Selection (when no winner) */
+                <>
+                  {!showQuestionPreview ? (
+                    <div className="text-center">
+                      <button
+                        onClick={handleShowNextQuestion}
+                        disabled={loading}
+                        className="btn-electric disabled:opacity-50 group"
+                      >
+                        <span className="relative z-10 flex items-center justify-center">
                           {loading ? (
                             <>
-                              <div className="w-4 h-4 animate-spin mr-2 inline-block">
-                                <VinylRecord 
-                                  className="w-4 h-4"
-                                  animationClass="animate-vinyl-spin"
-                                />
-                              </div>
-                              Saving...
+                              <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                              LOADING...
                             </>
                           ) : (
                             <>
-                              Set Question
+                              CHOOSE THE NEXT QUESTION
                             </>
                           )}
-                        </button>
-                        <button
-                          onClick={() => setCustomQuestionMode(false)}
-                          className="btn-stage text-sm"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                        </span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      </button>
                     </div>
                   ) : (
-                    /* Generated question preview */
-                    <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border border-neon-pink/40">
-                      <div className="flex items-start">
-                        <div className="flex-1">
-                          <p className="text-neon-pink font-bold text-xl mb-2">{nextQuestion?.text}</p>
-                          <p className="text-silver">
-                            <span className="bg-electric-purple/20 px-2 py-1 rounded">
-                              {nextQuestion?.category}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
+                    /* Question preview (old logic) */
+                    <div className="space-y-6">
+                      <h4 className="text-lg font-rock text-neon-pink text-center">NEXT QUESTION PREVIEW</h4>
                       
-                      <div className="flex justify-center gap-3 mt-4">
-                        <button
-                          onClick={handleSkipQuestion}
-                          disabled={loading}
-                          className="btn-electric text-sm disabled:opacity-50"
-                        >
-                          {loading ? (
-                            <>
-                              <div className="w-4 h-4 animate-spin mr-2 inline-block">
-                                <VinylRecord 
-                                  className="w-4 h-4"
-                                  animationClass="animate-vinyl-spin"
-                                />
-                              </div>
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              Try Different Question
-                            </>
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => setCustomQuestionMode(true)}
-                          className="btn-stage text-sm"
-                        >
-                          Write Custom Question
-                        </button>
-                      </div>
-                      <div className="flex justify-center gap-3 mt-6">
-                        <button
-                          onClick={handlePlayWithQuestion}
-                          className="btn-gold group"
-                        >
-                          <span className="relative z-10 flex items-center justify-center">
-                            {Array.isArray(game.previousRounds) && game.previousRounds.length > 0 
-                              ? `START ROUND ${game.previousRounds.length + 2}` 
-                              : "START NEXT ROUND"}
-                          </span>
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                        </button>
-                      </div>
-
+                      {customQuestionMode ? (
+                        /* Custom question input */
+                        <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-electric-purple/30">
+                          <label className="block text-silver text-sm font-medium mb-3">
+                            Write Your Own Question
+                          </label>
+                          <textarea
+                            value={customQuestion}
+                            onChange={(e) => setCustomQuestion(e.target.value)}
+                            placeholder="e.g., What song would you play at a robot wedding?"
+                            className="w-full p-4 bg-deep-space text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all"
+                            rows={3}
+                          />
+                          <div className="flex justify-center gap-3 mt-4">
+                            <button
+                              onClick={handleSubmitCustomQuestion}
+                              disabled={loading || !customQuestion.trim()}
+                              className="btn-gold text-sm disabled:opacity-50"
+                            >
+                              {loading ? (
+                                <>
+                                  <div className="vinyl-record w-4 h-4 animate-spin mr-2 inline-block"></div>
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  Set Question
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setCustomQuestionMode(false)}
+                              className="btn-stage text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Generated question preview */
+                        <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border border-neon-pink/40">
+                          <div className="flex items-start">
+                            <div className="flex-1">
+                              <p className="text-neon-pink font-bold text-xl mb-2">{nextQuestion?.text}</p>
+                              <p className="text-silver">
+                                <span className="bg-electric-purple/20 px-2 py-1 rounded">
+                                  {nextQuestion?.category}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-center gap-3 mt-4">
+                            <button
+                              onClick={handleSkipQuestion}
+                              disabled={loading}
+                              className="btn-electric text-sm disabled:opacity-50"
+                            >
+                              {loading ? (
+                                <>
+                                  <div className="vinyl-record w-4 h-4 animate-spin mr-2 inline-block"></div>
+                                  Loading...
+                                </>
+                              ) : (
+                                <>
+                                  Try Different Question
+                                </>
+                              )}
+                            </button>
+                            
+                            <button
+                              onClick={() => setCustomQuestionMode(true)}
+                              className="btn-stage text-sm"
+                            >
+                              Write Custom Question
+                            </button>
+                          </div>
+                          
+                          <div className="flex justify-center gap-3 mt-6">
+                            <button
+                              onClick={handlePlayWithQuestion}
+                              className="btn-gold group"
+                            >
+                              <span className="relative z-10 flex items-center justify-center">
+                                {Array.isArray(game.previousRounds) && game.previousRounds.length > 0 
+                                  ? `START ROUND ${game.previousRounds.length + 2}` 
+                                  : "START NEXT ROUND"}
+                              </span>
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {error && (
+                        <div className="bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3 text-center">
+                          <span className="text-stage-red">{error}</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                  
-                  {error && (
-                    <div className="bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3 text-center">
-                      <span className="text-stage-red">{error}</span>
-                    </div>
-                  )}
-                </div>
+                </>
               )}
+              
+              {/* End Game Button */}
+              <div className="mt-6 text-center">
+                <button
+                  onClick={handleShowEndGameConfirmation}
+                  className="btn-stage group"
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    END GAME
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+              </div>
             </div>
           )}
           
