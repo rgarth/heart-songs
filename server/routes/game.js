@@ -730,7 +730,8 @@ router.get('/:gameId', async (req, res) => {
       currentQuestion: game.currentQuestion,
       submissions: game.submissions,
       activePlayers: game.activePlayers || [],
-      countdown: game.countdown
+      countdown: game.countdown,
+      winnerSelectedQuestion: game.winnerSelectedQuestion
     });
   } catch (error) {
     console.error('Error getting game state:', error);
