@@ -163,7 +163,7 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
 
         <div className="p-6">
           
-          {/* Winner Crown Display */}
+          {/* Winner Display */}
           <div className="text-center mb-8">
             <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 rounded-lg p-6 border border-gold-record/40">
               <div className="flex items-center justify-center mb-4">
@@ -172,9 +172,6 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                     className="w-16 h-16"
                     animationClass="animate-vinyl-spin"
                   />
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="text-2xl">👑</span>
-                  </div>
                 </div>
               </div>
               <h3 className="text-xl font-rock text-gold-record mb-2">
