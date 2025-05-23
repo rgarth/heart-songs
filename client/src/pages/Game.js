@@ -233,35 +233,16 @@ const Game = () => {
   
   // Handle starting a new round with selected or custom question
   const handleNextRound = async (questionData) => {
-    console.log('🎯🎯🎯 handleNextRound called! This should appear in console!');
-    console.log('🎯 handleNextRound called with:', questionData);
-    console.log('🎯 questionData type:', typeof questionData);
-    console.log('🎯 questionData keys:', questionData ? Object.keys(questionData) : 'null');
-    
     try {
       const token = accessToken || localStorage.getItem('accessToken');
       if (!token) {
-        console.error('🚨 No authentication token available');
         setError('Authentication error. Please login again.');
         return;
       }
       
-      console.log('🎯 About to call startNewRound with:', {
-        gameId,
-        questionData,
-        hasToken: !!token
-      });
-      
       const result = await startNewRound(gameId, questionData, token);
       
-      console.log('✅ startNewRound succeeded:', result);
     } catch (error) {
-      console.error('❌ Error in handleNextRound:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data
-      });
       setError('Failed to start new round. Please try again.');
     }
   };

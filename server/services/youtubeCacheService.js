@@ -23,7 +23,6 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo
     // Check in-memory recent cache first
     const recentLookup = recentLookups.get(recentCacheKey);
     if (recentLookup && Date.now() - recentLookup.timestamp < RECENT_CACHE_TTL) {
-      console.log(`Using recent lookup for: ${artist} - ${track} (${preferVideo ? 'video' : 'audio'})`);
       return recentLookup.data;
     }
     
@@ -54,21 +53,14 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo
           timestamp: Date.now()
         });
         
-        console.log(`[CACHE HIT] Found ${preferVideo ? 'video' : 'audio'} for: ${artist} - ${track}`);
         return result;
       }
       
-      // We have a cache entry but not for this preference
-      console.log(`[PARTIAL CACHE] Have ${preferVideo ? 'audio' : 'video'} but need ${preferVideo ? 'video' : 'audio'} for: ${artist} - ${track}`);
     }
-    
-    // If we didn't find the exact preference, check if we should hit the API
-    console.log(`[CACHE MISS] No ${preferVideo ? 'video' : 'audio'} found for: ${artist} - ${track}, searching YouTube...`);
     
     // Check if we're already searching for this track with this preference
     const searchingKey = `${cacheKey}_${preferVideo ? 'video' : 'audio'}_searching`;
     if (recentLookups.has(searchingKey)) {
-      console.log(`Already searching for: ${artist} - ${track} (${preferVideo ? 'video' : 'audio'}), waiting...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
       // Try to get from cache again after waiting
       return getOrCacheYoutubeData(artist, track, lastfmId, preferVideo);
@@ -78,7 +70,6 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo
     recentLookups.set(searchingKey, true);
     
     try {
-      console.log(`Searching YouTube API for: ${artist} - ${track} (${preferVideo ? 'video' : 'audio'})`);
       
       // Use the updated search function with preference
       const videos = await youtubeService.searchVideos(`${artist} - ${track}`, preferVideo, 1);
@@ -87,7 +78,6 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo
       recentLookups.delete(searchingKey);
       
       if (videos.length === 0) {
-        console.log(`No YouTube ${preferVideo ? 'video' : 'audio'} found for: ${artist} - ${track}`);
         const result = null;
         
         // Store in recent cache to prevent immediate retries
@@ -150,7 +140,6 @@ async function getOrCacheYoutubeData(artist, track, lastfmId = null, preferVideo
         timestamp: Date.now()
       });
       
-      console.log(`[NEW CACHE ENTRY] Cached ${preferVideo ? 'video' : 'audio'} for: ${artist} - ${track}`);
       return result;
       
     } catch (youtubeError) {
