@@ -276,6 +276,14 @@ export const submitCustomQuestion = async (gameId, questionText, token) => {
 
 // Start a new round
 export const startNewRound = async (gameId, questionData, token) => {
+  console.log('🚀 startNewRound function called!');
+  console.log('🚀 Parameters received:', {
+    gameId,
+    questionData,
+    hasToken: !!token,
+    questionDataType: typeof questionData
+  });
+  
   try {
     if (!gameId || !token) {
       console.error("Missing required parameters for starting new round:", { 
@@ -286,12 +294,34 @@ export const startNewRound = async (gameId, questionData, token) => {
     }
     
     const payload = { gameId };
+    console.log('🚀 Initial payload:', payload);
     
     // Add question data if provided
     if (questionData) {
-      payload.questionText = questionData.text;
-      payload.questionCategory = questionData.category;
+      console.log('🚀 Processing questionData:', questionData);
+      
+      // Handle both formats: {text, category} from winner selection and {questionText, questionCategory} from other sources
+      if (questionData.text) {
+        console.log('🚀 Using winner selected question format');
+        // Winner selected question format
+        payload.questionText = questionData.text;
+        payload.questionCategory = questionData.category;
+      } else if (questionData.questionText) {
+        console.log('🚀 Using legacy format');
+        // Legacy format
+        payload.questionText = questionData.questionText;
+        payload.questionCategory = questionData.questionCategory;
+      } else {
+        console.warn("🚀 Question data provided but in unexpected format:", questionData);
+        console.warn("🚀 Available keys:", Object.keys(questionData));
+      }
+      
+      console.log("🚀 Final payload being sent:", payload);
+    } else {
+      console.log('🚀 No questionData provided');
     }
+    
+    console.log('🚀 Making API call to:', `${API_URL}/game/next-round`);
     
     const response = await axios.post(
       `${API_URL}/game/next-round`, 
@@ -299,8 +329,19 @@ export const startNewRound = async (gameId, questionData, token) => {
       createHeaders(token)
     );
     
+    console.log('✅ API call successful:', response.data);
     return response.data;
   } catch (error) {
+    console.error('❌ Error in startNewRound:', {
+      error: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      requestData: error.config?.data
+    });
+    
+    // Log the full error for debugging
+    console.error('❌ Full error object:', error);
+    
     return handleRequestError(error, 'starting new round');
   }
 };

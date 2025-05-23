@@ -1,10 +1,20 @@
-// client/src/components/game/QuestionSelectionScreen.js - Updated Version
-import React, { useState } from 'react';
+// client/src/components/game/QuestionSelectionScreen.js - Fixed Version
+import React, { useState, useEffect } from 'react';
 import { getRandomQuestion, submitCustomQuestion, setWinnerSelectedQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 
 const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
-  const [selectedQuestion, setSelectedQuestion] = useState(game.winnerSelectedQuestion || null);
+  // Add debugging to check if functions are received
+  console.log('🔍 QuestionSelectionScreen props check:', {
+    hasOnStartRound: !!onStartRound,
+    onStartRoundType: typeof onStartRound,
+    hasOnQuestionSelected: !!onQuestionSelected,
+    hasOnHostOverride: !!onHostOverride,
+    hasGetWinnerInfo: !!getWinnerInfo
+  });
+  // Use server state as the source of truth, with local state for preview
+  const [previewQuestion, setPreviewQuestion] = useState(null);
+  const [questionConfirmed, setQuestionConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customQuestionMode, setCustomQuestionMode] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
@@ -17,6 +27,22 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
   const { winner, isTie, tiedPlayers } = winnerInfo;
   const isWinner = winner && winner._id === currentUser.id;
 
+  // The confirmed question from the server (what both winner and host should see)
+  // Only consider it confirmed if it has actual question text
+  const confirmedQuestion = game.winnerSelectedQuestion && game.winnerSelectedQuestion.text 
+    ? game.winnerSelectedQuestion 
+    : null;
+
+  // Sync local state when server state changes
+  useEffect(() => {
+    if (confirmedQuestion && confirmedQuestion.text) {
+      setQuestionConfirmed(true);
+      setPreviewQuestion(null); // Clear preview since we have a confirmed question
+    } else {
+      setQuestionConfirmed(false);
+    }
+  }, [confirmedQuestion]);
+
   // Handle getting a random question (winner only)
   const handleGetRandomQuestion = async () => {
     if (!isWinner) return;
@@ -26,7 +52,8 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       setError(null);
       
       const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
-      setSelectedQuestion(questionData.question);
+      setPreviewQuestion(questionData.question);
+      setCustomQuestionMode(false); // Exit custom mode
     } catch (error) {
       console.error('Error fetching question:', error);
       setError('Failed to fetch question. Please try again.');
@@ -49,8 +76,9 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
         currentUser.accessToken
       );
       
-      setSelectedQuestion(questionData.question);
+      setPreviewQuestion(questionData.question);
       setCustomQuestionMode(false);
+      setCustomQuestion(''); // Clear the input
     } catch (error) {
       console.error('Error submitting custom question:', error);
       setError('Failed to submit custom question. Please try again.');
@@ -63,9 +91,8 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
   const handleConfirmQuestion = async () => {
     console.log('🎯 QuestionSelectionScreen: handleConfirmQuestion called');
     console.log('Is winner:', isWinner);
-    console.log('Selected question:', selectedQuestion);
+    console.log('Preview question:', previewQuestion);
     console.log('Game ID:', game._id);
-    console.log('Access token exists:', !!currentUser.accessToken);
     
     if (!isWinner) {
       console.log('❌ User is not the winner');
@@ -73,8 +100,8 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       return;
     }
     
-    if (!selectedQuestion) {
-      console.log('❌ No selected question');
+    if (!previewQuestion) {
+      console.log('❌ No preview question');
       setError('Please select a question first');
       return;
     }
@@ -88,16 +115,20 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       // Call the API to save the winner's selected question
       const result = await setWinnerSelectedQuestion(
         game._id, 
-        selectedQuestion, 
+        previewQuestion, 
         currentUser.accessToken
       );
       
       console.log('✅ setWinnerSelectedQuestion API response:', result);
       
+      // Update local state immediately for better UX
+      setQuestionConfirmed(true);
+      setPreviewQuestion(null);
+      
       // Call the callback to notify Game.js
       if (onQuestionSelected) {
         console.log('🎯 Calling onQuestionSelected callback');
-        onQuestionSelected(selectedQuestion);
+        onQuestionSelected(previewQuestion);
       }
       
     } catch (error) {
@@ -106,6 +137,14 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle choosing a different question (clear preview)
+  const handleChooseDifferent = () => {
+    setPreviewQuestion(null);
+    setCustomQuestionMode(false);
+    setCustomQuestion('');
+    setError(null);
   };
 
   return (
@@ -157,8 +196,55 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
             /* Winner Controls */
             <div className="space-y-6">
               
-              {!selectedQuestion ? (
-                /* Question Selection */
+              {confirmedQuestion ? (
+                /* Question Already Confirmed */
+                <div className="bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
+                  <h4 className="text-lg font-rock text-lime-green mb-3 text-center">✓ QUESTION CONFIRMED</h4>
+                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30">
+                    <p className="text-xl font-bold text-white mb-2">{confirmedQuestion.text}</p>
+                    <p className="text-silver">
+                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
+                        {confirmedQuestion.category}
+                      </span>
+                    </p>
+                  </div>
+                  <p className="text-center text-silver text-sm mt-4">
+                    Waiting for the host to start the next round...
+                  </p>
+                </div>
+              ) : previewQuestion ? (
+                /* Question Preview & Confirmation */
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
+                    <h4 className="text-lg font-rock text-neon-pink mb-3">PREVIEW QUESTION</h4>
+                    <p className="text-xl font-bold text-white mb-2">{previewQuestion.text}</p>
+                    <p className="text-silver">
+                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
+                        {previewQuestion.category}
+                      </span>
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-center gap-4">
+                    <button
+                      onClick={handleChooseDifferent}
+                      disabled={loading}
+                      className="btn-stage disabled:opacity-50"
+                    >
+                      Choose Different Question
+                    </button>
+                    
+                    <button
+                      onClick={handleConfirmQuestion}
+                      disabled={loading}
+                      className="btn-gold disabled:opacity-50"
+                    >
+                      {loading ? 'Confirming...' : 'Use This Question'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Initial Question Selection */
                 <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
                   <h4 className="text-lg font-rock text-neon-pink mb-4 text-center">CHOOSE THE NEXT QUESTION</h4>
                   
@@ -178,10 +264,13 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                           disabled={loading || !customQuestion.trim()}
                           className="btn-gold disabled:opacity-50"
                         >
-                          {loading ? 'Setting Question...' : 'Set This Question'}
+                          {loading ? 'Creating Question...' : 'Preview This Question'}
                         </button>
                         <button
-                          onClick={() => setCustomQuestionMode(false)}
+                          onClick={() => {
+                            setCustomQuestionMode(false);
+                            setCustomQuestion('');
+                          }}
                           className="btn-stage"
                         >
                           Cancel
@@ -199,7 +288,7 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                         {loading ? (
                           <>
                             <VinylRecord className="w-5 h-5 animate-spin mr-2 inline-block" />
-                            Loading...
+                            Loading Random Question...
                           </>
                         ) : (
                           'Get Random Question'
@@ -214,36 +303,6 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                       </button>
                     </div>
                   )}
-                </div>
-              ) : (
-                /* Question Preview & Confirmation */
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
-                    <h4 className="text-lg font-rock text-neon-pink mb-3">YOUR SELECTED QUESTION</h4>
-                    <p className="text-xl font-bold text-white mb-2">{selectedQuestion.text}</p>
-                    <p className="text-silver">
-                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
-                        {selectedQuestion.category}
-                      </span>
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-center gap-4">
-                    <button
-                      onClick={() => setSelectedQuestion(null)}
-                      className="btn-stage"
-                    >
-                      Choose Different Question
-                    </button>
-                    
-                    <button
-                      onClick={handleConfirmQuestion}
-                      disabled={loading}
-                      className="btn-gold disabled:opacity-50"
-                    >
-                      {loading ? 'Confirming...' : 'Confirm This Question'}
-                    </button>
-                  </div>
                 </div>
               )}
               
@@ -272,11 +331,20 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   {winner?.displayName} is choosing the next question...
                 </p>
                 
-                {selectedQuestion && (
+                {confirmedQuestion ? (
                   <div className="mt-6 bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-neon-pink/40">
-                    <h4 className="text-neon-pink font-bold mb-2">QUESTION SELECTED:</h4>
-                    <p className="text-white text-lg">{selectedQuestion.text}</p>
+                    <h4 className="text-neon-pink font-bold mb-2">✓ QUESTION SELECTED:</h4>
+                    <p className="text-white text-lg mb-2">{confirmedQuestion.text}</p>
+                    <p className="text-silver text-sm">
+                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
+                        {confirmedQuestion.category}
+                      </span>
+                    </p>
                   </div>
+                ) : (
+                  <p className="text-silver text-sm">
+                    Waiting for {winner?.displayName} to make their choice...
+                  </p>
                 )}
               </div>
             </div>
@@ -288,11 +356,27 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
               <h4 className="text-lg font-rock text-gold-record mb-4 text-center">MC CONTROLS</h4>
               
               <div className="flex flex-col gap-4">
-                {/* Start Round Button (only if question is selected) */}
-                {selectedQuestion && (
+                {/* Start Round Button (only if question is confirmed) */}
+                {confirmedQuestion && (
                   <div className="text-center">
                     <button
-                      onClick={() => onStartRound(selectedQuestion)}
+                      onClick={() => {
+                        console.log('🎯 START NEXT ROUND clicked with confirmedQuestion:', confirmedQuestion);
+                        console.log('🎯 confirmedQuestion structure:', JSON.stringify(confirmedQuestion, null, 2));
+                        console.log('🎯 onStartRound function check:', {
+                          exists: !!onStartRound,
+                          type: typeof onStartRound,
+                          function: onStartRound
+                        });
+                        
+                        if (typeof onStartRound === 'function') {
+                          console.log('🎯 Calling onStartRound...');
+                          onStartRound(confirmedQuestion);
+                          console.log('🎯 onStartRound called successfully');
+                        } else {
+                          console.error('❌ onStartRound is not a function!', onStartRound);
+                        }
+                      }}
                       className="btn-gold"
                     >
                       START NEXT ROUND

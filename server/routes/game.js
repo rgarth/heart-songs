@@ -597,10 +597,16 @@ router.post('/vote', async (req, res) => {
 
 // Start a new round - UPDATED to track question usage
 router.post('/next-round', async (req, res) => {
+  console.log('🔥🔥🔥 /next-round route hit!');
+  console.log('🔥 Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🔥 User:', req.user?.displayName);
+  
   try {
     const { gameId, questionText, questionCategory } = req.body;
+    console.log('🔥 Extracted params:', { gameId, questionText, questionCategory });
     
     // Find game by _id or code
+    console.log('🔥 Looking for game...');
     let game = null;
     if (mongoose.Types.ObjectId.isValid(gameId)) {
       game = await Game.findById(gameId);
@@ -611,12 +617,19 @@ router.post('/next-round', async (req, res) => {
     }
     
     if (!game) {
+      console.log('🔥 ❌ Game not found');
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    if (game.status !== 'results') {
+    console.log('🔥 ✅ Game found:', game._id, 'Status:', game.status);
+    
+    if (game.status !== 'results' && game.status !== 'question-selection') {
+      console.log('🔥 ❌ Game not in results phase, current status:', game.status);
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
+    
+    console.log('🔥 ✅ Game is in results phase');
+    console.log('🔥 Saving current round data...');
     
     // Save current round data to previous rounds before clearing
     const currentRoundData = {
@@ -630,11 +643,15 @@ router.post('/next-round', async (req, res) => {
       playersWhoFailedToVote: game.currentRound?.playersWhoFailedToVote || []
     };
     
+    console.log('🔥 Current round data prepared');
+    
     // Add to previous rounds
     if (!game.previousRounds) {
       game.previousRounds = [];
     }
     game.previousRounds.push(currentRoundData);
+    
+    console.log('🔥 Added to previous rounds, count:', game.previousRounds.length);
     
     // Clear submissions
     game.submissions = [];
@@ -653,14 +670,18 @@ router.post('/next-round', async (req, res) => {
       playersWhoFailedToVote: []
     };
     
+    console.log('🔥 Reset game state for new round');
+    
     // Set question - either use provided question or get a random one
     if (questionText && questionCategory) {
+      console.log('🔥 Using provided question');
       // Use the provided question (custom questions don't need tracking)
       game.currentQuestion = {
         text: questionText,
         category: questionCategory
       };
     } else {
+      console.log('🔥 Getting random question');
       // Get new random question that hasn't been used
       const question = await getRandomQuestion(game._id);
       game.currentQuestion = {
@@ -680,18 +701,26 @@ router.post('/next-round', async (req, res) => {
       });
     }
     
+    console.log('🔥 Question set:', game.currentQuestion);
+    
     game.status = 'selecting';
     
+    console.log('🔥 About to save game...');
     await game.save();
+    console.log('🔥 ✅ Game saved successfully');
     
-    res.json({
+    const response = {
       gameId: game._id,
       status: game.status,
       currentQuestion: game.currentQuestion,
       activePlayers: []
-    });
+    };
+    
+    console.log('🔥 About to send response:', response);
+    res.json(response);
   } catch (error) {
-    console.error('Error starting new round:', error);
+    console.error('🔥🔥🔥 ERROR in next-round route:', error);
+    console.error('🔥 Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to start new round' });
   }
 });
