@@ -1,4 +1,4 @@
-// client/src/pages/Game.js - Fixed Version
+// client/src/pages/Game.js - Restored with localStorage Logic
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -91,8 +91,158 @@ const Game = () => {
   const intervalRef = useRef(null);
   const isMountedRef = useRef(true);
   
-  // Simple game history state - removed complex localStorage logic
+  // RESTORED: Game history state management
   const [gameHistory, setGameHistory] = useState([]);
+  const gameHistoryRef = useRef([]);
+  const hasInitializedHistoryRef = useRef(false);
+  
+  // RESTORED: localStorage key management
+  const getStorageKey = useCallback(() => {
+    if (!gameId) return null;
+    return `gameHistory_${gameId}`;
+  }, [gameId]);
+  
+  // RESTORED: Save game history to localStorage
+  const saveGameHistoryToStorage = useCallback((history, gameData) => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    try {
+      const historyData = {
+        gameId: gameData._id || gameData.gameId,
+        gameCode: gameData.gameCode,
+        previousRounds: history,
+        savedAt: new Date().toISOString(),
+        status: gameData.status
+      };
+      
+      localStorage.setItem(storageKey, JSON.stringify(historyData));
+      console.log(`💾 Saved game history to localStorage with ${history.length} rounds`);
+    } catch (error) {
+      console.error('Error saving game history to localStorage:', error);
+    }
+  }, [getStorageKey]);
+  
+  // RESTORED: Load game history from localStorage
+  const loadGameHistoryFromStorage = useCallback(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return [];
+    
+    try {
+      const savedHistory = localStorage.getItem(storageKey);
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        console.log(`📂 Loaded game history from localStorage with ${parsed.previousRounds?.length || 0} rounds`);
+        return parsed.previousRounds || [];
+      }
+    } catch (error) {
+      console.error('Error loading game history from localStorage:', error);
+    }
+    
+    return [];
+  }, [getStorageKey]);
+  
+  // RESTORED: Update game history logic
+  const updateGameHistory = useCallback((gameData) => {
+    if (!gameData) return;
+    
+    // Initialize history from localStorage if we haven't yet
+    if (!hasInitializedHistoryRef.current) {
+      const loadedHistory = loadGameHistoryFromStorage();
+      if (loadedHistory.length > 0) {
+        setGameHistory(loadedHistory);
+        gameHistoryRef.current = loadedHistory;
+        console.log(`🔄 Initialized game history with ${loadedHistory.length} rounds from localStorage`);
+      }
+      hasInitializedHistoryRef.current = true;
+    }
+    
+    // Handle different game states
+    if (gameData.status === 'ended') {
+      // Game has ended - preserve all history
+      let finalHistory = [];
+      
+      // Start with existing history
+      if (gameHistoryRef.current.length > 0) {
+        finalHistory = [...gameHistoryRef.current];
+      }
+      
+      // Add server's previous rounds if available
+      if (gameData.previousRounds && Array.isArray(gameData.previousRounds)) {
+        const serverRounds = gameData.previousRounds.filter(round => 
+          !finalHistory.some(existing => 
+            existing.question?.text === round.question?.text
+          )
+        );
+        finalHistory = [...finalHistory, ...serverRounds];
+      }
+      
+      // Add final round data if available
+      if (gameData.submissions && Array.isArray(gameData.submissions) && gameData.submissions.length > 0) {
+        const finalRound = {
+          question: gameData.currentQuestion,
+          submissions: gameData.submissions,
+          playersWhoFailedToSubmit: gameData.currentRound?.playersWhoFailedToSubmit || [],
+          playersWhoFailedToVote: gameData.currentRound?.playersWhoFailedToVote || []
+        };
+        
+        // Only add if it's not already in the history
+        const isDuplicate = finalHistory.some(round => 
+          round.question?.text === finalRound.question?.text
+        );
+        
+        if (!isDuplicate) {
+          finalHistory.push(finalRound);
+        }
+      }
+      
+      // Update state and save to localStorage
+      if (finalHistory.length > 0) {
+        setGameHistory(finalHistory);
+        gameHistoryRef.current = finalHistory;
+        saveGameHistoryToStorage(finalHistory, gameData);
+        console.log(`🏁 Final game history: ${finalHistory.length} rounds`);
+      }
+    } else if (gameData.status === 'results' && gameData.submissions && Array.isArray(gameData.submissions)) {
+      // Game is in results - save current round
+      const currentRoundData = {
+        question: gameData.currentQuestion,
+        submissions: gameData.submissions,
+        playersWhoFailedToSubmit: gameData.currentRound?.playersWhoFailedToSubmit || [],
+        playersWhoFailedToVote: gameData.currentRound?.playersWhoFailedToVote || []
+      };
+      
+      // Check if this round is already in our history
+      const isDuplicate = gameHistoryRef.current.some(round => 
+        round.question?.text === currentRoundData.question?.text
+      );
+      
+      if (!isDuplicate) {
+        const updatedHistory = [...gameHistoryRef.current, currentRoundData];
+        setGameHistory(updatedHistory);
+        gameHistoryRef.current = updatedHistory;
+        saveGameHistoryToStorage(updatedHistory, gameData);
+        console.log(`📝 Added round to history. Total rounds: ${updatedHistory.length}`);
+      }
+    } else if (gameData.status === 'selecting' || gameData.status === 'voting') {
+      // Game moved to new round - preserve existing history
+      if (gameData.previousRounds && Array.isArray(gameData.previousRounds)) {
+        const serverRounds = gameData.previousRounds.filter(round => 
+          !gameHistoryRef.current.some(existing => 
+            existing.question?.text === round.question?.text
+          )
+        );
+        
+        if (serverRounds.length > 0) {
+          const updatedHistory = [...gameHistoryRef.current, ...serverRounds];
+          setGameHistory(updatedHistory);
+          gameHistoryRef.current = updatedHistory;
+          saveGameHistoryToStorage(updatedHistory, gameData);
+          console.log(`🔄 Updated history with server rounds. Total rounds: ${updatedHistory.length}`);
+        }
+      }
+    }
+  }, [loadGameHistoryFromStorage, saveGameHistoryToStorage]);
   
   // Scroll to top when game status changes
   useEffect(() => {
@@ -102,7 +252,7 @@ const Game = () => {
     prevGameRef.current = game;
   }, [game]);
   
-  // SIMPLIFIED: Basic fetch function without complex dependencies
+  // UPDATED: Fetch function with game history updates
   const fetchGameState = useCallback(async () => {
     if (!gameId || !isMountedRef.current) return;
     
@@ -121,10 +271,8 @@ const Game = () => {
       // Reset retry count on success
       if (retryCount > 0) setRetryCount(0);
       
-      // SIMPLIFIED: Handle ended games with basic history
-      if (gameData.status === 'ended' && gameData.previousRounds) {
-        setGameHistory(gameData.previousRounds);
-      }
+      // RESTORED: Update game history
+      updateGameHistory(gameData);
       
       setGame(prevGame => {
         if (!prevGame) return gameData;
@@ -149,9 +297,9 @@ const Game = () => {
         setLoading(false);
       }
     }
-  }, [gameId, accessToken, loading, retryCount]); // Minimal dependencies
+  }, [gameId, accessToken, loading, retryCount, updateGameHistory]);
   
-  // SIMPLIFIED: Single useEffect for polling
+  // Single useEffect for polling
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -493,9 +641,10 @@ const Game = () => {
           <FinalResultsScreen 
             game={{
               ...game,
-              previousRounds: game.previousRounds?.length > 0 
-                ? game.previousRounds 
-                : gameHistory
+              // RESTORED: Use localStorage history as primary source, with server data as fallback
+              previousRounds: gameHistory.length > 0 
+                ? gameHistory 
+                : (game.previousRounds?.length > 0 ? game.previousRounds : [])
             }}
             currentUser={{
               ...user,

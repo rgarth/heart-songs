@@ -383,53 +383,85 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
               
               {!showQuestionPreview ? (
                 <div className="text-center">
-                  {/* Two options for the MC: Choose question personally or let winner choose */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
-                      <h4 className="font-rock text-electric-purple mb-3">SELECT QUESTION YOURSELF</h4>
-                      <p className="text-silver text-sm mb-4">
-                        Choose the next question for the players.
-                      </p>
-                      <button
-                        onClick={handleShowNextQuestion}
-                        disabled={loading}
-                        className="btn-electric disabled:opacity-50 group"
-                      >
-                        <span className="relative z-10 flex items-center justify-center">
-                          {loading ? (
-                            <>
-                              <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
-                              LOADING...
-                            </>
-                          ) : (
-                            <>
-                              CHOOSE QUESTION
-                            </>
-                          )}
-                        </span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                      </button>
+                  {/* Show different layouts based on whether host is the winner */}
+                  {isCurrentUserWinner ? (
+                    // Host is the winner - only show "choose question" option (no "let winner choose" since they ARE the winner)
+                    <div className="mb-6">
+                      <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                        <h4 className="font-rock text-electric-purple mb-3">CHOOSE THE NEXT QUESTION</h4>
+                        <p className="text-silver text-sm mb-4">
+                          As the round winner and MC, choose the next question.
+                        </p>
+                        <button
+                          onClick={handleShowNextQuestion}
+                          disabled={loading}
+                          className="btn-electric disabled:opacity-50 group"
+                        >
+                          <span className="relative z-10 flex items-center justify-center">
+                            {loading ? (
+                              <>
+                                <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                                LOADING...
+                              </>
+                            ) : (
+                              <>
+                                CHOOSE QUESTION
+                              </>
+                            )}
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    // Host is NOT the winner - show both options
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                        <h4 className="font-rock text-electric-purple mb-3">SELECT QUESTION YOURSELF</h4>
+                        <p className="text-silver text-sm mb-4">
+                          Choose the next question for the players.
+                        </p>
+                        <button
+                          onClick={handleShowNextQuestion}
+                          disabled={loading}
+                          className="btn-electric disabled:opacity-50 group"
+                        >
+                          <span className="relative z-10 flex items-center justify-center">
+                            {loading ? (
+                              <>
+                                <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                                LOADING...
+                              </>
+                            ) : (
+                              <>
+                                CHOOSE QUESTION
+                              </>
+                            )}
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        </button>
+                      </div>
 
-                    <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
-                      <h4 className="font-rock text-gold-record mb-3">LET WINNER CHOOSE</h4>
-                      <p className="text-silver text-sm mb-4">
-                        Let {winner?.displayName || "the round winner"} choose the next question.
-                      </p>
-                      <button
-                        onClick={onMoveToQuestionSelection}
-                        className="btn-gold group"
-                      >
-                        <span className="relative z-10 flex items-center justify-center">
-                          WINNER CHOOSES
-                        </span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                      </button>
+                      <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                        <h4 className="font-rock text-gold-record mb-3">LET WINNER CHOOSE</h4>
+                        <p className="text-silver text-sm mb-4">
+                          Let {winner?.displayName || "the round winner"} choose the next question.
+                        </p>
+                        <button
+                          onClick={onMoveToQuestionSelection}
+                          className="btn-gold group"
+                        >
+                          <span className="relative z-10 flex items-center justify-center">
+                            WINNER CHOOSES
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
-                /* Question preview (when MC is choosing question) */
+                /* Question preview section - shown for ANY host when showQuestionPreview is true */
                 <div className="space-y-6">
                   <h4 className="text-lg font-rock text-neon-pink text-center">NEXT QUESTION PREVIEW</h4>
                   

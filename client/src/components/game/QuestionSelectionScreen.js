@@ -4,14 +4,6 @@ import { getRandomQuestion, submitCustomQuestion, setWinnerSelectedQuestion } fr
 import VinylRecord from '../VinylRecord';
 
 const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
-  // Add debugging to check if functions are received
-  console.log('🔍 QuestionSelectionScreen props check:', {
-    hasOnStartRound: !!onStartRound,
-    onStartRoundType: typeof onStartRound,
-    hasOnQuestionSelected: !!onQuestionSelected,
-    hasOnHostOverride: !!onHostOverride,
-    hasGetWinnerInfo: !!getWinnerInfo
-  });
   // Use server state as the source of truth, with local state for preview
   const [previewQuestion, setPreviewQuestion] = useState(null);
   const [questionConfirmed, setQuestionConfirmed] = useState(false);
@@ -89,19 +81,13 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
 
   // Confirm question selection (winner only)
   const handleConfirmQuestion = async () => {
-    console.log('🎯 QuestionSelectionScreen: handleConfirmQuestion called');
-    console.log('Is winner:', isWinner);
-    console.log('Preview question:', previewQuestion);
-    console.log('Game ID:', game._id);
     
     if (!isWinner) {
-      console.log('❌ User is not the winner');
       setError('Only the round winner can select the question');
       return;
     }
     
     if (!previewQuestion) {
-      console.log('❌ No preview question');
       setError('Please select a question first');
       return;
     }
@@ -110,8 +96,6 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       setLoading(true);
       setError(null);
       
-      console.log('🎯 Calling setWinnerSelectedQuestion API...');
-      
       // Call the API to save the winner's selected question
       const result = await setWinnerSelectedQuestion(
         game._id, 
@@ -119,20 +103,16 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
         currentUser.accessToken
       );
       
-      console.log('✅ setWinnerSelectedQuestion API response:', result);
-      
       // Update local state immediately for better UX
       setQuestionConfirmed(true);
       setPreviewQuestion(null);
       
       // Call the callback to notify Game.js
       if (onQuestionSelected) {
-        console.log('🎯 Calling onQuestionSelected callback');
         onQuestionSelected(previewQuestion);
       }
       
     } catch (error) {
-      console.error('❌ Error confirming question:', error);
       setError(`Failed to confirm question: ${error.message}`);
     } finally {
       setLoading(false);
@@ -358,20 +338,8 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   <div className="text-center">
                     <button
                       onClick={() => {
-                        console.log('🎯 START NEXT ROUND clicked with confirmedQuestion:', confirmedQuestion);
-                        console.log('🎯 confirmedQuestion structure:', JSON.stringify(confirmedQuestion, null, 2));
-                        console.log('🎯 onStartRound function check:', {
-                          exists: !!onStartRound,
-                          type: typeof onStartRound,
-                          function: onStartRound
-                        });
-                        
                         if (typeof onStartRound === 'function') {
-                          console.log('🎯 Calling onStartRound...');
                           onStartRound(confirmedQuestion);
-                          console.log('🎯 onStartRound called successfully');
-                        } else {
-                          console.error('❌ onStartRound is not a function!', onStartRound);
                         }
                       }}
                       className="btn-gold"
