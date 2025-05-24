@@ -1,4 +1,4 @@
-// client/src/components/Header.js - Fixed non-clickable logo and hover effect
+// client/src/components/Header.js - Fixed Home Button Issue
 import React, { useContext, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -21,7 +21,8 @@ const Header = ({ gameCode }) => {
   };
   
   const handleGoHome = async () => {
-    // If on a game page and there's a game code, try to leave the game properly
+    // IMPROVED: Handle different game states appropriately
+    
     if (isOnGamePage && gameCode) {
       try {
         // Extract game ID from the current path
@@ -31,17 +32,57 @@ const Header = ({ gameCode }) => {
         const token = localStorage.getItem('accessToken');
         
         if (gameId && token) {
-          // Try to leave the game
-          await leaveGame(gameId, token);
+          // Determine if we should wait for the leave game API based on current path
+          const isOnFinalResults = location.pathname.includes('/game/') && 
+                                   location.search === '' && 
+                                   document.title.includes('GAME OVER');
+          
+          if (isOnFinalResults) {
+            // For ended games, don't wait - just fire and forget
+            leaveGame(gameId, token).catch(error => {
+              console.warn('Could not leave ended game (this is normal):', error);
+            });
+            
+            // Navigate immediately for ended games
+            navigate('/');
+          } else {
+            // For active games, try to wait briefly for cleanup, but don't block indefinitely
+            try {
+              // Create a timeout wrapper to prevent infinite blocking
+              const leaveWithTimeout = Promise.race([
+                leaveGame(gameId, token),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Leave game timeout')), 2000)
+                )
+              ]);
+              
+              await leaveWithTimeout;
+              
+              // If successful, navigate
+              navigate('/');
+            } catch (error) {
+              console.warn('Leave game failed or timed out:', error);
+              
+              // Even if leaving fails, still navigate after a brief delay
+              // This ensures the user isn't stuck, but gives the API a chance to work
+              setTimeout(() => {
+                navigate('/');
+              }, 500);
+            }
+          }
+        } else {
+          // No game ID or token, just navigate
+          navigate('/');
         }
       } catch (error) {
-        console.error('Error leaving game from header:', error);
-        // Continue to navigate even if leaving fails
+        console.warn('Error in handleGoHome:', error);
+        // Always navigate home even if there's an error
+        navigate('/');
       }
+    } else {
+      // Not on a game page, navigate immediately
+      navigate('/');
     }
-    
-    // Navigate to home
-    navigate('/');
   };
 
   // Copy game code to clipboard
@@ -116,10 +157,11 @@ const Header = ({ gameCode }) => {
                   </div>
                 </div>
                 
-                {/* Go Home Button */}
+                {/* Go Home Button - FIXED TO WORK ON ALL PAGES */}
                 <button 
                   onClick={handleGoHome}
                   className="btn-electric py-2 px-4 mr-2 group relative overflow-hidden"
+                  type="button"
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     HOME
@@ -131,6 +173,7 @@ const Header = ({ gameCode }) => {
                 <button 
                   onClick={handleLogout}
                   className="btn-stage py-2 px-4 group relative overflow-hidden"
+                  type="button"
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     LOGOUT
@@ -174,10 +217,12 @@ const Header = ({ gameCode }) => {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
+                    {/* FIXED: Mobile Home Button */}
                     <button 
                       onClick={handleGoHome}
                       className="btn-electric py-2 px-4 text-sm group relative overflow-hidden"
                       title="Go to home page"
+                      type="button"
                     >
                       <span className="relative z-10 flex items-center justify-center">
                         HOME
@@ -187,6 +232,7 @@ const Header = ({ gameCode }) => {
                     <button 
                       onClick={handleLogout}
                       className="btn-stage py-2 px-4 text-sm group relative overflow-hidden"
+                      type="button"
                     >
                       <span className="relative z-10 flex items-center justify-center">
                         LOGOUT
@@ -212,6 +258,7 @@ const Header = ({ gameCode }) => {
                           className="ml-3 p-3 bg-gradient-to-r from-electric-purple to-neon-pink rounded-full hover:shadow-neon-purple transition-all group"
                           aria-label="Copy game code"
                           title="Copy game code to share"
+                          type="button"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white group-hover:scale-110 transition-transform" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />

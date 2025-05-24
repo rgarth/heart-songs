@@ -614,7 +614,8 @@ router.post('/next-round', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    if (game.status !== 'results') {
+    
+    if (game.status !== 'results' && game.status !== 'question-selection') {
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
     
@@ -684,14 +685,15 @@ router.post('/next-round', async (req, res) => {
     
     await game.save();
     
-    res.json({
+    const response = {
       gameId: game._id,
       status: game.status,
       currentQuestion: game.currentQuestion,
       activePlayers: []
-    });
+    };
+    
+    res.json(response);
   } catch (error) {
-    console.error('Error starting new round:', error);
     res.status(500).json({ error: 'Failed to start new round' });
   }
 });
@@ -730,7 +732,8 @@ router.get('/:gameId', async (req, res) => {
       currentQuestion: game.currentQuestion,
       submissions: game.submissions,
       activePlayers: game.activePlayers || [],
-      countdown: game.countdown
+      countdown: game.countdown,
+      winnerSelectedQuestion: game.winnerSelectedQuestion
     });
   } catch (error) {
     console.error('Error getting game state:', error);
@@ -1402,6 +1405,180 @@ router.post('/cancel-countdown', async (req, res) => {
   } catch (error) {
     console.error('Error canceling countdown:', error);
     res.status(500).json({ error: 'Failed to cancel countdown' });
+  }
+});
+
+// Add these routes to server/routes/game.js (insert before module.exports = router;)
+
+// Move game to question-selection phase (host only)
+router.post('/move-to-question-selection', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can move to question selection' });
+    }
+    
+    if (game.status !== 'results') {
+      return res.status(400).json({ error: 'Game is not in results phase' });
+    }
+    
+    // Move to question-selection phase
+    game.status = 'question-selection';
+    
+    // Clear any existing winner selected question
+    game.winnerSelectedQuestion = undefined;
+    
+    await game.save();
+    
+    // Populate game data
+    await game.populate('host', 'displayName');
+    await game.populate('players.user', 'displayName');
+    await game.populate('submissions.player', 'displayName');
+    await game.populate('submissions.votes', 'displayName');
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      message: 'Moved to question selection phase'
+    });
+  } catch (error) {
+    console.error('Error moving to question selection:', error);
+    res.status(500).json({ error: 'Failed to move to question selection' });
+  }
+});
+
+// Set winner's selected question
+router.post('/set-winner-question', async (req, res) => {
+  try {
+    const { gameId, questionText, questionCategory } = req.body;
+    const user = req.user;
+    
+    if (!questionText || !questionCategory) {
+      return res.status(400).json({ error: 'Question text and category are required' });
+    }
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    if (game.status !== 'question-selection') {
+      return res.status(400).json({ error: 'Game is not in question selection phase' });
+    }
+    
+    // Determine who the winner is (should match frontend logic)
+    const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
+    
+    if (actualSubmissions.length === 0) {
+      return res.status(400).json({ error: 'No winner found - no submissions' });
+    }
+    
+    // Sort by votes, then by submission time
+    const sortedSubmissions = [...actualSubmissions].sort((a, b) => {
+      const voteDiff = (b.votes?.length || 0) - (a.votes?.length || 0);
+      if (voteDiff !== 0) return voteDiff;
+      return new Date(a.submittedAt) - new Date(b.submittedAt);
+    });
+    
+    const winnerSubmission = sortedSubmissions[0];
+    const winnerId = winnerSubmission.player._id || winnerSubmission.player;
+    
+    // Check if the requesting user is the winner
+    if (winnerId.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the round winner can select the question' });
+    }
+    
+    // Set the winner's selected question
+    game.winnerSelectedQuestion = {
+      text: questionText,
+      category: questionCategory,
+      selectedBy: user._id,
+      selectedAt: new Date()
+    };
+    
+    await game.save();
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      winnerSelectedQuestion: game.winnerSelectedQuestion,
+      message: 'Winner question selected successfully'
+    });
+  } catch (error) {
+    console.error('Error setting winner question:', error);
+    res.status(500).json({ error: 'Failed to set winner question' });
+  }
+});
+
+// Host override - move back to results for normal question selection
+router.post('/host-override-question', async (req, res) => {
+  try {
+    const { gameId } = req.body;
+    const user = req.user;
+    
+    // Find game by _id or code
+    let game = null;
+    if (mongoose.Types.ObjectId.isValid(gameId)) {
+      game = await Game.findById(gameId);
+    }
+    
+    if (!game) {
+      game = await Game.findOne({ code: gameId });
+    }
+    
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Check if user is the host
+    if (game.host.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Only the host can override question selection' });
+    }
+    
+    if (game.status !== 'question-selection') {
+      return res.status(400).json({ error: 'Game is not in question selection phase' });
+    }
+    
+    // Clear winner selected question and move back to results
+    game.winnerSelectedQuestion = undefined;
+    game.status = 'results';
+    
+    await game.save();
+    
+    res.json({
+      gameId: game._id,
+      status: game.status,
+      message: 'Moved back to results for host question selection'
+    });
+  } catch (error) {
+    console.error('Error with host override:', error);
+    res.status(500).json({ error: 'Failed to override question selection' });
   }
 });
 

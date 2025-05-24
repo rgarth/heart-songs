@@ -1,4 +1,4 @@
-// client/src/components/game/FinalResultsScreen.js - YouTube Compliant Version
+// client/src/components/game/FinalResultsScreen.js - Fixed Header Button Clickability
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -49,14 +49,6 @@ useEffect(() => {
         return;
       }
       
-      console.log("Processing game data:", {
-        status: game.status,
-        hasGameId: !!game._id,
-        hasPreviousRounds: Array.isArray(game.previousRounds),
-        previousRoundsLength: Array.isArray(game.previousRounds) ? game.previousRounds.length : 'N/A',
-        gameId: game._id
-      });
-      
       // Initialize winning tracks list
       let winningTracksList = [];
       
@@ -67,29 +59,17 @@ useEffect(() => {
         try {
           // Log key being used to help with debugging
           const storageKey = `gameHistory_${game._id}`;
-          console.log(`Trying to load game history from localStorage with key: ${storageKey}`);
           
           // Try to load game history from localStorage
           const savedGameHistory = localStorage.getItem(storageKey);
           
           if (savedGameHistory) {
-            console.log(`Found saved game history in localStorage, parsing...`);
             const parsedHistory = JSON.parse(savedGameHistory);
-            
-            console.log("Parsed history details:", {
-              hasPreviousRounds: !!parsedHistory?.previousRounds,
-              isArray: Array.isArray(parsedHistory?.previousRounds),
-              length: Array.isArray(parsedHistory?.previousRounds) ? parsedHistory.previousRounds.length : 'N/A',
-              savedAt: parsedHistory?.savedAt,
-              gameId: parsedHistory?.gameId
-            });
             
             if (parsedHistory && 
                 parsedHistory.previousRounds && 
                 Array.isArray(parsedHistory.previousRounds) && 
                 parsedHistory.previousRounds.length > 0) {
-              
-              console.log(`Loaded ${parsedHistory.previousRounds.length} rounds from localStorage`);
               
               // Use the previousRounds from localStorage
               game.previousRounds = parsedHistory.previousRounds;
@@ -105,11 +85,9 @@ useEffect(() => {
             for (let i = 0; i < localStorage.length; i++) {
               const key = localStorage.key(i);
               if (key && key.includes('gameHistory_')) {
-                console.log(`Found potential game history key: ${key}`);
                 try {
                   const data = JSON.parse(localStorage.getItem(key));
                   if (data && data.gameId === game._id) {
-                    console.log(`Found matching game history under key: ${key}`);
                     game.previousRounds = data.previousRounds;
                     foundAlternativeHistory = true;
                     break;
@@ -131,7 +109,6 @@ useEffect(() => {
       
       // Now process previous rounds with the localStorage enhancement
       if (game.previousRounds && Array.isArray(game.previousRounds) && game.previousRounds.length > 0) {
-        console.log(`Processing ${game.previousRounds.length} previous rounds`);
         
         // Process each round to find the winning song
         winningTracksList = game.previousRounds
@@ -251,9 +228,6 @@ useEffect(() => {
           console.error('Error processing current round submissions:', error);
         }
       }
-      
-      // Log the final list for debugging
-      console.log(`Processed ${winningTracksList.length} winning tracks`);
       
       // Update state with all winning tracks
       setWinningTracks(winningTracksList);
@@ -431,32 +405,25 @@ useEffect(() => {
   
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Main results card */}
+      {/* Main results card - FIXED: Removed problematic z-index and overlay elements */}
       <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-8 border-b border-electric-purple/30 relative overflow-hidden">
-          {/* Stage lights effect */}
-          <div className="absolute top-0 left-1/4 w-32 h-32 bg-electric-purple/10 rounded-full -translate-y-16 blur-3xl"></div>
-          <div className="absolute top-0 right-1/4 w-32 h-32 bg-neon-pink/10 rounded-full -translate-y-16 blur-3xl"></div>
-          <div className="absolute top-0 left-1/2 w-32 h-32 bg-gold-record/10 rounded-full -translate-y-16 -translate-x-1/2 blur-3xl"></div>
-          
-          <div className="relative z-10">
-            <h2 className="text-4xl md:text-5xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent mb-4">
+        {/* Header - FIXED: Removed absolute positioning and high z-index elements that block header */}
+        <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-8 border-b border-electric-purple/30">
+          {/* FIXED: Removed absolute positioned stage lights that were creating overlay issues */}
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent mb-4">
               GAME OVER
             </h2>
-            <p className="text-silver text-center text-lg">Final Results</p>
+            <p className="text-silver text-lg">Final Results</p>
           </div>
         </div>
         
         <div className="p-8">
           
-          {/* Winner announcement */}
+          {/* Winner announcement - FIXED: Removed problematic absolute positioning */}
           <div className="text-center mb-10">
             <div className="w-full">
-              {/* Spotlight effect */}
-              <div className="absolute -inset-8 bg-gold-record/10 rounded-full blur-3xl"></div>
-              
               {isTie ? (
                 <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-8 border-l-4 border-gold-record shadow-2xl w-full">
                   <div className="flex items-center justify-center mb-4">
@@ -483,15 +450,14 @@ useEffect(() => {
               ) : (
                 <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-8 border-l-4 border-gold-record shadow-2xl w-full">
                   <div className="flex items-center justify-center mb-4">
+                    {/* FIXED: Removed absolute positioning from crown that was causing overlay issues */}
                     <div className="relative">
                       <VinylRecord 
                         className="w-20 h-20"
                         animationClass="animate-vinyl-spin"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="absolute -top-6">
-                          <CrownIcon className="h-10 w-10 text-gold-record" />
-                        </div>
+                      <div className="flex items-center justify-center mt-2">
+                        <CrownIcon className="h-10 w-10 text-gold-record" />
                       </div>
                     </div>
                   </div>

@@ -289,8 +289,18 @@ export const startNewRound = async (gameId, questionData, token) => {
     
     // Add question data if provided
     if (questionData) {
-      payload.questionText = questionData.text;
-      payload.questionCategory = questionData.category;
+      
+      // Handle both formats: {text, category} from winner selection and {questionText, questionCategory} from other sources
+      if (questionData.text) {
+        // Winner selected question format
+        payload.questionText = questionData.text;
+        payload.questionCategory = questionData.category;
+      } else if (questionData.questionText) {
+        // Legacy format
+        payload.questionText = questionData.questionText;
+        payload.questionCategory = questionData.questionCategory;
+      }
+      
     }
     
     const response = await axios.post(
@@ -301,6 +311,7 @@ export const startNewRound = async (gameId, questionData, token) => {
     
     return response.data;
   } catch (error) {
+    
     return handleRequestError(error, 'starting new round');
   }
 };
@@ -487,5 +498,79 @@ export const leaveGame = async (gameId, token) => {
     return response.data;
   } catch (error) {
     return handleRequestError(error, 'leaving game');
+  }
+};
+
+// Set winner's selected question
+export const setWinnerSelectedQuestion = async (gameId, questionData, token) => {
+  try {
+    if (!gameId || !questionData || !token) {
+      console.error("Missing required parameters for setting winner question:", { 
+        hasGameId: !!gameId, 
+        hasQuestionData: !!questionData, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId, questionData and token are required');
+    }
+
+    const response = await axios.post(
+      `${API_URL}/game/set-winner-question`, 
+      { 
+        gameId,
+        questionText: questionData.text,
+        questionCategory: questionData.category
+      },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'setting winner question');
+  }
+};
+
+// Move game to question-selection phase (host only)
+export const moveToQuestionSelection = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for moving to question selection:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/move-to-question-selection`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'moving to question selection');
+  }
+};
+
+// Host override - move back to results for normal question selection
+export const hostOverrideQuestion = async (gameId, token) => {
+  try {
+    if (!gameId || !token) {
+      console.error("Missing required parameters for host override:", { 
+        hasGameId: !!gameId, 
+        hasToken: !!token 
+      });
+      throw new Error('Missing required parameters: gameId and token are required');
+    }
+    
+    const response = await axios.post(
+      `${API_URL}/game/host-override-question`, 
+      { gameId },
+      createHeaders(token)
+    );
+    
+    return response.data;
+  } catch (error) {
+    return handleRequestError(error, 'host override question');
   }
 };

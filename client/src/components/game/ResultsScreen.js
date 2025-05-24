@@ -1,9 +1,9 @@
-// client/src/components/game/ResultsScreen.js - Modified Rockstar Design Edition
+// Updated ResultsScreen.js - Simplified interface with more MC control
 import React, { useState } from 'react';
 import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 
-const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
+const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQuestionSelection, getWinnerInfo }) => {
   // Separate passed and non-passed submissions
   const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
   const passedSubmissions = game.submissions.filter(s => s.hasPassed);
@@ -15,6 +15,11 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
   
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
+  
+  // Get winner info using the provided function
+  const winnerInfo = getWinnerInfo ? getWinnerInfo() : { winner: null, isTie: false, reason: 'no_winner_function' };
+  const { winner, isTie, reason, tiedPlayers } = winnerInfo;
+  const isCurrentUserWinner = winner && winner._id === currentUser.id;
   
   // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -120,14 +125,13 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
         </div>
         
         <div className="p-6">
-          
           {/* Pass Information */}
           {passedSubmissions.length > 0 && (
             <div className="mb-6 bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-4 border border-electric-purple/30">
               <div className="flex items-center text-silver">
-                <span className="mr-2"></span>
+                <span className="text-silver mr-2">Players who sat this one out:</span>
                 <span>
-                  <strong>Players who sat this one out:</strong> {passedSubmissions.map(s => s.player.displayName).join(', ')}
+                  {passedSubmissions.map(s => s.player.displayName).join(', ')}
                 </span>
               </div>
             </div>
@@ -136,10 +140,8 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
           {/* Results section - Album collection style */}
           {actualSubmissions.length > 0 ? (
             <div className="mb-8">
-              <h3 className="text-2xl font-rock text-center mb-6 flex items-center justify-center">
-                <span className="mr-3"></span>
+              <h3 className="text-2xl font-rock text-center mb-6">
                 SONGS & VOTES
-                <span className="ml-3"></span>
               </h3>
               
               <div className="space-y-6">
@@ -266,10 +268,8 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
           
           {/* Scoreboard - Leaderboard style */}
           <div className="mb-8">
-            <h3 className="text-2xl font-rock text-center mb-6 flex items-center justify-center">
-              <span className="mr-3"></span>
+            <h3 className="text-2xl font-rock text-center mb-6">
               LEADERBOARD
-              <span className="ml-3"></span>
             </h3>
             
             <div className="space-y-3">
@@ -316,7 +316,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                                 ? 'bg-amber-600 text-white' 
                                 : 'bg-electric-purple text-white'
                         }`}>
-                          {isLeader ? '#1' : `#${index + 1}`}
+                          #{index + 1}
                         </div>
                         
                         {/* Player avatar */}
@@ -327,11 +327,6 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                               alt={player.user.displayName} 
                               className="w-12 h-12 rounded-full border-2 border-silver" 
                             />
-                            {isLeader && (
-                              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gold-record rounded-full flex items-center justify-center">
-                                <span className="text-xs"></span>
-                              </div>
-                            )}
                           </div>
                         )}
                         
@@ -379,7 +374,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
             </div>
           </div>
           
-          {/* Next Round Section - MC controls */}
+          {/* Host Controls Section - UPDATED with more control options */}
           {isHost && (
             <div className="bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-electric-purple/40">
               <h3 className="text-xl font-rock text-center mb-6 text-gold-record">
@@ -388,45 +383,85 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
               
               {!showQuestionPreview ? (
                 <div className="text-center">
-                  <button
-                    onClick={handleShowNextQuestion}
-                    disabled={loading}
-                    className="btn-electric disabled:opacity-50 group"
-                  >
-                    <span className="relative z-10 flex items-center justify-center">
-                      {loading ? (
-                        <>
-                          <div className="w-5 h-5 animate-spin mr-3">
-                            <VinylRecord 
-                              className="w-5 h-5"
-                              animationClass="animate-vinyl-spin"
-                            />
-                          </div>
-                          LOADING...
-                        </>
-                      ) : (
-                        <>
-                          CHOOSE THE NEXT QUESTION
-                        </>
-                      )}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                  </button>
-                  
-                  <div className="mt-4">
-                    <button
-                      onClick={handleShowEndGameConfirmation}
-                      className="btn-stage group"
-                    >
-                      <span className="relative z-10 flex items-center justify-center">
-                        END GAME
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                    </button>
-                  </div>
+                  {/* Show different layouts based on whether host is the winner */}
+                  {isCurrentUserWinner ? (
+                    // Host is the winner - only show "choose question" option (no "let winner choose" since they ARE the winner)
+                    <div className="mb-6">
+                      <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                        <h4 className="font-rock text-electric-purple mb-3">CHOOSE THE NEXT QUESTION</h4>
+                        <p className="text-silver text-sm mb-4">
+                          As the round winner and MC, choose the next question.
+                        </p>
+                        <button
+                          onClick={handleShowNextQuestion}
+                          disabled={loading}
+                          className="btn-electric disabled:opacity-50 group"
+                        >
+                          <span className="relative z-10 flex items-center justify-center">
+                            {loading ? (
+                              <>
+                                <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                                LOADING...
+                              </>
+                            ) : (
+                              <>
+                                CHOOSE QUESTION
+                              </>
+                            )}
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Host is NOT the winner - show both options
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                        <h4 className="font-rock text-electric-purple mb-3">SELECT QUESTION YOURSELF</h4>
+                        <p className="text-silver text-sm mb-4">
+                          Choose the next question for the players.
+                        </p>
+                        <button
+                          onClick={handleShowNextQuestion}
+                          disabled={loading}
+                          className="btn-electric disabled:opacity-50 group"
+                        >
+                          <span className="relative z-10 flex items-center justify-center">
+                            {loading ? (
+                              <>
+                                <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
+                                LOADING...
+                              </>
+                            ) : (
+                              <>
+                                CHOOSE QUESTION
+                              </>
+                            )}
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        </button>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                        <h4 className="font-rock text-gold-record mb-3">LET WINNER CHOOSE</h4>
+                        <p className="text-silver text-sm mb-4">
+                          Let {winner?.displayName || "the round winner"} choose the next question.
+                        </p>
+                        <button
+                          onClick={onMoveToQuestionSelection}
+                          className="btn-gold group"
+                        >
+                          <span className="relative z-10 flex items-center justify-center">
+                            WINNER CHOOSES
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                /* Question preview */
+                /* Question preview section - shown for ANY host when showQuestionPreview is true */
                 <div className="space-y-6">
                   <h4 className="text-lg font-rock text-neon-pink text-center">NEXT QUESTION PREVIEW</h4>
                   
@@ -451,12 +486,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                         >
                           {loading ? (
                             <>
-                              <div className="w-4 h-4 animate-spin mr-2 inline-block">
-                                <VinylRecord 
-                                  className="w-4 h-4"
-                                  animationClass="animate-vinyl-spin"
-                                />
-                              </div>
+                              <div className="vinyl-record w-4 h-4 animate-spin mr-2 inline-block"></div>
                               Saving...
                             </>
                           ) : (
@@ -495,12 +525,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                         >
                           {loading ? (
                             <>
-                              <div className="w-4 h-4 animate-spin mr-2 inline-block">
-                                <VinylRecord 
-                                  className="w-4 h-4"
-                                  animationClass="animate-vinyl-spin"
-                                />
-                              </div>
+                              <div className="vinyl-record w-4 h-4 animate-spin mr-2 inline-block"></div>
                               Loading...
                             </>
                           ) : (
@@ -517,6 +542,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                           Write Custom Question
                         </button>
                       </div>
+                      
                       <div className="flex justify-center gap-3 mt-6">
                         <button
                           onClick={handlePlayWithQuestion}
@@ -530,7 +556,6 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         </button>
                       </div>
-
                     </div>
                   )}
                   
@@ -541,6 +566,19 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame }) => {
                   )}
                 </div>
               )}
+              
+              {/* End Game Button */}
+              <div className="mt-6 text-center">
+                <button
+                  onClick={handleShowEndGameConfirmation}
+                  className="btn-stage group"
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    END GAME
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+              </div>
             </div>
           )}
           
