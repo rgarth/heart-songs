@@ -43,9 +43,12 @@ const VinylRecord = ({
       {/* Grooves */}
       <circle cx="50" cy="50" r="48" fill={`url(#grooves-${uniqueId})`}/>
       
-      {/* Asymmetric reflections/scratches for realism */}
-      <path d="M20,30 Q50,25 80,35" stroke="rgba(255,255,255,0.2)" strokeWidth="1" fill="none"/>
-      <path d="M25,70 Q60,65 85,75" stroke="rgba(255,255,255,0.5)" strokeWidth="0.5" fill="none"/>
+      {/* Reflection wedge - like light catching the vinyl surface */}
+      <path 
+        d="M50,50 L25,25 A35,35 0 0,1 75,25 Z" 
+        fill="rgba(255,255,255,0.15)" 
+        opacity="0.8"
+      />
       
       {/* Yellow center label */}
       <circle cx="50" cy="50" r="22" fill={`url(#yellowGrad-${uniqueId})`} stroke="#D97706" strokeWidth="2"/>
