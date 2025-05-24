@@ -429,9 +429,11 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
                       placeholder="Search for the perfect track..."
                       className="w-full p-4 bg-vinyl-black text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all font-concert text-lg placeholder-silver/50"
                     />
-                    <div className="absolute inset-y-0 right-4 flex items-center text-electric-purple">
-                      <span>SEARCH</span>
-                    </div>
+                    {!searchQuery.trim() && (
+                      <div className="absolute inset-y-0 right-4 flex items-center text-electric-purple pointer-events-none">
+                        <span>SEARCH</span>
+                      </div>
+                    )}
                   </div>
                   
                   <button 
