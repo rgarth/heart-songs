@@ -247,7 +247,14 @@ const Game = () => {
   // Scroll to top when game status changes
   useEffect(() => {
     if (game && prevGameRef.current && game.status !== prevGameRef.current.status) {
-      window.scrollTo(0, 0);
+      // Use requestAnimationFrame to ensure DOM is updated before scrolling
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'auto' // instant scroll for game transitions
+        });
+      });
     }
     prevGameRef.current = game;
   }, [game]);

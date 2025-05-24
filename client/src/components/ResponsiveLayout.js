@@ -14,7 +14,14 @@ import VinylRecord from './VinylRecord';
 const ResponsiveLayout = ({ title, lastUpdated, children, linkType }) => {
   // Scroll to top when component mounts
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use requestAnimationFrame to ensure DOM is updated before scrolling
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'auto'
+      });
+    });
   }, []);
 
   return (
