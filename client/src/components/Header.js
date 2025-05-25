@@ -1,4 +1,4 @@
-// client/src/components/Header.js - Fixed Home Button Issue
+// client/src/components/Header.js - Updated with Ko-fi donation button
 import React, { useContext, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -96,6 +96,12 @@ const Header = ({ gameCode }) => {
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
+  };
+
+  // Handle Ko-fi donation click
+  const handleKofiClick = () => {
+    // Replace 'yourusername' with your actual Ko-fi username
+    window.open('https://ko-fi.com/yourusername', '_blank', 'noopener,noreferrer');
   };
   
   return (
@@ -239,6 +245,36 @@ const Header = ({ gameCode }) => {
                       </span>
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* NEW: Ko-fi Support Section - Only visible in dropdown menu */}
+              <div className="bg-gradient-to-r from-gold-record/10 to-yellow-400/10 rounded-lg p-4 border border-gold-record/30 md:ml-auto">
+                <div className="text-center md:text-right">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-3 md:gap-4">
+                    <span className="text-gold-record text-sm font-medium">Enjoying Heart Songs?</span>
+                    <button
+                      onClick={handleKofiClick}
+                      className="flex items-center justify-center px-3 py-2 bg-gradient-to-r from-gold-record to-yellow-400 text-vinyl-black rounded-lg hover:shadow-lg hover:shadow-gold-record/30 transition-all font-medium text-sm group whitespace-nowrap"
+                      type="button"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        {/* Coffee cup body */}
+                        <path d="M4 19h12c1.1 0 2-.9 2-2V9H4v8c0 1.1.9 2 2 2z"/>
+                        {/* Coffee cup handle */}
+                        <path d="M18 10v4c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2h-2z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                        {/* Steam lines */}
+                        <path d="M7 6V4M10 6V3M13 6V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        {/* Saucer */}
+                        <ellipse cx="10" cy="20" rx="8" ry="1" opacity="0.3"/>
+                      </svg>
+                      <span className="text-center">Buy me a coffee</span>
+                      <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </button>
+                    <span className="text-xs text-silver">Support development & server costs</span>
                   </div>
                 </div>
               </div>
