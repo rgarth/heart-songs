@@ -100,8 +100,7 @@ const Header = ({ gameCode }) => {
 
   // Handle Ko-fi donation click
   const handleKofiClick = () => {
-    // Replace 'yourusername' with your actual Ko-fi username
-    window.open('https://ko-fi.com/yourusername', '_blank', 'noopener,noreferrer');
+    window.open('https://ko-fi.com/heartsongs', '_blank', 'noopener,noreferrer');
   };
   
   return (
