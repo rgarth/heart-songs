@@ -1,17 +1,14 @@
-// client/src/components/game/LobbyScreen.js - Using Home.js How to Play with numbered steps
+// client/src/components/game/LobbyScreen.js - Updated with QuestionSelector component
 import React, { useState } from 'react';
-import { getRandomQuestion, submitCustomQuestion, leaveGame } from '../../services/gameService';
+import { leaveGame } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 import HowToPlay from '../HowToPlay';
+import QuestionSelector from './QuestionSelector';
 
 const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [nextQuestion, setNextQuestion] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [showQuestionControls, setShowQuestionControls] = useState(false);
-  const [customQuestionMode, setCustomQuestionMode] = useState(false);
-  const [customQuestion, setCustomQuestion] = useState('');
-  const [error, setError] = useState(null);
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [leavingGame, setLeavingGame] = useState(false);
 
@@ -100,96 +97,43 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
     }
   };
 
-  const handleShowQuestionControls = async () => {
-    if (!isHost) return;
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
-      setNextQuestion(questionData.question);
-      setShowQuestionControls(true);
-    } catch (error) {
-      console.error('Error fetching question:', error);
-      setError('Failed to fetch question. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  // Show question controls
+  const handleShowQuestionControls = () => {
+    setShowQuestionControls(true);
   };
   
-  const handleSkipQuestion = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
-      setNextQuestion(questionData.question);
-    } catch (error) {
-      console.error('Error fetching question:', error);
-      setError('Failed to fetch question. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleSubmitCustomQuestion = async () => {
-    if (!customQuestion.trim()) {
-      setError('Please enter a question');
-      return;
-    }
+  // Handle question selection from QuestionSelector
+  const handleQuestionSelected = (question) => {
+    setSelectedQuestion(question);
+    setShowQuestionControls(false);
     
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const questionData = await submitCustomQuestion(
-        game._id, 
-        customQuestion.trim(),
-        currentUser.accessToken
-      );
-      
-      setNextQuestion(questionData.question);
-      setCustomQuestionMode(false);
-    } catch (error) {
-      console.error('Error submitting custom question:', error);
-      setError('Failed to submit custom question. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleStartWithQuestion = () => {
+    // Check if we should show confirmation or start directly
     if (!hasEnoughPlayers) {
       alert('You need at least 2 players to start the game');
-      return;
-    }
-    
-    if (!nextQuestion) {
-      alert('No question selected');
       return;
     }
     
     if (!allNonHostPlayersReady) {
       setShowConfirmation(true);
     } else {
-      onStartGame(nextQuestion);
+      onStartGame(question);
     }
+  };
+
+  // Handle going back from question selector
+  const handleBackToLobby = () => {
+    setShowQuestionControls(false);
+    setSelectedQuestion(null);
   };
   
   const confirmStart = () => {
-    onStartGame(nextQuestion);
+    onStartGame(selectedQuestion);
     setShowConfirmation(false);
   };
   
   const cancelStart = () => {
     setShowConfirmation(false);
-  };
-  
-  const handleBackToLobby = () => {
-    setShowQuestionControls(false);
-    setNextQuestion(null);
-    setCustomQuestionMode(false);
-    setCustomQuestion('');
+    setSelectedQuestion(null);
   };
   
   return (
@@ -364,132 +308,25 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                       </button>
                     )}
                   </div>
-                  
                 </div>
               ) : (
-                /* Question selection - Mixing board style */
-                <div className="bg-gradient-to-b from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                  {/* Back button */}
-                  <div className="flex justify-between items-center mb-4">
-                    <button
-                      onClick={handleBackToLobby}
-                      className="flex items-center text-silver hover:text-white transition-colors group"
-                    >
-                      <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                      </svg>
-                      <span>Back to Lounge</span>
-                    </button>
-                    <div className="w-20"></div>
-                  </div>
-                  
-                  {/* Question display/edit */}
-                  {customQuestionMode ? (
-                    <div className="mb-6">
-                      <label className="block text-silver text-sm font-medium mb-2">
-                        WRITE YOUR OWN QUESTION
-                      </label>
-                      <textarea
-                        value={customQuestion}
-                        onChange={(e) => setCustomQuestion(e.target.value)}
-                        placeholder="e.g., What song would you play at a robot wedding?"
-                        className="w-full p-4 bg-vinyl-black text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all"
-                        rows={3}
-                      />
-                      <div className="flex justify-center gap-3 mt-4">
-                        <button
-                          onClick={handleSubmitCustomQuestion}
-                          disabled={loading || !customQuestion.trim()}
-                          className="btn-electric text-sm disabled:opacity-50"
-                        >
-                          {loading ? (
-                            <>
-                              <div className="vinyl-record w-4 h-4 animate-spin mr-2 inline-block"></div>
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              Use This Question
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setCustomQuestionMode(false)}
-                          className="btn-stage text-sm"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mb-6">
-                      <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
-                        <div className="flex items-start">
-                          <div className="flex-1">
-                            <p className="text-neon-pink font-bold text-xl mb-2">{nextQuestion?.text}</p>
-                            <p className="text-silver text-sm">
-                              <span className="bg-electric-purple/20 px-2 py-1 rounded">
-                                {nextQuestion?.category}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Question controls */}
-                      <div className="flex justify-center gap-3 mt-4">
-                        <button
-                          onClick={handleSkipQuestion}
-                          disabled={loading}
-                          className="btn-stage text-sm disabled:opacity-50"
-                        >
-                          {loading ? (
-                            <>
-                              <div className="vinyl-record w-4 h-4 animate-spin mr-2 inline-block"></div>
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              Try Different Question
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setCustomQuestionMode(true)}
-                          className="btn-electric text-sm"
-                        >
-                          Write Custom Question
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Start show button */}
-                  {!customQuestionMode && (
-                    <div className="text-center">
-                      <button
-                        onClick={handleStartWithQuestion}
-                        className="btn-gold group relative overflow-hidden"
-                      >
-                        <span className="relative z-10 flex items-center justify-center">
-                          START GAME 
-                        </span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                      </button>
-                      
-                      {!allNonHostPlayersReady && (
-                        <div className="mt-3 text-center">
-                          <span className="text-yellow-400 text-sm">
-                            Note: Not all players are ready. Only ready players will join the first song.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {error && (
-                    <div className="mt-4 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3 text-center">
-                      <span className="text-stage-red">{error}</span>
+                /* Question Selection using new QuestionSelector component */
+                <div className="mb-8">
+                  <QuestionSelector
+                    gameId={game._id}
+                    accessToken={currentUser.accessToken}
+                    onQuestionSelected={handleQuestionSelected}
+                    onCancel={handleBackToLobby}
+                    autoLoad={true}
+                    confirmButtonText="START GAME"
+                    title="CHOOSE THE FIRST QUESTION"
+                    showBackButton={true}
+                  />
+                  {!allNonHostPlayersReady && (
+                    <div className="mt-4 text-center">
+                      <span className="text-yellow-400 text-sm">
+                        Note: Not all players are ready. Only ready players will join the first song.
+                      </span>
                     </div>
                   )}
                 </div>
@@ -498,7 +335,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
           )}
         </div>
         
-        {/* Stage footer with how to play - COPIED EXACTLY FROM HOME.JS */}
+        {/* Stage footer with how to play */}
         <HowToPlay />
       </div>
       
