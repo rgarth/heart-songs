@@ -22,11 +22,10 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
   const isCurrentUserWinner = winner && winner._id === currentUser.id;
   
   // FIXED: Better logic for showing winner choose button
-  const showWinnerChooseButton = winner &&
+  const showWinnerChooseButton = winner && 
                                  !isCurrentUserWinner && 
                                  reason !== 'all_passed' && 
                                  actualSubmissions.length > 0;
-  
   
   // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -209,7 +208,8 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                   </button>
 
-                  {/* Let Winner Choose (if not host winner) */}
+
+                  {/* UPDATED: Only show "Let Winner Choose" if there's actually a winner */}
                   {showWinnerChooseButton && (
                     <button
                       onClick={onMoveToQuestionSelection}
