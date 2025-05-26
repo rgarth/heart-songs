@@ -51,24 +51,11 @@ const getWinnerInfo = (game) => {
   // Filter out passed submissions
   const actualSubmissions = game.submissions.filter(s => s.hasPassed !== true);
   
-<<<<<<< HEAD
   // NEW: Handle case where everyone passed
   if (actualSubmissions.length === 0) {
     return { winner: null, isTie: false, reason: 'all_passed' };
   }
 
-=======
-  console.log('🏆 Actual submissions (non-passed):', {
-    count: actualSubmissions.length,
-    submissions: actualSubmissions.map(s => ({
-      player: s.player?.displayName || 'Unknown',
-      songName: s.songName,
-      votes: s.votes?.length || 0
-    }))
-  });
-  
-  // Handle case where everyone passed
->>>>>>> e529e51 (Cleaned up results screen and Question selection screen.)
   if (actualSubmissions.length === 0) {
     console.log('🏆 All players passed - no winner');
     return { winner: null, isTie: false, reason: 'all_passed' };
