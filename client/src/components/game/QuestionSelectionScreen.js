@@ -5,7 +5,7 @@ import VinylRecord from '../VinylRecord';
 import QuestionSelector from './QuestionSelector';
 
 const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
-  const [loading, setLoading] = useState(false);
+  const [setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const isHost = game.host._id === currentUser.id;
@@ -41,7 +41,7 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       setError(null);
       
       // Call the API to save the winner's selected question
-      const result = await setWinnerSelectedQuestion(
+      await setWinnerSelectedQuestion(
         game._id, 
         questionData, 
         currentUser.accessToken

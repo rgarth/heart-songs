@@ -1,5 +1,5 @@
-// client/src/components/game/QuestionSelector.js
-import React, { useState, useEffect } from 'react';
+// client/src/components/game/QuestionSelector.js - Fixed ESLint errors
+import React, { useState, useEffect, useCallback } from 'react';
 import { getRandomQuestion, submitCustomQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 
@@ -33,15 +33,8 @@ const QuestionSelector = ({
   const [customQuestion, setCustomQuestion] = useState('');
   const [error, setError] = useState(null);
 
-  // Auto-load question on mount if requested
-  useEffect(() => {
-    if (autoLoad && !question) {
-      handleGetRandomQuestion();
-    }
-  }, [autoLoad]);
-
-  // Get a random question
-  const handleGetRandomQuestion = async () => {
+  // FIXED: Wrap handleGetRandomQuestion in useCallback to stabilize the dependency
+  const handleGetRandomQuestion = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +48,14 @@ const QuestionSelector = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId, accessToken]); // Dependencies that handleGetRandomQuestion actually uses
+
+  // FIXED: Auto-load question on mount if requested - now includes all dependencies
+  useEffect(() => {
+    if (autoLoad && !question) {
+      handleGetRandomQuestion();
+    }
+  }, [autoLoad, question, handleGetRandomQuestion]); // All dependencies included
 
   // Submit custom question
   const handleSubmitCustomQuestion = async () => {
