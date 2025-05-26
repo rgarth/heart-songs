@@ -30,16 +30,40 @@ const getTimeLeft = (countdown) => {
   return timeLeft;
 };
 
+// Fixed getWinnerInfo function for Game.js
 // Helper to get winner information with edge case handling
 const getWinnerInfo = (game) => {
+  // Add debug logging to see what's happening
+  console.log('🏆 getWinnerInfo Debug:', {
+    totalSubmissions: game.submissions?.length || 0,
+    submissions: game.submissions?.map(s => ({
+      player: s.player?.displayName || 'Unknown',
+      hasPassed: s.hasPassed,
+      songName: s.songName
+    })) || []
+  });
+
   if (!game.submissions || game.submissions.length === 0) {
+    console.log('🏆 No submissions at all');
     return { winner: null, isTie: false, reason: 'no_submissions' };
   }
 
-  const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
+  // Filter out passed submissions
+  const actualSubmissions = game.submissions.filter(s => s.hasPassed !== true);
   
+  console.log('🏆 Actual submissions (non-passed):', {
+    count: actualSubmissions.length,
+    submissions: actualSubmissions.map(s => ({
+      player: s.player?.displayName || 'Unknown',
+      songName: s.songName,
+      votes: s.votes?.length || 0
+    }))
+  });
+  
+  // Handle case where everyone passed
   if (actualSubmissions.length === 0) {
-    return { winner: null, isTie: false, reason: 'no_submissions' };
+    console.log('🏆 All players passed - no winner');
+    return { winner: null, isTie: false, reason: 'all_passed' };
   }
   
   // Sort by votes, then by submission time (speed bonus consideration)
@@ -54,6 +78,12 @@ const getWinnerInfo = (game) => {
   const topSubmission = sortedSubmissions[0];
   const topVotes = topSubmission.votes?.length || 0;
   
+  console.log('🏆 Top submission:', {
+    player: topSubmission.player?.displayName || 'Unknown',
+    songName: topSubmission.songName,
+    votes: topVotes
+  });
+  
   // Check for ties at the top
   const tiedSubmissions = sortedSubmissions.filter(s => 
     (s.votes?.length || 0) === topVotes
@@ -65,6 +95,11 @@ const getWinnerInfo = (game) => {
       new Date(a.submittedAt) - new Date(b.submittedAt)
     )[0];
     
+    console.log('🏆 Tie detected, winner by speed:', {
+      winner: earliestSubmission.player?.displayName || 'Unknown',
+      tiedCount: tiedSubmissions.length
+    });
+    
     return { 
       winner: earliestSubmission.player, 
       isTie: true, 
@@ -73,7 +108,15 @@ const getWinnerInfo = (game) => {
     };
   }
   
-  return { winner: topSubmission.player, isTie: false, reason: 'clear_winner' };
+  console.log('🏆 Clear winner:', {
+    winner: topSubmission.player?.displayName || 'Unknown'
+  });
+  
+  return { 
+    winner: topSubmission.player, 
+    isTie: false, 
+    reason: 'clear_winner' 
+  };
 };
 
 const Game = () => {
