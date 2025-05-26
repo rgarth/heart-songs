@@ -472,7 +472,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                         className="btn-gold group relative overflow-hidden"
                       >
                         <span className="relative z-10 flex items-center justify-center">
-                          START ROUND 1
+                          START GAME 
                         </span>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                       </button>
