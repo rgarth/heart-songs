@@ -1,4 +1,3 @@
-// client/src/components/game/QuestionSelectionScreen.js - Fixed Version
 import React, { useState, useEffect } from 'react';
 import { getRandomQuestion, submitCustomQuestion, setWinnerSelectedQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
@@ -143,31 +142,145 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
 
         <div className="p-6">
           
-          {/* Winner Display */}
+          {/* Winner Display / Host Controls Panel - Transforms based on state */}
           <div className="text-center mb-8">
-            <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 rounded-lg p-6 border border-gold-record/40">
-              <div className="flex items-center justify-center mb-4">
-                <div className="relative">
-                  <VinylRecord 
-                    className="w-16 h-16"
-                    animationClass="animate-vinyl-spin"
-                  />
+            {confirmedQuestion && isHost ? (
+              /* Host Controls Panel - Replaces winner display once question is confirmed */
+              <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 rounded-lg p-6 border border-electric-purple/40">
+                <h3 className="text-xl font-rock text-electric-purple mb-4">
+                  MC CONTROLS
+                </h3>
+                <div className="space-y-4">
+                  {/* Start Round Button */}
+                  <div>
+                    <button
+                      onClick={() => {
+                        if (typeof onStartRound === 'function') {
+                          onStartRound(confirmedQuestion);
+                        }
+                      }}
+                      className="btn-gold text-lg px-8 py-3"
+                    >
+                      START NEXT ROUND
+                    </button>
+                    <p className="text-xs text-silver mt-2">
+                      Begin the round with {winner?.displayName}'s selected question
+                    </p>
+                  </div>
+                  
+                  {/* Host Override Button */}
+                  <div>
+                    <button
+                      onClick={onHostOverride}
+                      className="btn-stage"
+                    >
+                      HOST OVERRIDE - CHOOSE DIFFERENT QUESTION
+                    </button>
+                    <p className="text-xs text-silver mt-2">
+                      Skip this selection and choose the question yourself
+                    </p>
+                  </div>
                 </div>
               </div>
-              <h3 className="text-xl font-rock text-gold-record mb-2">
-                ROUND WINNER: {winner?.displayName}
-                {isWinner && <span className="text-neon-pink ml-2">(You!)</span>}
-              </h3>
-              {isTie && tiedPlayers && (
-                <p className="text-silver text-sm mb-2">
-                  Tied with: {tiedPlayers.filter(p => p._id !== winner._id).map(p => p.displayName).join(', ')}
+            ) : (
+              /* Winner Display Panel - Shows until question is confirmed */
+              <div className="bg-gradient-to-r from-gold-record/20 to-yellow-400/20 rounded-lg p-6 border border-gold-record/40">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="relative">
+                    <VinylRecord 
+                      className="w-16 h-16"
+                      animationClass="animate-vinyl-spin"
+                    />
+                  </div>
+                </div>
+                <h3 className="text-xl font-rock text-gold-record mb-2">
+                  ROUND WINNER: {winner?.displayName}
+                  {isWinner && <span className="text-neon-pink ml-2">(You!)</span>}
+                </h3>
+                {isTie && tiedPlayers && (
+                  <p className="text-silver text-sm mb-2">
+                    Tied with: {tiedPlayers.filter(p => p._id !== winner._id).map(p => p.displayName).join(', ')}
+                  </p>
+                )}
+                <p className="text-silver text-sm">
+                  {confirmedQuestion 
+                    ? "Has selected the next question!" 
+                    : "Gets to choose the next question"}
                 </p>
-              )}
-              <p className="text-silver text-sm">
-                Gets to choose the next question
+                {/* Show host override option if host and no question confirmed yet */}
+                {isHost && !confirmedQuestion && (
+                  <div className="mt-4 pt-4 border-t border-gold-record/30">
+                    <button
+                      onClick={onHostOverride}
+                      className="btn-stage text-sm"
+                    >
+                      HOST OVERRIDE - CHOOSE QUESTION YOURSELF
+                    </button>
+                    <p className="text-xs text-silver mt-2">
+                      Skip winner selection and choose the question yourself
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* WINNER'S CONFIRMED QUESTION - Prominently displayed for everyone */}
+          {confirmedQuestion && (
+            <div className="mb-8 bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
+              <h4 className="text-lg font-rock text-lime-green mb-4 text-center">✓ SELECTED QUESTION</h4>
+              <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border border-lime-green/30">
+                <p className="text-2xl font-bold text-white mb-3 text-center">{confirmedQuestion.text}</p>
+                <p className="text-center text-silver">
+                  <span className="bg-electric-purple/20 px-3 py-2 rounded-lg">
+                    {confirmedQuestion.category}
+                  </span>
+                </p>
+              </div>
+              <p className="text-center text-silver text-sm mt-4">
+                Selected by {winner?.displayName} • Ready to start the next round
               </p>
             </div>
-          </div>
+          )}
+
+          {/* Host Controls - Right after confirmed question */}
+          {isHost && confirmedQuestion && (
+            <div className="mb-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
+              <h4 className="text-lg font-rock text-gold-record mb-6 text-center">MC CONTROLS</h4>
+              
+              <div className="flex flex-col gap-4">
+                {/* Start Round Button */}
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      if (typeof onStartRound === 'function') {
+                        onStartRound(confirmedQuestion);
+                      }
+                    }}
+                    className="btn-gold text-lg px-8 py-3"
+                  >
+                    START NEXT ROUND
+                  </button>
+                  <p className="text-xs text-silver mt-2">
+                    Begin the round with {winner?.displayName}'s selected question
+                  </p>
+                </div>
+                
+                {/* Host Override Button */}
+                <div className="text-center">
+                  <button
+                    onClick={onHostOverride}
+                    className="btn-stage"
+                  >
+                    HOST OVERRIDE - CHOOSE QUESTION YOURSELF
+                  </button>
+                  <p className="text-xs text-silver mt-2">
+                    Skip winner selection and choose the question yourself
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {isWinner ? (
             /* Winner Controls */
@@ -177,14 +290,6 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                 /* Question Already Confirmed */
                 <div className="bg-gradient-to-r from-lime-green/10 to-green-600/10 rounded-lg p-6 border border-lime-green/40">
                   <h4 className="text-lg font-rock text-lime-green mb-3 text-center">✓ QUESTION CONFIRMED</h4>
-                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-lime-green/30">
-                    <p className="text-xl font-bold text-white mb-2">{confirmedQuestion.text}</p>
-                    <p className="text-silver">
-                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
-                        {confirmedQuestion.category}
-                      </span>
-                    </p>
-                  </div>
                   <p className="text-center text-silver text-sm mt-4">
                     Waiting for the host to start the next round...
                   </p>
@@ -308,62 +413,11 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   {winner?.displayName} is choosing the next question...
                 </p>
                 
-                {confirmedQuestion ? (
-                  <div className="mt-6 bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-neon-pink/40">
-                    <h4 className="text-neon-pink font-bold mb-2">✓ QUESTION SELECTED:</h4>
-                    <p className="text-white text-lg mb-2">{confirmedQuestion.text}</p>
-                    <p className="text-silver text-sm">
-                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
-                        {confirmedQuestion.category}
-                      </span>
-                    </p>
-                  </div>
-                ) : (
+                {!confirmedQuestion && (
                   <p className="text-silver text-sm">
                     Waiting for {winner?.displayName} to make their choice...
                   </p>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Host Controls - Start Round or Override */}
-          {isHost && (
-            <div className="mt-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-              <h4 className="text-lg font-rock text-gold-record mb-4 text-center">MC CONTROLS</h4>
-              
-              <div className="flex flex-col gap-4">
-                {/* Start Round Button (only if question is confirmed) */}
-                {confirmedQuestion && (
-                  <div className="text-center">
-                    <button
-                      onClick={() => {
-                        if (typeof onStartRound === 'function') {
-                          onStartRound(confirmedQuestion);
-                        }
-                      }}
-                      className="btn-gold"
-                    >
-                      START NEXT ROUND
-                    </button>
-                    <p className="text-xs text-silver mt-2">
-                      Begin the round with {winner?.displayName}'s selected question
-                    </p>
-                  </div>
-                )}
-                
-                {/* Host Override Button */}
-                <div className="text-center">
-                  <button
-                    onClick={onHostOverride}
-                    className="btn-stage"
-                  >
-                    HOST OVERRIDE - CHOOSE QUESTION YOURSELF
-                  </button>
-                  <p className="text-xs text-silver mt-2">
-                    Skip winner selection and choose the question yourself
-                  </p>
-                </div>
               </div>
             </div>
           )}
