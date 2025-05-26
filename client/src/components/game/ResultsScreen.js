@@ -1,4 +1,4 @@
-// client/src/components/game/ResultsScreen.js - Updated with Action Management
+// client/src/components/game/ResultsScreen.js - Updated with Speed Bonus Display
 import React, { useState } from 'react';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
@@ -111,7 +111,6 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
           {/* Winner Display - Compact */}
           <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
             <div className="flex items-center justify-center">
-              <VinylRecord className="w-8 h-8 mr-3" animationClass="animate-vinyl-spin" />
               <div className="text-center">
                 {reason === 'all_passed' || actualSubmissions.length === 0 ? (
                   <p className="text-silver font-bold text-lg">NO WINNER - ALL PLAYERS PASSED</p>
@@ -212,11 +211,12 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                 <p className="text-silver text-sm">All players passed on this question</p>
               </div>
             ) : (
-              /* Show submissions - More compact format */
+              /* Show submissions - More compact format with speed bonus */
               <div className="space-y-3">
                 {sortedSubmissions.map((submission, index) => {
                   const isWinning = index === 0;
                   const votes = submission.votes?.length || 0;
+                  const hasSpeedBonus = submission.gotSpeedBonus || false;
                   
                   return (
                     <div 
@@ -256,7 +256,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                           
                           {/* Song info - More compact */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-white truncate">{submission.songName}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-white truncate">{submission.songName}</p>
+                            </div>
                             <p className="text-silver text-sm truncate">{submission.artist}</p>
                             <p className="text-turquoise text-xs">
                               by {submission.player?.displayName || 'Unknown'}
@@ -264,15 +266,18 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                           </div>
                         </div>
                         
-                        {/* Vote count */}
+                        {/* Vote count and points breakdown */}
                         <div className="text-right ml-3">
                           <div className={`text-xl font-bold ${
                             isWinning ? 'text-gold-record' : 'text-white'
                           }`}>
-                            {votes}
+                            {votes + (hasSpeedBonus ? 1 : 0)}
                           </div>
                           <div className="text-silver text-xs">
-                            vote{votes !== 1 ? 's' : ''}
+                            {votes} vote{votes !== 1 ? 's' : ''}
+                            {hasSpeedBonus && (
+                              <span className="block text-turquoise">+1 speed</span>
+                            )}
                           </div>
                         </div>
                       </div>
