@@ -1,4 +1,4 @@
-// client/src/components/game/QuestionSelectionScreen.js - Updated with Action Management
+// client/src/components/game/QuestionSelectionScreen.js - FIXED
 import React, { useState, useEffect } from 'react';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
@@ -51,19 +51,42 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
     }
   };
 
-  // Handle start round with action management
+  // FIXED: Handle start round with correct data structure
   const handleStartRound = async () => {
-    if (!isHost || !confirmedQuestion) return;
+      if (!isHost || !confirmedQuestion) {
+        console.warn('🚫 handleStartRound: Preconditions not met', {
+        isHost,
+        hasConfirmedQuestion: !!confirmedQuestion
+      });
+      return;
+
+    }
     
     try {
-      await actions.startNewRound(confirmedQuestion);
+      console.log('🎯 handleStartRound: Starting with question:', confirmedQuestion);
+      // Transform the confirmed question to match the expected backend format
+      const questionData = {
+        text: confirmedQuestion.text,
+        category: confirmedQuestion.category
+      };
+      
+      console.log('📤 handleStartRound: Calling actions.startNewRound with:', questionData);
+      const result = await actions.startNewRound(questionData);
+      console.log('✅ handleStartRound: Success result:', result);
+
       
       // Call the callback to notify Game.js if needed
       if (onStartRound) {
-        onStartRound(confirmedQuestion);
+        onStartRound(questionData);
       }
       
     } catch (error) {
+      console.error('❌ handleStartRound: Error caught:', {
+        message: error.message,
+        stack: error.stack,
+        isAuthError: error.isAuthError,
+        status: error.status
+      });
       console.error('Failed to start round:', error);
       // Error is handled by the action system
     }

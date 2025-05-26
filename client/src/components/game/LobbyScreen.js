@@ -29,17 +29,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   // Check if there are at least 2 players
   const hasEnoughPlayers = game.players.length >= 2;
   
-  // Handle ready toggle with action management
-  const handleToggleReady = async () => {
-    try {
-      await actions.toggleReady(currentUser.id);
-      // onToggleReady is called from the polling in Game.js, so we don't need to call it here
-    } catch (error) {
-      // Error is already handled by the action system
-      console.error('Toggle ready failed:', error);
-    }
-  };
-  
   // Handle leaving the game - properly remove from server
   const handleLeaveGame = async () => {
     try {
@@ -182,7 +171,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
           <div className="mb-8">
             <div className="grid gap-4">
               {game.players.map(player => {
-                const isCurrentPlayerInList = player.user._id === currentUser.id;
                 return (
                   <div
                     key={player.user._id}

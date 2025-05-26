@@ -1,10 +1,13 @@
-// client/src/hooks/useGameActions.js
+// client/src/hooks/useGameActions.js - Fixed race condition prevention
 import { useState, useCallback, useRef } from 'react';
 
 export const useGameActions = () => {
   const [pendingActions, setPendingActions] = useState(new Set());
   const [actionErrors, setActionErrors] = useState({});
   const abortControllersRef = useRef(new Map());
+  
+  // Use a ref to track pending actions synchronously
+  const pendingActionsRef = useRef(new Set());
 
   const executeAction = useCallback(async (actionName, actionFn, options = {}) => {
     const { 
@@ -14,9 +17,15 @@ export const useGameActions = () => {
       onError 
     } = options;
 
-    // Prevent duplicate actions
+    // Check ref for immediate synchronous duplicate prevention
+    if (preventDuplicates && pendingActionsRef.current.has(actionName)) {
+      console.warn(`Action ${actionName} already in progress (blocked by ref)`);
+      return null;
+    }
+
+    // Also check state for consistency
     if (preventDuplicates && pendingActions.has(actionName)) {
-      console.warn(`Action ${actionName} already in progress`);
+      console.warn(`Action ${actionName} already in progress (blocked by state)`);
       return null;
     }
 
@@ -27,7 +36,8 @@ export const useGameActions = () => {
       return next;
     });
 
-    // Add to pending actions
+    // Add to pending actions immediately in both ref and state
+    pendingActionsRef.current.add(actionName);
     setPendingActions(prev => new Set([...prev, actionName]));
 
     // Create abort controller for timeout
@@ -68,7 +78,8 @@ export const useGameActions = () => {
       
       throw error;
     } finally {
-      // Clean up
+      // Clean up both ref and state
+      pendingActionsRef.current.delete(actionName);
       setPendingActions(prev => {
         const next = new Set(prev);
         next.delete(actionName);
@@ -98,8 +109,11 @@ export const useGameActions = () => {
     executeAction,
     cancelAction,
     clearError,
-    isPending: useCallback((actionName) => pendingActions.has(actionName), [pendingActions]),
+    isPending: useCallback((actionName) => {
+      // Check both ref and state for consistency
+      return pendingActionsRef.current.has(actionName) || pendingActions.has(actionName);
+    }, [pendingActions]),
     getError: useCallback((actionName) => actionErrors[actionName], [actionErrors]),
     pendingActions: Array.from(pendingActions)
   };
-}
+};

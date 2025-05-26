@@ -277,6 +277,8 @@ export const submitCustomQuestion = async (gameId, questionText, token) => {
 // Start a new round
 export const startNewRound = async (gameId, questionData, token) => {
   try {
+    console.log('🎮 startNewRound called with:', { gameId, questionData, hasToken: !!token });
+    
     if (!gameId || !token) {
       console.error("Missing required parameters for starting new round:", { 
         hasGameId: !!gameId, 
@@ -289,6 +291,7 @@ export const startNewRound = async (gameId, questionData, token) => {
     
     // Add question data if provided
     if (questionData) {
+      console.log('📝 Adding question data:', questionData);
       
       // Handle both formats: {text, category} from winner selection and {questionText, questionCategory} from other sources
       if (questionData.text) {
@@ -300,8 +303,9 @@ export const startNewRound = async (gameId, questionData, token) => {
         payload.questionText = questionData.questionText;
         payload.questionCategory = questionData.questionCategory;
       }
-      
     }
+    
+    console.log('🚀 Making API call to /game/next-round with payload:', payload);
     
     const response = await axios.post(
       `${API_URL}/game/next-round`, 
@@ -309,8 +313,17 @@ export const startNewRound = async (gameId, questionData, token) => {
       createHeaders(token)
     );
     
+    console.log('✅ startNewRound API response:', response.data);
+    
     return response.data;
   } catch (error) {
+    console.error('❌ startNewRound error details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers
+    });
     
     return handleRequestError(error, 'starting new round');
   }

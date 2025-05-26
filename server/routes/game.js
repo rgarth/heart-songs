@@ -615,7 +615,7 @@ router.post('/next-round', async (req, res) => {
     }
     
     
-    if (game.status !== 'results' && game.status !== 'question-selection') {
+    if (game.status !== 'results' && game.status !== 'question-selection' && game.status !== 'selecting') {
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
     
@@ -1435,7 +1435,7 @@ router.post('/move-to-question-selection', async (req, res) => {
       return res.status(403).json({ error: 'Only the host can move to question selection' });
     }
     
-    if (game.status !== 'results') {
+    if (game.status !== 'results' && game.status !== 'question-selection' && game.status !== 'selecting') {
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
     
