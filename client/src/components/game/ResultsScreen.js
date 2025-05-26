@@ -20,13 +20,13 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
   const winnerInfo = getWinnerInfo ? getWinnerInfo() : { winner: null, isTie: false, reason: 'no_winner_function' };
   const { winner, isTie, reason, tiedPlayers } = winnerInfo;
   const isCurrentUserWinner = winner && winner._id === currentUser.id;
-  const showWinnerChooseButton = winner && !isCurrentUserWinner && reason !== 'all_passed';
   
   // FIXED: Better logic for showing winner choose button
-  const showWinnerChooseButton = winner && 
+  const showWinnerChooseButton = winner &&
                                  !isCurrentUserWinner && 
                                  reason !== 'all_passed' && 
                                  actualSubmissions.length > 0;
+  
   
   // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -209,11 +209,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                   </button>
 
-<<<<<<< HEAD
                   {/* Let Winner Choose (if not host winner) */}
-=======
-                  {/* UPDATED: Only show "Let Winner Choose" if there's actually a winner */}
->>>>>>> e529e51 (Cleaned up results screen and Question selection screen.)
                   {showWinnerChooseButton && (
                     <button
                       onClick={onMoveToQuestionSelection}
