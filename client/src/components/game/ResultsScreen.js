@@ -20,6 +20,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
   const winnerInfo = getWinnerInfo ? getWinnerInfo() : { winner: null, isTie: false, reason: 'no_winner_function' };
   const { winner, isTie, reason, tiedPlayers } = winnerInfo;
   const isCurrentUserWinner = winner && winner._id === currentUser.id;
+  const showWinnerChooseButton = winner && !isCurrentUserWinner && reason !== 'all_passed';
   
   // Question preview states
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -190,7 +191,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                   </button>
 
                   {/* Let Winner Choose (if not host winner) */}
-                  {!isCurrentUserWinner && (
+                  {showWinnerChooseButton && (
                     <button
                       onClick={onMoveToQuestionSelection}
                       className="btn-gold group"

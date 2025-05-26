@@ -38,6 +38,11 @@ const getWinnerInfo = (game) => {
 
   const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
   
+  // NEW: Handle case where everyone passed
+  if (actualSubmissions.length === 0) {
+    return { winner: null, isTie: false, reason: 'all_passed' };
+  }
+
   if (actualSubmissions.length === 0) {
     return { winner: null, isTie: false, reason: 'no_submissions' };
   }
