@@ -1,13 +1,14 @@
-// client/src/components/game/QuestionSelectionScreen.js - Fixed ESLint errors
+// client/src/components/game/QuestionSelectionScreen.js - Updated with Action Management
 import React, { useState, useEffect } from 'react';
-import { setWinnerSelectedQuestion } from '../../services/gameService';
+import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
 import QuestionSelector from './QuestionSelector';
+import ActionButton from '../ActionButton';
+import ActionError from '../ActionError';
 
 const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
-  // FIXED: Keep loading state since it's used in handleWinnerQuestionSelected
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // Use the game state actions hook
+  const { actions, isPending, getError, clearError } = useGameStateActions(game._id);
 
   const isHost = game.host._id === currentUser.id;
   
@@ -25,28 +26,19 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
   // Sync local state when server state changes
   useEffect(() => {
     if (confirmedQuestion && confirmedQuestion.text) {
-      // Question is confirmed, no need for additional state management
-      setError(null);
+      // Question is confirmed, clear any errors
+      clearError('setWinnerSelectedQuestion');
     }
-  }, [confirmedQuestion]);
+  }, [confirmedQuestion, clearError]);
 
-  // Handle when winner confirms their question selection
+  // Handle when winner confirms their question selection - with action management
   const handleWinnerQuestionSelected = async (questionData) => {
     if (!isWinner) {
-      setError('Only the round winner can select the question');
       return;
     }
     
     try {
-      setLoading(true);
-      setError(null);
-      
-      // FIXED: Remove unused 'result' variable - just call the API directly
-      await setWinnerSelectedQuestion(
-        game._id, 
-        questionData, 
-        currentUser.accessToken
-      );
+      await actions.setWinnerSelectedQuestion(questionData);
       
       // Call the callback to notify Game.js
       if (onQuestionSelected) {
@@ -54,9 +46,44 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       }
       
     } catch (error) {
-      setError(`Failed to confirm question: ${error.message}`);
-    } finally {
-      setLoading(false);
+      console.error('Failed to confirm question:', error);
+      // Error is handled by the action system
+    }
+  };
+
+  // Handle start round with action management
+  const handleStartRound = async () => {
+    if (!isHost || !confirmedQuestion) return;
+    
+    try {
+      await actions.startNewRound(confirmedQuestion);
+      
+      // Call the callback to notify Game.js if needed
+      if (onStartRound) {
+        onStartRound(confirmedQuestion);
+      }
+      
+    } catch (error) {
+      console.error('Failed to start round:', error);
+      // Error is handled by the action system
+    }
+  };
+
+  // Handle host override with action management
+  const handleHostOverride = async () => {
+    if (!isHost) return;
+    
+    try {
+      await actions.hostOverrideQuestion();
+      
+      // Call the callback to notify Game.js if needed
+      if (onHostOverride) {
+        onHostOverride();
+      }
+      
+    } catch (error) {
+      console.error('Failed to override question:', error);
+      // Error is handled by the action system
     }
   };
 
@@ -76,6 +103,17 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
 
         <div className="p-6">
           
+          {/* Action Errors */}
+          <ActionError 
+            error={getError('setWinnerSelectedQuestion') || getError('startNewRound') || getError('hostOverrideQuestion')} 
+            onDismiss={() => {
+              clearError('setWinnerSelectedQuestion');
+              clearError('startNewRound');
+              clearError('hostOverrideQuestion');
+            }}
+            className="mb-6"
+          />
+          
           {/* Winner Display / Host Controls Panel - Transforms based on state */}
           <div className="text-center mb-8">
             {confirmedQuestion && isHost ? (
@@ -87,16 +125,14 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                 <div className="space-y-4">
                   {/* Start Round Button */}
                   <div>
-                    <button
-                      onClick={() => {
-                        if (typeof onStartRound === 'function') {
-                          onStartRound(confirmedQuestion);
-                        }
-                      }}
+                    <ActionButton
+                      onClick={handleStartRound}
+                      isLoading={isPending('startNewRound')}
+                      loadingText="STARTING ROUND..."
                       className="btn-gold text-lg px-8 py-3"
                     >
                       START NEXT ROUND
-                    </button>
+                    </ActionButton>
                     <p className="text-xs text-silver mt-2">
                       Begin the round with {winner?.displayName}'s selected question
                     </p>
@@ -104,12 +140,14 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   
                   {/* Host Override Button */}
                   <div>
-                    <button
-                      onClick={onHostOverride}
+                    <ActionButton
+                      onClick={handleHostOverride}
+                      isLoading={isPending('hostOverrideQuestion')}
+                      loadingText="OVERRIDING..."
                       className="btn-stage"
                     >
                       HOST OVERRIDE - CHOOSE DIFFERENT QUESTION
-                    </button>
+                    </ActionButton>
                     <p className="text-xs text-silver mt-2">
                       Skip this selection and choose the question yourself
                     </p>
@@ -144,12 +182,14 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                 {/* Show host override option if host and no question confirmed yet */}
                 {isHost && !confirmedQuestion && (
                   <div className="mt-4 pt-4 border-t border-gold-record/30">
-                    <button
-                      onClick={onHostOverride}
+                    <ActionButton
+                      onClick={handleHostOverride}
+                      isLoading={isPending('hostOverrideQuestion')}
+                      loadingText="OVERRIDING..."
                       className="btn-stage text-sm"
                     >
                       HOST OVERRIDE - CHOOSE QUESTION YOURSELF
-                    </button>
+                    </ActionButton>
                     <p className="text-xs text-silver mt-2">
                       Skip winner selection and choose the question yourself
                     </p>
@@ -188,6 +228,16 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   <p className="text-center text-silver text-sm mt-4">
                     Waiting for the host to start the next round...
                   </p>
+                  
+                  {/* Show loading state if winner selection is pending */}
+                  {isPending('setWinnerSelectedQuestion') && (
+                    <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30 text-center mt-4">
+                      <div className="flex items-center justify-center">
+                        <VinylRecord className="w-5 h-5 animate-spin mr-2" />
+                        <span className="text-electric-purple">Finalizing your selection...</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Question Selection using QuestionSelector component - Auto-loads immediately */
@@ -197,19 +247,14 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   onQuestionSelected={handleWinnerQuestionSelected}
                   onCancel={null} // No back button for winner - they must choose
                   autoLoad={true} // Automatically load a question when component mounts
-                  confirmButtonText={loading ? "CONFIRMING..." : "CONFIRM THIS QUESTION"}
+                  confirmButtonText={isPending('setWinnerSelectedQuestion') ? "CONFIRMING..." : "CONFIRM THIS QUESTION"}
                   title="CHOOSE THE NEXT QUESTION"
                   showBackButton={false} // Winner can't go back - they must choose
                 />
               )}
               
-              {error && (
-                <div className="bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3 text-center">
-                  <span className="text-stage-red">{error}</span>
-                </div>
-              )}
-              
-              {loading && (
+              {/* Loading indicator when confirming question */}
+              {isPending('setWinnerSelectedQuestion') && !confirmedQuestion && (
                 <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30 text-center">
                   <div className="flex items-center justify-center">
                     <VinylRecord className="w-5 h-5 animate-spin mr-2" />
@@ -241,6 +286,16 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   <p className="text-silver text-sm">
                     Waiting for {winner?.displayName} to make their choice...
                   </p>
+                )}
+
+                {/* Show loading states for non-winners too */}
+                {isPending('setWinnerSelectedQuestion') && (
+                  <div className="mt-4 bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-3 border border-electric-purple/30">
+                    <div className="flex items-center justify-center">
+                      <VinylRecord className="w-4 h-4 animate-spin mr-2" />
+                      <span className="text-electric-purple text-sm">Question being confirmed...</span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
