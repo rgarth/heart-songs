@@ -197,7 +197,7 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                   onQuestionSelected={handleWinnerQuestionSelected}
                   onCancel={null} // No back button for winner - they must choose
                   autoLoad={true} // Automatically load a question when component mounts
-                  confirmButtonText="CONFIRM THIS QUESTION"
+                  confirmButtonText={loading ? "CONFIRMING..." : "CONFIRM THIS QUESTION"}
                   title="CHOOSE THE NEXT QUESTION"
                   showBackButton={false} // Winner can't go back - they must choose
                 />
@@ -206,6 +206,15 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
               {error && (
                 <div className="bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3 text-center">
                   <span className="text-stage-red">{error}</span>
+                </div>
+              )}
+              
+              {loading && (
+                <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-4 border border-electric-purple/30 text-center">
+                  <div className="flex items-center justify-center">
+                    <VinylRecord className="w-5 h-5 animate-spin mr-2" />
+                    <span className="text-electric-purple">Confirming your question...</span>
+                  </div>
                 </div>
               )}
             </div>

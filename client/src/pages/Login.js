@@ -170,14 +170,14 @@ const Login = () => {
               <div className="bg-gradient-to-r from-gray-900/50 to-gray-800/50 rounded-lg p-4 border border-purple-500/20">
                 <div className="flex justify-between items-center mb-3">
                   <label className="text-gray-300 text-sm font-medium flex items-center">
-                    🏷️ Your Display Name
+                    Your Display Name
                   </label>
                   <button 
                     type="button"
                     onClick={toggleCustomUsername}
                     className="text-xs font-medium text-pink-400 hover:text-purple-400 transition-colors"
                   >
-                    {customUsername ? '✨ Use Generated' : '✏️ Customize'}
+                    {customUsername ? 'Use Generated' : 'Customize'}
                   </button>
                 </div>
                 

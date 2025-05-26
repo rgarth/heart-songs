@@ -856,7 +856,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       </>
                     ) : (
                       <>
-                        ✓ VOTE FOR THIS SONG
+                        VOTE FOR THIS SONG
                       </>
                     )}
                   </span>
