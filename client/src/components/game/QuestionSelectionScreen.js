@@ -1,11 +1,12 @@
-// client/src/components/game/QuestionSelectionScreen.js - Updated to use QuestionSelector component
+// client/src/components/game/QuestionSelectionScreen.js - Fixed ESLint errors
 import React, { useState, useEffect } from 'react';
 import { setWinnerSelectedQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
 import QuestionSelector from './QuestionSelector';
 
 const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
-  const [setLoading] = useState(false);
+  // FIXED: Keep loading state since it's used in handleWinnerQuestionSelected
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const isHost = game.host._id === currentUser.id;
@@ -40,7 +41,7 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       setLoading(true);
       setError(null);
       
-      // Call the API to save the winner's selected question
+      // FIXED: Remove unused 'result' variable - just call the API directly
       await setWinnerSelectedQuestion(
         game._id, 
         questionData, 
