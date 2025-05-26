@@ -203,16 +203,6 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                             <p className="font-semibold text-white font-concert text-lg">
                               {player.user.displayName || player.user.username}
                             </p>
-                            {isCurrentPlayerInList && !isHost && (
-                              <ActionButton
-                                onClick={handleToggleReady}
-                                isLoading={isPending('toggleReady')}
-                                loadingText="Updating..."
-                                className="ml-4 text-sm py-1 px-3 btn-electric"
-                              >
-                                {player.isReady ? 'Not Ready' : 'Ready Up'}
-                              </ActionButton>
-                            )}
                           </div>
                         </div>
                       </div>
