@@ -433,7 +433,7 @@ const Game = () => {
         return;
       }
       
-      const result = await startNewRound(gameId, questionData, token);
+      await startNewRound(gameId, questionData, token);
       
     } catch (error) {
       setError('Failed to start new round. Please try again.');
