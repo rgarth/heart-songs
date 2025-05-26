@@ -1,14 +1,11 @@
+// client/src/components/game/QuestionSelectionScreen.js - Updated to use QuestionSelector component
 import React, { useState, useEffect } from 'react';
-import { getRandomQuestion, submitCustomQuestion, setWinnerSelectedQuestion } from '../../services/gameService';
+import { setWinnerSelectedQuestion } from '../../services/gameService';
 import VinylRecord from '../VinylRecord';
+import QuestionSelector from './QuestionSelector';
 
 const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStartRound, onHostOverride, getWinnerInfo }) => {
-  // Use server state as the source of truth, with local state for preview
-  const [previewQuestion, setPreviewQuestion] = useState(null);
-  const [questionConfirmed, setQuestionConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [customQuestionMode, setCustomQuestionMode] = useState(false);
-  const [customQuestion, setCustomQuestion] = useState('');
   const [error, setError] = useState(null);
 
   const isHost = game.host._id === currentUser.id;
@@ -27,67 +24,15 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
   // Sync local state when server state changes
   useEffect(() => {
     if (confirmedQuestion && confirmedQuestion.text) {
-      setQuestionConfirmed(true);
-      setPreviewQuestion(null); // Clear preview since we have a confirmed question
-    } else {
-      setQuestionConfirmed(false);
+      // Question is confirmed, no need for additional state management
+      setError(null);
     }
   }, [confirmedQuestion]);
 
-  // Handle getting a random question (winner only)
-  const handleGetRandomQuestion = async () => {
-    if (!isWinner) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const questionData = await getRandomQuestion(game._id, currentUser.accessToken);
-      setPreviewQuestion(questionData.question);
-      setCustomQuestionMode(false); // Exit custom mode
-    } catch (error) {
-      console.error('Error fetching question:', error);
-      setError('Failed to fetch question. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle custom question submission (winner only)
-  const handleSubmitCustomQuestion = async () => {
-    if (!isWinner || !customQuestion.trim()) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const questionData = await submitCustomQuestion(
-        game._id, 
-        customQuestion.trim(),
-        currentUser.accessToken
-      );
-      
-      setPreviewQuestion(questionData.question);
-      setCustomQuestionMode(false);
-      setCustomQuestion(''); // Clear the input
-    } catch (error) {
-      console.error('Error submitting custom question:', error);
-      setError('Failed to submit custom question. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Confirm question selection (winner only)
-  const handleConfirmQuestion = async () => {
-    
+  // Handle when winner confirms their question selection
+  const handleWinnerQuestionSelected = async (questionData) => {
     if (!isWinner) {
       setError('Only the round winner can select the question');
-      return;
-    }
-    
-    if (!previewQuestion) {
-      setError('Please select a question first');
       return;
     }
     
@@ -98,17 +43,13 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
       // Call the API to save the winner's selected question
       const result = await setWinnerSelectedQuestion(
         game._id, 
-        previewQuestion, 
+        questionData, 
         currentUser.accessToken
       );
       
-      // Update local state immediately for better UX
-      setQuestionConfirmed(true);
-      setPreviewQuestion(null);
-      
       // Call the callback to notify Game.js
       if (onQuestionSelected) {
-        onQuestionSelected(previewQuestion);
+        onQuestionSelected(questionData);
       }
       
     } catch (error) {
@@ -116,14 +57,6 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
     } finally {
       setLoading(false);
     }
-  };
-
-  // Handle choosing a different question (clear preview)
-  const handleChooseDifferent = () => {
-    setPreviewQuestion(null);
-    setCustomQuestionMode(false);
-    setCustomQuestion('');
-    setError(null);
   };
 
   return (
@@ -255,98 +188,18 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
                     Waiting for the host to start the next round...
                   </p>
                 </div>
-              ) : previewQuestion ? (
-                /* Question Preview & Confirmation */
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
-                    <h4 className="text-lg font-rock text-neon-pink mb-3">PREVIEW QUESTION</h4>
-                    <p className="text-xl font-bold text-white mb-2">{previewQuestion.text}</p>
-                    <p className="text-silver">
-                      <span className="bg-electric-purple/20 px-2 py-1 rounded">
-                        {previewQuestion.category}
-                      </span>
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-center gap-4">
-                    <button
-                      onClick={handleChooseDifferent}
-                      disabled={loading}
-                      className="btn-stage disabled:opacity-50"
-                    >
-                      Choose Different Question
-                    </button>
-                    
-                    <button
-                      onClick={handleConfirmQuestion}
-                      disabled={loading}
-                      className="btn-gold disabled:opacity-50"
-                    >
-                      {loading ? 'Confirming...' : 'Use This Question'}
-                    </button>
-                  </div>
-                </div>
               ) : (
-                /* Initial Question Selection */
-                <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                  <h4 className="text-lg font-rock text-neon-pink mb-4 text-center">CHOOSE THE NEXT QUESTION</h4>
-                  
-                  {customQuestionMode ? (
-                    /* Custom Question Mode */
-                    <div className="space-y-4">
-                      <textarea
-                        value={customQuestion}
-                        onChange={(e) => setCustomQuestion(e.target.value)}
-                        placeholder="e.g., What song would you play at a robot wedding?"
-                        className="w-full p-4 bg-vinyl-black text-white rounded-lg border border-electric-purple/30 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all"
-                        rows={3}
-                      />
-                      <div className="flex justify-center gap-3">
-                        <button
-                          onClick={handleSubmitCustomQuestion}
-                          disabled={loading || !customQuestion.trim()}
-                          className="btn-gold disabled:opacity-50"
-                        >
-                          {loading ? 'Creating Question...' : 'Preview This Question'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setCustomQuestionMode(false);
-                            setCustomQuestion('');
-                          }}
-                          className="btn-stage"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Random/Custom Choice */
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                      <button
-                        onClick={handleGetRandomQuestion}
-                        disabled={loading}
-                        className="btn-electric disabled:opacity-50"
-                      >
-                        {loading ? (
-                          <>
-                            <VinylRecord className="w-5 h-5 animate-spin mr-2 inline-block" />
-                            Loading Random Question...
-                          </>
-                        ) : (
-                          'Get Random Question'
-                        )}
-                      </button>
-                      
-                      <button
-                        onClick={() => setCustomQuestionMode(true)}
-                        className="btn-stage"
-                      >
-                        Write Custom Question
-                      </button>
-                    </div>
-                  )}
-                </div>
+                /* Question Selection using QuestionSelector component - Auto-loads immediately */
+                <QuestionSelector
+                  gameId={game._id}
+                  accessToken={currentUser.accessToken}
+                  onQuestionSelected={handleWinnerQuestionSelected}
+                  onCancel={null} // No back button for winner - they must choose
+                  autoLoad={true} // Automatically load a question when component mounts
+                  confirmButtonText="CONFIRM THIS QUESTION"
+                  title="CHOOSE THE NEXT QUESTION"
+                  showBackButton={false} // Winner can't go back - they must choose
+                />
               )}
               
               {error && (
