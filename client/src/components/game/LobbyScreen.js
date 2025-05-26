@@ -1,9 +1,11 @@
-// client/src/components/game/LobbyScreen.js - Updated with QuestionSelector component
+// client/src/components/game/LobbyScreen.js - Updated with Action Management
 import React, { useState } from 'react';
-import { leaveGame } from '../../services/gameService';
+import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
 import HowToPlay from '../HowToPlay';
 import QuestionSelector from './QuestionSelector';
+import ActionButton from '../ActionButton';
+import ActionError from '../ActionError';
 
 const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -11,6 +13,9 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [leavingGame, setLeavingGame] = useState(false);
+
+  // Use the game state actions hook
+  const { actions, isPending, getError, clearError } = useGameStateActions(game._id);
 
   // Find current user in players list
   const currentPlayer = game.players.find(p => p.user._id === currentUser.id);
@@ -24,27 +29,24 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   // Check if there are at least 2 players
   const hasEnoughPlayers = game.players.length >= 2;
   
+  // Handle ready toggle with action management
+  const handleToggleReady = async () => {
+    try {
+      await actions.toggleReady(currentUser.id);
+      // onToggleReady is called from the polling in Game.js, so we don't need to call it here
+    } catch (error) {
+      // Error is already handled by the action system
+      console.error('Toggle ready failed:', error);
+    }
+  };
+  
   // Handle leaving the game - properly remove from server
   const handleLeaveGame = async () => {
     try {
       setLeavingGame(true);
       
-      // Get the most up-to-date token
-      const token = currentUser.accessToken || localStorage.getItem('accessToken');
-      
-      if (!token) {
-        console.error('No authentication token available');
-        window.location.href = '/';
-        return;
-      }
-      
       // Call the leaveGame API to properly remove player from server
-      await leaveGame(game._id, token);
-      
-      // If player is ready, toggle them to not ready first as backup
-      if (currentPlayer && currentPlayer.isReady && onToggleReady) {
-        await onToggleReady();
-      }
+      await actions.leaveGame();
       
       // Navigate away after successful API call
       window.location.href = '/';
@@ -52,6 +54,8 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
       console.error('Error leaving game:', error);
       // Still navigate away even if there's an error
       window.location.href = '/';
+    } finally {
+      setLeavingGame(false);
     }
   };
 
@@ -102,8 +106,8 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
     setShowQuestionControls(true);
   };
   
-  // Handle question selection from QuestionSelector
-  const handleQuestionSelected = (question) => {
+  // Handle question selection from QuestionSelector - with action management
+  const handleQuestionSelected = async (question) => {
     setSelectedQuestion(question);
     setShowQuestionControls(false);
     
@@ -116,7 +120,12 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
     if (!allNonHostPlayersReady) {
       setShowConfirmation(true);
     } else {
-      onStartGame(question);
+      try {
+        await actions.startGame(currentUser.id, question);
+        // Game state will be updated via polling in Game.js
+      } catch (error) {
+        console.error('Failed to start game:', error);
+      }
     }
   };
 
@@ -126,9 +135,16 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
     setSelectedQuestion(null);
   };
   
-  const confirmStart = () => {
-    onStartGame(selectedQuestion);
-    setShowConfirmation(false);
+  // Confirm start with action management
+  const confirmStart = async () => {
+    try {
+      await actions.startGame(currentUser.id, selectedQuestion);
+      setShowConfirmation(false);
+      // Game state will be updated via polling in Game.js
+    } catch (error) {
+      console.error('Failed to start game:', error);
+      // Error is shown via ActionError component
+    }
   };
   
   const cancelStart = () => {
@@ -150,10 +166,23 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
         </div>
         
         <div className="p-6">
+          
+          {/* Action Errors */}
+          <ActionError 
+            error={getError('toggleReady') || getError('startGame') || getError('leaveGame')} 
+            onDismiss={() => {
+              clearError('toggleReady');
+              clearError('startGame');
+              clearError('leaveGame');
+            }}
+            className="mb-6"
+          />
+          
           {/* Band lineup - Vinyl record style */}
           <div className="mb-8">
             <div className="grid gap-4">
               {game.players.map(player => {
+                const isCurrentPlayerInList = player.user._id === currentUser.id;
                 return (
                   <div
                     key={player.user._id}
@@ -174,6 +203,16 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                             <p className="font-semibold text-white font-concert text-lg">
                               {player.user.displayName || player.user.username}
                             </p>
+                            {isCurrentPlayerInList && !isHost && (
+                              <ActionButton
+                                onClick={handleToggleReady}
+                                isLoading={isPending('toggleReady')}
+                                loadingText="Updating..."
+                                className="ml-4 text-sm py-1 px-3 btn-electric"
+                              >
+                                {player.isReady ? 'Not Ready' : 'Ready Up'}
+                              </ActionButton>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -255,25 +294,14 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
           {/* Player controls - Leave game button for non-host */}
           {currentPlayer && !isHost && (
             <div className="text-center mb-8">
-              <button
+              <ActionButton
                 onClick={handleLeaveGame}
-                disabled={leavingGame}
-                className="btn-stage px-8 py-3 disabled:opacity-50 group relative overflow-hidden"
+                isLoading={leavingGame}
+                loadingText="LEAVING SHOW..."
+                className="btn-stage px-8 py-3 group relative overflow-hidden"
               >
-                <span className="relative z-10 flex items-center justify-center">
-                  {leavingGame ? (
-                    <>
-                      <div className="vinyl-record w-5 h-5 animate-spin mr-3"></div>
-                      LEAVING SHOW...
-                    </>
-                  ) : (
-                    <>
-                      LEAVE SHOW
-                    </>
-                  )}
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-              </button>
+                LEAVE SHOW
+              </ActionButton>
               
               <div className="mt-4">
                 {allNonHostPlayersReady ? (
@@ -348,6 +376,14 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
               <p className="text-silver mb-6">
                 Some players aren't ready yet.
               </p>
+              
+              {/* Show action error in confirmation dialog */}
+              <ActionError 
+                error={getError('startGame')} 
+                onDismiss={() => clearError('startGame')}
+                className="mb-4"
+              />
+              
               <div className="flex gap-4 justify-center">
                 <button 
                   onClick={cancelStart}
@@ -355,12 +391,14 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                 >
                   Wait for Band
                 </button>
-                <button 
+                <ActionButton 
                   onClick={confirmStart}
+                  isLoading={isPending('startGame')}
+                  loadingText="Starting..."
                   className="btn-gold px-6"
                 >
                   Rock & Roll!
-                </button>
+                </ActionButton>
               </div>
             </div>
           </div>
