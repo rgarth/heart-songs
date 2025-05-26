@@ -115,7 +115,7 @@ const questions = [
     category: "time"
   },
   {
-    text: "What is the saddest?",
+    text: "What is the saddest song?",
     category: "emotion"
   },
   {
