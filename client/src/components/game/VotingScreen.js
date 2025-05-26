@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js - Cleaned Version
+// client/src/components/game/VotingScreen.js - Updated with Floating Vote Modal
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
@@ -20,6 +20,10 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   // NEW: Server countdown state
   const [isStartingCountdown, setIsStartingCountdown] = useState(false);
   const [countdownError, setCountdownError] = useState(null);
+  
+  // NEW: State for floating modal
+  const [showVoteModal, setShowVoteModal] = useState(false);
+  const [selectedSubmissionData, setSelectedSubmissionData] = useState(null);
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -198,7 +202,25 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }
   }, [voteData, localSubmissions.length]);
 
-  // Handle vote
+  // NEW: Handle song selection for voting modal
+  const handleSelectForVoting = (submission) => {
+    if (hasVoted || (submission.player._id === currentUser.id && !isSmallGame)) {
+      return;
+    }
+    
+    setSelectedSubmission(submission.id);
+    setSelectedSubmissionData(submission);
+    setShowVoteModal(true);
+  };
+
+  // NEW: Close vote modal
+  const handleCloseVoteModal = () => {
+    setShowVoteModal(false);
+    setSelectedSubmission(null);
+    setSelectedSubmissionData(null);
+  };
+
+  // Handle vote - UPDATED for modal
   const handleVote = async () => {
     if (!selectedSubmission) return;
     
@@ -218,6 +240,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
       await voteForSong(game._id, currentUser.id, selectedSubmission, token);
       
       setHasVoted(true);
+      setShowVoteModal(false); // Close modal after voting
+      setSelectedSubmission(null);
+      setSelectedSubmissionData(null);
     } catch (error) {
       console.error('Error voting:', error);
       setError('Failed to submit your vote. Please try again.');
@@ -306,7 +331,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
             <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent">
-              VOTE FOR THE BES SONG CHOICE
+              VOTE FOR THE BEST SONG CHOICE
             </h2>
           </div>
           
@@ -554,6 +579,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               return (
                 <div 
                   key={`${submission.id}-${submission.songId}`}
+                  onClick={() => handleSelectForVoting(submission)}
                   className={`submission-item bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg overflow-hidden border transition-all ${
                     !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg' : 'border-electric-purple/30'
                   } ${
@@ -561,11 +587,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                   } ${
                     isOwnSubmission ? 'relative border-t-4 border-t-gold-record' : ''
                   }`}
-                  onClick={() => {
-                    if (!hasVoted && (isSmallGame || !isOwnSubmission)) {
-                      setSelectedSubmission(submission.id);
-                    }
-                  }}
                 >
                   {isOwnSubmission && (
                     <div className="absolute top-0 left-4 -mt-2 bg-gold-record text-vinyl-black text-xs px-3 py-1 rounded font-bold">
@@ -662,38 +683,16 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-3 ml-4 vote-actions">
-                        {!hasVoted && (isSmallGame || !isOwnSubmission) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedSubmission(submission.id);
-                            }}
-                            className={`vote-button btn-stage text-sm min-w-[120px] px-4 py-2 flex justify-center group ${
-                              selectedSubmission === submission.id ? 'bg-gradient-to-r from-neon-pink to-electric-purple border-neon-pink text-white' : ''
-                            }`}
-                          >
-                            <span className="relative z-10 flex items-center">
-                              {selectedSubmission === submission.id ? (
-                                <>
-                                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                  SELECTED
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                                  </svg>
-                                  CHOOSE THIS
-                                </>
-                              )}
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                          </button>
-                        )}
-                      </div>
+                      {/* REMOVED: Individual vote buttons - replaced with click handler */}
+                      {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                        <div className="text-center mt-4">
+                          <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 rounded-lg p-3 border border-electric-purple/30">
+                            <p className="text-neon-pink text-sm font-medium">
+                              Click anywhere on this song to vote!
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {submission.votes && submission.votes.length > 0 && (
@@ -741,74 +740,45 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             )}
           </div>
           
-          {!hasVoted && votableSubmissions.length > 0 && (
-            <div className="text-center">
-              <div className="bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 rounded-lg p-6 border border-electric-purple/30">
+          {/* REMOVED: Bottom voting controls - replaced with floating modal */}
+          
+          {/* Host Controls Section */}
+          {isHost && (
+            <div className="bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-electric-purple/40">
+              <h3 className="text-xl font-rock text-center mb-6 text-gold-record">
+                MC CONTROLS
+              </h3>
+              
+              <div className="text-center">
                 <button
-                  onClick={handleVote}
-                  disabled={!selectedSubmission || isVoting}
-                  className="btn-gold disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden mb-4"
+                  onClick={handleEndVotingWithCountdown}
+                  disabled={isStartingCountdown || game.countdown?.isActive}
+                  className="btn-electric disabled:opacity-50"
                 >
-                  <span className="relative z-10 flex items-center justify-center">
-                    {isVoting ? (
-                      <>
-                        <div className="relative inline-block mr-3">
-                          <VinylRecord 
-                            className="w-6 h-6"
-                            animationClass="animate-vinyl-spin"
-                          />
-                        </div>
-                        CASTING VOTE...
-                      </>
-                    ) : (
-                      <>
-                        CAST YOUR VOTE
-                      </>
-                    )}
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                </button>
-                
-                <p className="text-sm text-silver mb-4">
-                  Select the best song choice{isSmallGame ? "" : " from another player"}, then cast your vote
-                </p>
-                
-                {isHost && (
-                  <div className="pt-4 border-t border-electric-purple/20">
-                    <p className="text-sm text-silver mb-3 flex items-center justify-center">
-                      MC Controls
-                    </p>
-                    <button
-                      onClick={handleEndVotingWithCountdown}
-                      disabled={isStartingCountdown || game.countdown?.isActive}
-                      className="btn-electric disabled:opacity-50"
-                    >
-                      {isStartingCountdown ? (
-                        <>
-                          <div className="relative inline-block mr-2">
-                            <VinylRecord 
-                              className="w-5 h-5"
-                              animationClass="animate-vinyl-spin"
-                            />
-                          </div>
-                          Starting Countdown...
-                        </>
-                      ) : game.countdown?.isActive ? (
-                        'Countdown Active'
-                      ) : (
-                        <>
-                          END VOTING PHASE
-                        </>
-                      )}
-                    </button>
-                    <p className="text-xs text-silver mt-2">
-                      Force all non-voted players to abstain
-                    </p>
-                    {countdownError && (
-                      <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                        {countdownError}
+                  {isStartingCountdown ? (
+                    <>
+                      <div className="relative inline-block mr-2">
+                        <VinylRecord 
+                          className="w-5 h-5"
+                          animationClass="animate-vinyl-spin"
+                        />
                       </div>
-                    )}
+                      Starting Countdown...
+                    </>
+                  ) : game.countdown?.isActive ? (
+                    'Countdown Active'
+                  ) : (
+                    <>
+                      END VOTING PHASE
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-silver mt-2">
+                  Force all non-voted players to abstain
+                </p>
+                {countdownError && (
+                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
+                    {countdownError}
                   </div>
                 )}
               </div>
@@ -817,6 +787,104 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         </div>
         
       </div>
+
+      {/* NEW: Floating Vote Modal */}
+      {showVoteModal && selectedSubmissionData && !hasVoted && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-neon-pink/50 max-w-md w-full overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-neon-pink/20 to-electric-purple/20 p-6 border-b border-neon-pink/30">
+              <h3 className="text-2xl font-rock text-center neon-text bg-gradient-to-r from-neon-pink to-electric-purple bg-clip-text text-transparent">
+                CAST YOUR VOTE
+              </h3>
+            </div>
+            
+            {/* Selected Song Display */}
+            <div className="p-6">
+              <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border border-neon-pink/30 mb-6">
+                <div className="flex items-center">
+                  {selectedSubmissionData.albumCover && (
+                    <div className="relative mr-4 flex-shrink-0">
+                      <img 
+                        src={selectedSubmissionData.albumCover} 
+                        alt={selectedSubmissionData.songName} 
+                        className="w-16 h-16 rounded-lg border-2 border-gold-record"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-lg font-rock">{selectedSubmissionData.songName}</p>
+                    <p className="text-silver font-medium">{selectedSubmissionData.artist}</p>
+                    <div className="flex items-center mt-2">
+                      <span className="text-turquoise text-sm">Chosen by: </span>
+                      <span className="text-white font-medium ml-1">{selectedSubmissionData.playerName}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Voting Question */}
+              <div className="text-center mb-6">
+                <p className="text-silver mb-2">Vote for this song?</p>
+                <p className="text-neon-pink font-bold text-lg">"{game.currentQuestion.text}"</p>
+              </div>
+              
+              {/* Vote Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={handleCloseVoteModal}
+                  className="flex-1 btn-stage py-3"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={handleVote}
+                  disabled={isVoting}
+                  className="flex-1 btn-gold py-3 disabled:opacity-50 group relative overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    {isVoting ? (
+                      <>
+                        <div className="relative inline-block mr-2">
+                          <VinylRecord 
+                            className="w-5 h-5"
+                            animationClass="animate-vinyl-spin"
+                          />
+                        </div>
+                        VOTING...
+                      </>
+                    ) : (
+                      <>
+                        ✓ VOTE FOR THIS SONG
+                      </>
+                    )}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+              </div>
+              
+              {error && (
+                <div className="mt-4 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3">
+                  <div className="flex items-center text-stage-red text-sm">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">{error}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="bg-gradient-to-r from-neon-pink/10 to-electric-purple/10 p-4 border-t border-neon-pink/20">
+              <p className="text-center text-silver text-xs">
+                {isSmallGame ? "You can vote for any song in small games" : "You cannot vote for your own song"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
