@@ -208,6 +208,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                   </button>
 
+
                   {/* UPDATED: Only show "Let Winner Choose" if there's actually a winner */}
                   {showWinnerChooseButton && (
                     <button

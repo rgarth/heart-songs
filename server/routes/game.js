@@ -1582,7 +1582,7 @@ router.post('/host-override-question', async (req, res) => {
   }
 });
 
-// Helper function to end selection (extracted from the original route)
+// Helper function to end selection (FIXED VERSION)
 async function endSelectionInternal(game) {
   // Initialize currentRound if it doesn't exist
   if (!game.currentRound) {
@@ -1633,8 +1633,62 @@ async function endSelectionInternal(game) {
     duration: 10
   };
   
-  // Move to voting phase
-  game.status = 'voting';
+  // FIXED LOGIC: Handle different submission scenarios
+  const actualSubmissions = game.submissions.filter(s => !s.hasPassed);
+  
+  if (actualSubmissions.length === 0) {
+    // NO SONGS: Skip voting entirely and go to results with no winner
+    console.log('No songs submitted - skipping voting phase, going to results with no winner');
+    
+    // Set everyone as having "failed to vote" (though there was nothing to vote on)
+    game.currentRound.playersWhoFailedToVote = expectedSubmitters;
+    
+    // Move directly to results phase
+    game.status = 'results';
+    
+    // NO SCORE UPDATES - no one gets points because no one submitted songs
+    
+  } else if (actualSubmissions.length === 1) {
+    // ONE SONG: Auto-declare winner and skip voting
+    console.log('Only one song submitted - auto-declaring winner and skipping voting');
+    
+    const singleSubmission = actualSubmissions[0];
+    
+    // Give the single submission votes from all other players (not including the submitter)
+    const otherPlayers = expectedSubmitters.filter(playerId => 
+      playerId.toString() !== singleSubmission.player.toString()
+    );
+    singleSubmission.votes = otherPlayers;
+    
+    // Set everyone as having "failed to vote" since we auto-voted
+    game.currentRound.playersWhoFailedToVote = expectedSubmitters;
+    
+    // Move directly to results phase
+    game.status = 'results';
+    
+    // Calculate scores for the single submission
+    const votePoints = singleSubmission.votes.length;
+    const speedBonus = singleSubmission.gotSpeedBonus ? 1 : 0;
+    const totalPoints = votePoints + speedBonus;
+    
+    if (totalPoints > 0) {
+      const playerIndex = game.players.findIndex(p => 
+        p.user.toString() === singleSubmission.player.toString()
+      );
+      if (playerIndex !== -1) {
+        game.players[playerIndex].score += totalPoints;
+      }
+      
+      // Update user score in database
+      await User.findByIdAndUpdate(singleSubmission.player, { $inc: { score: totalPoints } });
+    }
+    
+  } else {
+    // MULTIPLE SONGS: Normal voting phase
+    console.log(`${actualSubmissions.length} songs submitted - proceeding to normal voting`);
+    game.status = 'voting';
+  }
+  
   await game.save();
 }
 
