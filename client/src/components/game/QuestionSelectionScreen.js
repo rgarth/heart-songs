@@ -243,45 +243,6 @@ const QuestionSelectionScreen = ({ game, currentUser, onQuestionSelected, onStar
             </div>
           )}
 
-          {/* Host Controls - Right after confirmed question */}
-          {isHost && confirmedQuestion && (
-            <div className="mb-8 bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-              <h4 className="text-lg font-rock text-gold-record mb-6 text-center">MC CONTROLS</h4>
-              
-              <div className="flex flex-col gap-4">
-                {/* Start Round Button */}
-                <div className="text-center">
-                  <button
-                    onClick={() => {
-                      if (typeof onStartRound === 'function') {
-                        onStartRound(confirmedQuestion);
-                      }
-                    }}
-                    className="btn-gold text-lg px-8 py-3"
-                  >
-                    START NEXT ROUND
-                  </button>
-                  <p className="text-xs text-silver mt-2">
-                    Begin the round with {winner?.displayName}'s selected question
-                  </p>
-                </div>
-                
-                {/* Host Override Button */}
-                <div className="text-center">
-                  <button
-                    onClick={onHostOverride}
-                    className="btn-stage"
-                  >
-                    HOST OVERRIDE - CHOOSE QUESTION YOURSELF
-                  </button>
-                  <p className="text-xs text-silver mt-2">
-                    Skip winner selection and choose the question yourself
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {isWinner ? (
             /* Winner Controls */
             <div className="space-y-6">
