@@ -1,4 +1,4 @@
-// client/src/components/game/VotingScreen.js - Updated with Action Management
+// client/src/components/game/VotingScreen.js - Updated with "Cannot Vote" indicator
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { addYoutubeDataToTrack } from '../../services/musicService';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
@@ -533,6 +533,11 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               const isLoadingYoutube = youtubeLoadingStates[submission.id];
               const isPassed = submission.hasPassed;
               
+              // Determine voting eligibility
+              const canVote = !hasVoted && (isSmallGame || !isOwnSubmission);
+              const cannotVoteReason = hasVoted ? 'already_voted' : 
+                                     (isOwnSubmission && !isSmallGame) ? 'own_submission' : null;
+              
               if (isPassed) {
                 return null;
               }
@@ -540,9 +545,9 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
               return (
                 <div 
                   key={`${submission.id}-${submission.songId}`}
-                  onClick={() => handleSelectForVoting(submission)}
+                  onClick={() => canVote && handleSelectForVoting(submission)}
                   className={`submission-item bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg overflow-hidden border transition-all ${
-                    !hasVoted && (!isOwnSubmission || isSmallGame) ? 'cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg' : 'border-electric-purple/30'
+                    canVote ? 'cursor-pointer hover:border-neon-pink/50 hover:shadow-neon-purple/30 hover:shadow-lg' : 'border-electric-purple/30'
                   } ${
                     selectedSubmission === submission.id ? 'border-neon-pink shadow-neon-pink/50 shadow-lg' : ''
                   } ${
@@ -644,14 +649,24 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                       </div>
                       
-                      {/* Click instruction for voting */}
-                      {!hasVoted && (isSmallGame || !isOwnSubmission) && (
+                      {/* UPDATED: Voting instructions with "Cannot Vote" indicator */}
+                      {!hasVoted && (
                         <div className="text-center mt-4">
-                          <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 rounded-lg p-3 border border-electric-purple/30">
-                            <p className="text-neon-pink text-sm font-medium">
-                              Click anywhere on this song to vote!
-                            </p>
-                          </div>
+                          {canVote ? (
+                            /* Can vote - show clickable instruction */
+                            <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 rounded-lg p-3 border border-electric-purple/30">
+                              <p className="text-neon-pink text-sm font-medium">
+                                Click anywhere on this song to vote!
+                              </p>
+                            </div>
+                          ) : cannotVoteReason === 'own_submission' ? (
+                            /* Cannot vote for own submission - show grayed out indicator */
+                            <div className="bg-gradient-to-r from-gray-700/20 to-gray-600/20 rounded-lg p-3 border-2 border-dashed border-gray-500/40">
+                              <p className="text-gray-400 text-sm font-medium">
+                                You cannot vote for your own selection
+                              </p>
+                            </div>
+                          ) : null /* Already voted case is handled elsewhere */}
                         </div>
                       )}
                     </div>

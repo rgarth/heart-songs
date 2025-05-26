@@ -1,5 +1,5 @@
 // client/src/components/game/QuestionSelectionScreen.js - FIXED
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
 import QuestionSelector from './QuestionSelector';
