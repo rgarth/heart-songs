@@ -1,4 +1,4 @@
-// client/src/components/game/ResultsScreen.js - Refactored to use QuestionSelector
+// client/src/components/game/ResultsScreen.js - Redesigned for conciseness
 import React, { useState } from 'react';
 import VinylRecord from '../VinylRecord';
 import QuestionSelector from './QuestionSelector';
@@ -31,7 +31,7 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
   const [showQuestionSelector, setShowQuestionSelector] = useState(false);
   const [showEndGameConfirmation, setShowEndGameConfirmation] = useState(false);
   
-  // Progressive disclosure states
+  // Leaderboard state - compact by default, expandable
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   
   // Handle showing the question selector
@@ -58,63 +58,53 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
   };
   const handleCancelEndGame = () => setShowEndGameConfirmation(false);
 
-  // Get top 3 players for compact leaderboard
+  // Get sorted players for leaderboard
   const sortedPlayers = game.players
     .slice()
     .sort((a, b) => b.score - a.score);
-  const top3Players = sortedPlayers.slice(0, 3);
 
   return (
     <div className="max-w-4xl mx-auto">
-
       {/* Main stage card */}
       <div className="bg-gradient-to-b from-stage-dark to-vinyl-black rounded-lg shadow-2xl border border-electric-purple/30 overflow-hidden">
         
-        {/* PRIORITY 1: Winner Announcement + What's Next */}
+        {/* PRIORITY 1: Winner Announcement + Question */}
         <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 p-6 border-b border-electric-purple/30">
-          <div className="text-center mb-6">
-            <h2 className="text-3xl font-rock neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent mb-4">
-              ROUND COMPLETE
-            </h2>
-            
-            {/* Winner Display */}
-            <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record mb-4">
-              <div className="flex items-center justify-center">
-                <div className="mr-4">
-                  <VinylRecord className="w-12 h-12" animationClass="animate-vinyl-spin" />
-                </div>
-                <div>
-                  {reason === 'all_passed' || actualSubmissions.length === 0 ? (
-                    <p className="text-silver font-bold text-xl">
-                      NO WINNER - ALL PLAYERS PASSED
-                    </p>
-                  ) : isTie ? (
-                    <p className="text-gold-record font-bold text-xl">
-                      TIE: {tiedPlayers?.map(p => p.displayName).join(' & ')}
-                    </p>
-                  ) : winner ? (
-                    <p className="text-gold-record font-bold text-xl">
-                      WINNER: {winner.displayName || 'Unknown'}
-                    </p>
-                  ) : (
-                    <p className="text-silver font-bold text-xl">
-                      NO WINNER
-                    </p>
-                  )}
-                  
-                  {/* Show winning song only if there were actual submissions */}
-                  {sortedSubmissions[0] && !sortedSubmissions[0].hasPassed && (
-                    <p className="text-silver text-sm">
-                      "{sortedSubmissions[0].songName}" by {sortedSubmissions[0].artist}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+          <h2 className="text-3xl font-rock text-center neon-text bg-gradient-to-r from-electric-purple via-neon-pink to-turquoise bg-clip-text text-transparent mb-4">
+            ROUND COMPLETE
+          </h2>
+          
+          {/* Current Question */}
+          <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30 mb-4">
+            <p className="text-neon-pink font-medium text-lg text-center">{game.currentQuestion.text}</p>
+          </div>
 
-            {/* Current Question Reminder */}
-            <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-3 border border-electric-purple/30">
-              <p className="text-neon-pink font-medium text-lg">{game.currentQuestion.text}</p>
+          {/* Winner Display - Compact */}
+          <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-4 border-l-4 border-gold-record">
+            <div className="flex items-center justify-center">
+              <VinylRecord className="w-8 h-8 mr-3" animationClass="animate-vinyl-spin" />
+              <div className="text-center">
+                {reason === 'all_passed' || actualSubmissions.length === 0 ? (
+                  <p className="text-silver font-bold text-lg">NO WINNER - ALL PLAYERS PASSED</p>
+                ) : isTie ? (
+                  <p className="text-gold-record font-bold text-lg">
+                    TIE: {tiedPlayers?.map(p => p.displayName).join(' & ')}
+                  </p>
+                ) : winner ? (
+                  <p className="text-gold-record font-bold text-lg">
+                    WINNER: {winner.displayName || 'Unknown'}
+                  </p>
+                ) : (
+                  <p className="text-silver font-bold text-lg">NO WINNER</p>
+                )}
+                
+                {/* Show winning song only if there were actual submissions */}
+                {sortedSubmissions[0] && !sortedSubmissions[0].hasPassed && (
+                  <p className="text-silver text-sm mt-1">
+                    "{sortedSubmissions[0].songName}" by {sortedSubmissions[0].artist}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -123,51 +113,37 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
           
           {/* PRIORITY 2: MC Controls (Always Visible for Host) */}
           {isHost && (
-            <div className="mb-8 bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-gold-record/40 sticky top-4 z-10">
-              <h3 className="text-xl font-rock text-center mb-6 text-gold-record">
-                MC CONTROLS
-              </h3>
+            <div className="mb-6 bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-4 border border-gold-record/40">
+              <h3 className="text-lg font-rock text-center mb-4 text-gold-record">MC CONTROLS</h3>
               
               {!showQuestionSelector ? (
-                /* Main Controls */
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Quick Next Round with Question Selector */}
+                /* Main Controls - More compact */
+                <div className="flex flex-wrap justify-center gap-3">
                   <button
                     onClick={handleShowQuestionSelector}
-                    className="btn-electric group col-span-1 md:col-span-2"
+                    className="btn-electric px-6 py-2"
                   >
-                    <span className="relative z-10 flex items-center justify-center">
-                      START NEXT ROUND
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    START NEXT ROUND
                   </button>
 
-                  {/* Only show "Let Winner Choose" if there's actually a winner */}
                   {showWinnerChooseButton && (
                     <button
                       onClick={onMoveToQuestionSelection}
-                      className="btn-gold group"
+                      className="btn-gold px-4 py-2"
                     >
-                      <span className="relative z-10 flex items-center justify-center">
-                        WINNER CHOOSES
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      WINNER CHOOSES
                     </button>
                   )}
 
-                  {/* End Game */}
                   <button
                     onClick={handleShowEndGameConfirmation}
-                    className={`btn-stage group ${showWinnerChooseButton ? 'md:col-span-3' : 'md:col-span-1'}`}
+                    className="btn-stage px-4 py-2"
                   >
-                    <span className="relative z-10 flex items-center justify-center">
-                      END GAME
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    END GAME
                   </button>
                 </div>
               ) : (
-                /* Question Selection using shared QuestionSelector component */
+                /* Question Selection */
                 <QuestionSelector
                   gameId={game._id}
                   accessToken={currentUser.accessToken}
@@ -182,150 +158,20 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
             </div>
           )}
 
-          {/* PRIORITY 3: Compact Leaderboard */}
-          <div className="mb-8">
-            <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border border-electric-purple/30">
-              <h3 className="text-xl font-rock text-center mb-6 text-turquoise">
-                CURRENT STANDINGS
-              </h3>
-              
-              <div className="space-y-3">
-                {top3Players.map((player, index) => {
-                  const position = index + 1;
-                  const isCurrentUser = player.user._id === currentUser.id;
-                  
-                  const getPositionStyle = () => {
-                    if (position === 1) return 'from-gold-record/30 to-yellow-400/30 border-gold-record/60';
-                    if (position === 2) return 'from-silver/30 to-gray-300/30 border-silver/60';
-                    if (position === 3) return 'from-amber-600/30 to-orange-500/30 border-amber-600/60';
-                    return 'from-stage-dark to-vinyl-black border-electric-purple/30';
-                  };
-                  
-                  return (
-                    <div 
-                      key={player.user._id}
-                      className={`
-                        bg-gradient-to-r ${getPositionStyle()} rounded-lg p-4 border transition-all
-                        ${isCurrentUser ? 'ring-2 ring-neon-pink shadow-neon-pink/30' : ''}
-                      `}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className={`
-                            w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg mr-4
-                            ${position === 1 ? 'bg-gold-record text-vinyl-black' : 
-                              position === 2 ? 'bg-silver text-vinyl-black' : 
-                              position === 3 ? 'bg-amber-600 text-white' : 
-                              'bg-electric-purple text-white'}
-                          `}>
-                            {position}
-                          </div>
-                          
-                          <div>
-                            <p className="font-bold text-white font-rock">
-                              {player.user.displayName}
-                              {isCurrentUser && (
-                                <span className="ml-2 text-neon-pink font-medium">(YOU)</span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <div className={`text-2xl font-bold font-rock ${
-                            position === 1 ? 'text-gold-record' : 
-                            position === 2 ? 'text-silver' : 
-                            position === 3 ? 'text-amber-600' : 
-                            'text-white'
-                          }`}>
-                            {player.score}
-                          </div>
-                          <div className="text-xs text-silver uppercase tracking-wider">POINTS</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {game.players.length > 3 && (
-                <div className="text-center mt-4">
-                  <button
-                    onClick={() => setShowFullLeaderboard(!showFullLeaderboard)}
-                    className="text-turquoise hover:text-lime-green transition-colors text-sm font-medium"
-                  >
-                    {showFullLeaderboard ? 'Show Less' : `Show All ${game.players.length} Players`}
-                  </button>
-                </div>
-              )}
-              
-              {/* Full leaderboard when expanded */}
-              {showFullLeaderboard && (
-                <div className="mt-4 pt-4 border-t border-electric-purple/30 space-y-2">
-                  {sortedPlayers.slice(3).map((player, index) => {
-                    const position = index + 4;
-                    const isCurrentUser = player.user._id === currentUser.id;
-                    
-                    return (
-                      <div 
-                        key={player.user._id}
-                        className={`
-                          bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-3 border border-electric-purple/30
-                          ${isCurrentUser ? 'ring-1 ring-neon-pink' : ''}
-                        `}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-electric-purple text-white mr-3 text-sm">
-                              {position}
-                            </div>
-                            <p className="text-white font-medium">
-                              {player.user.displayName}
-                              {isCurrentUser && (
-                                <span className="ml-2 text-neon-pink text-sm">(YOU)</span>
-                              )}
-                            </p>
-                          </div>
-                          <div className="text-white font-bold">
-                            {player.score}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* PRIORITY 4: Round Results */}
-          <div className="mb-8">
-            <h3 className="text-xl font-rock text-center mb-6 text-neon-pink">
-              THIS ROUND'S SONGS
-            </h3>
+          {/* PRIORITY 3: Round Results - Now above leaderboard */}
+          <div className="mb-6">
+            <h3 className="text-xl font-rock text-center mb-4 text-neon-pink">THIS ROUND'S SONGS</h3>
             
             {actualSubmissions.length === 0 ? (
-              /* No submissions */
-              <div className="text-center py-8">
-                <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-8 border border-silver/20">
-                  <div className="mb-4">
-                    <VinylRecord 
-                      className="w-16 h-16 mx-auto opacity-50"
-                      animationClass=""
-                    />
-                  </div>
-                  <h4 className="text-lg font-rock text-silver mb-2">SILENT STAGE</h4>
-                  <p className="text-silver">All players passed on this question</p>
-                  {passedSubmissions.length > 0 && (
-                    <p className="text-silver/60 text-sm mt-2">
-                      {passedSubmissions.length} player{passedSubmissions.length !== 1 ? 's' : ''} passed
-                    </p>
-                  )}
-                </div>
+              /* No submissions - Much more compact */
+              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-silver/20 text-center">
+                <VinylRecord className="w-12 h-12 mx-auto opacity-50 mb-3" animationClass="" />
+                <h4 className="text-lg font-rock text-silver mb-1">SILENT STAGE</h4>
+                <p className="text-silver text-sm">All players passed on this question</p>
               </div>
             ) : (
-              /* Show submissions */
-              <div className="space-y-4">
+              /* Show submissions - More compact format */
+              <div className="space-y-3">
                 {sortedSubmissions.map((submission, index) => {
                   const isWinning = index === 0;
                   const votes = submission.votes?.length || 0;
@@ -334,63 +180,69 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                     <div 
                       key={submission._id}
                       className={`
-                        bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border
+                        bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-3 border
                         ${isWinning ? 'border-gold-record shadow-gold-record/20' : 'border-electric-purple/30'}
                       `}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center flex-1">
-                          {/* Position indicator for winner */}
-                          {isWinning && (
-                            <div className="w-10 h-10 rounded-full bg-gold-record text-vinyl-black flex items-center justify-center font-bold text-lg mr-4">
-                              1
-                            </div>
-                          )}
+                          {/* Position + Album cover combined */}
+                          <div className="relative mr-3 flex-shrink-0">
+                            {submission.albumCover ? (
+                              <div className="relative">
+                                <img 
+                                  src={submission.albumCover} 
+                                  alt={submission.songName} 
+                                  className={`w-10 h-10 rounded-lg border-2 ${
+                                    isWinning ? 'border-gold-record' : 'border-silver'
+                                  }`}
+                                />
+                                {isWinning && (
+                                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold-record text-vinyl-black flex items-center justify-center text-xs font-bold">
+                                    1
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              isWinning && (
+                                <div className="w-10 h-10 rounded-full bg-gold-record text-vinyl-black flex items-center justify-center font-bold">
+                                  1
+                                </div>
+                              )
+                            )}
+                          </div>
                           
-                          {/* Album cover */}
-                          {submission.albumCover && (
-                            <div className="relative mr-4 flex-shrink-0">
-                              <img 
-                                src={submission.albumCover} 
-                                alt={submission.songName} 
-                                className={`w-12 h-12 rounded-lg border-2 ${
-                                  isWinning ? 'border-gold-record' : 'border-silver'
-                                }`}
-                              />
-                            </div>
-                          )}
-                          
-                          {/* Song info */}
-                          <div className="flex-1">
-                            <p className="font-bold text-white text-lg">{submission.songName}</p>
-                            <p className="text-silver">{submission.artist}</p>
-                            <p className="text-turquoise text-sm">
+                          {/* Song info - More compact */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-white truncate">{submission.songName}</p>
+                            <p className="text-silver text-sm truncate">{submission.artist}</p>
+                            <p className="text-turquoise text-xs">
                               by {submission.player?.displayName || 'Unknown'}
                             </p>
                           </div>
                         </div>
                         
                         {/* Vote count */}
-                        <div className="text-right ml-4">
-                          <div className={`text-2xl font-bold ${
+                        <div className="text-right ml-3">
+                          <div className={`text-xl font-bold ${
                             isWinning ? 'text-gold-record' : 'text-white'
                           }`}>
                             {votes}
                           </div>
-                          <div className="text-silver text-sm">
+                          <div className="text-silver text-xs">
                             vote{votes !== 1 ? 's' : ''}
                           </div>
                         </div>
                       </div>
                       
-                      {/* Show voters if any */}
+                      {/* Show voters - Compact */}
                       {submission.votes && submission.votes.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-electric-purple/20">
-                          <div className="flex flex-wrap gap-2">
+                        <div className="mt-2 pt-2 border-t border-electric-purple/20">
+                          <div className="flex flex-wrap gap-1">
                             {submission.votes.map((voter) => (
                               <span 
                                 key={voter._id}
-                                className="bg-gradient-to-r from-vinyl-black to-stage-dark px-2 py-1 rounded text-sm border border-electric-purple/30"
+                                className="bg-gradient-to-r from-vinyl-black to-stage-dark px-2 py-0.5 rounded text-xs border border-electric-purple/20"
                               >
                                 {voter.displayName}
                                 {voter._id === currentUser.id && (
@@ -407,9 +259,9 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                 
                 {/* Show passed submissions count if any */}
                 {passedSubmissions.length > 0 && (
-                  <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-silver/20 text-center">
-                    <p className="text-silver">
-                      {passedSubmissions.length} player{passedSubmissions.length !== 1 ? 's' : ''} passed on this question
+                  <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-2 border border-silver/20 text-center">
+                    <p className="text-silver text-sm">
+                      {passedSubmissions.length} player{passedSubmissions.length !== 1 ? 's' : ''} passed
                     </p>
                   </div>
                 )}
@@ -417,22 +269,104 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
             )}
           </div>
 
-          {/* Non-host message */}
+          {/* PRIORITY 4: Compact Leaderboard - Table-like format */}
+          <div className="mb-6">
+            <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg border border-electric-purple/30 overflow-hidden">
+              
+              {/* Header with expand/collapse */}
+              <div 
+                className="p-3 border-b border-electric-purple/30 cursor-pointer hover:bg-electric-purple/10 transition-all"
+                onClick={() => setShowFullLeaderboard(!showFullLeaderboard)}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-rock text-turquoise">CURRENT STANDINGS</h3>
+                  <div className="flex items-center text-silver">
+                    <span className="text-sm mr-2">
+                      {showFullLeaderboard ? 'Hide' : 'Show All'}
+                    </span>
+                    <svg 
+                      className={`w-4 h-4 transform transition-transform ${showFullLeaderboard ? 'rotate-180' : ''}`}
+                      fill="currentColor" 
+                      viewBox="0 0 20 20"
+                    >
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table-like leaderboard */}
+              <div className="divide-y divide-electric-purple/20">
+                {(showFullLeaderboard ? sortedPlayers : sortedPlayers.slice(0, 3)).map((player, index) => {
+                  const position = index + 1;
+                  const isCurrentUser = player.user._id === currentUser.id;
+                  
+                  const getPositionColor = () => {
+                    if (position === 1) return 'text-gold-record';
+                    if (position === 2) return 'text-silver';
+                    if (position === 3) return 'text-amber-600';
+                    return 'text-white';
+                  };
+                  
+                  return (
+                    <div 
+                      key={player.user._id}
+                      className={`
+                        flex items-center justify-between p-3 hover:bg-electric-purple/5 transition-all
+                        ${isCurrentUser ? 'bg-neon-pink/10 border-l-2 border-neon-pink' : ''}
+                      `}
+                    >
+                      <div className="flex items-center flex-1 min-w-0">
+                        {/* Position */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm mr-3 flex-shrink-0 ${
+                          position === 1 ? 'bg-gold-record text-vinyl-black' : 
+                          position === 2 ? 'bg-silver text-vinyl-black' : 
+                          position === 3 ? 'bg-amber-600 text-white' : 
+                          'bg-electric-purple text-white'
+                        }`}>
+                          {position}
+                        </div>
+                        
+                        {/* Name */}
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-bold truncate ${getPositionColor()}`}>
+                            {player.user.displayName}
+                            {isCurrentUser && (
+                              <span className="ml-2 text-neon-pink font-medium text-sm">(YOU)</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Score */}
+                      <div className="text-right ml-3">
+                        <div className={`text-lg font-bold ${getPositionColor()}`}>
+                          {player.score}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Show count when collapsed */}
+              {!showFullLeaderboard && game.players.length > 3 && (
+                <div className="p-2 text-center border-t border-electric-purple/30">
+                  <span className="text-silver text-xs">
+                    +{game.players.length - 3} more players
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Non-host message - More compact */}
           {!isHost && (
             <div className="text-center">
-              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
-                <div className="mb-4">
-                  <VinylRecord 
-                    className="w-12 h-12 mx-auto"
-                    animationClass="animate-vinyl-spin"
-                  />
-                </div>
-                <h3 className="text-lg font-rock text-electric-purple mb-2">
-                  WAITING FOR THE MC
-                </h3>
-                <p className="text-silver">
-                  The host is deciding what happens next...
-                </p>
+              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-4 border border-electric-purple/30">
+                <VinylRecord className="w-8 h-8 mx-auto mb-2" animationClass="animate-vinyl-spin" />
+                <h3 className="text-lg font-rock text-electric-purple mb-1">WAITING FOR THE MC</h3>
+                <p className="text-silver text-sm">The host is deciding what happens next...</p>
               </div>
             </div>
           )}
