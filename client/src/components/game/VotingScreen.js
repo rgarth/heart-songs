@@ -1,15 +1,15 @@
-// client/src/components/game/VotingScreen.js - Updated with Floating Vote Modal
+// client/src/components/game/VotingScreen.js - Updated with Action Management
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { voteForSong, startEndVotingCountdown } from '../../services/gameService';
 import { addYoutubeDataToTrack } from '../../services/musicService';
+import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VideoPreferenceToggle from './VideoPreferenceToggle';
 import VinylRecord from '../VinylRecord';
+import ActionButton from '../ActionButton';
+import ActionError from '../ActionError';
 
 const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [isVoting, setIsVoting] = useState(false);
-  const [hasVoted, setHasVoted] = useState(false);
   const [error, setError] = useState(null);
   const [preferVideo, setPreferVideo] = useState(false); // Default to audio
   
@@ -17,13 +17,12 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   const [localSubmissions, setLocalSubmissions] = useState([]);
   const [youtubeLoadingStates, setYoutubeLoadingStates] = useState({});
   
-  // NEW: Server countdown state
-  const [isStartingCountdown, setIsStartingCountdown] = useState(false);
-  const [countdownError, setCountdownError] = useState(null);
-  
   // NEW: State for floating modal
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [selectedSubmissionData, setSelectedSubmissionData] = useState(null);
+  
+  // Use the game state actions hook
+  const { actions, isPending, getError, clearError } = useGameStateActions(game._id);
   
   // Check if there are active players (from force start)
   const hasActivePlayers = game.activePlayers && game.activePlayers.length > 0;
@@ -42,6 +41,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
   
   // Check if current user is the host
   const isHost = game.host._id === currentUser.id;
+  
+  // Check if user has voted
+  const hasVoted = useMemo(() => {
+    return game.submissions.some(s => 
+      s.votes.some(v => v._id === currentUser.id)
+    );
+  }, [game.submissions, currentUser.id]);
   
   // Create stable dependency strings to prevent unnecessary re-renders
   const submissionKeyString = useMemo(() => {
@@ -81,18 +87,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voteDataString]);
-  
-  // Check if user has already voted
-  useEffect(() => {
-    const userVoted = game.submissions.some(s => 
-      s.votes.some(v => v._id === currentUser.id)
-    );
-    
-    if (userVoted) {
-      setHasVoted(true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voteDataString, currentUser.id]);
   
   // OPTIMIZATION: Wrap loadSubmissionsWithPreference in useCallback with stable dependencies
   const loadSubmissionsWithPreference = useCallback(async () => {
@@ -220,54 +214,32 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
     setSelectedSubmissionData(null);
   };
 
-  // Handle vote - UPDATED for modal
+  // Handle vote - UPDATED with action management
   const handleVote = async () => {
     if (!selectedSubmission) return;
     
     try {
-      setIsVoting(true);
-      setError(null);
+      await actions.voteForSong(currentUser.id, selectedSubmission);
       
-      // Get the most up-to-date token
-      const token = accessToken || localStorage.getItem('accessToken');
-      
-      if (!token) {
-        setError('Authentication token missing. Please refresh the page and try again.');
-        setIsVoting(false);
-        return;
-      }
-      
-      await voteForSong(game._id, currentUser.id, selectedSubmission, token);
-      
-      setHasVoted(true);
       setShowVoteModal(false); // Close modal after voting
       setSelectedSubmission(null);
       setSelectedSubmissionData(null);
     } catch (error) {
       console.error('Error voting:', error);
-      setError('Failed to submit your vote. Please try again.');
-    } finally {
-      setIsVoting(false);
+      // Error is handled by the action system
     }
   };
   
-  // Handle end voting with server countdown
+  // Handle end voting with server countdown - UPDATED with action management
   const handleEndVotingWithCountdown = async () => {
     if (!isHost) return;
     
     try {
-      setIsStartingCountdown(true);
-      setCountdownError(null);
-      
-      // Start the server-side countdown
-      await startEndVotingCountdown(game._id, accessToken);
-      
+      await actions.startEndVotingCountdown();
       // The countdown banner will appear for all players via the server state
     } catch (error) {
       console.error('Error starting end voting countdown:', error);
-      setCountdownError('Failed to start countdown. Please try again.');
-    } finally {
-      setIsStartingCountdown(false);
+      // Error is handled by the action system
     }
   };
   
@@ -362,37 +334,26 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 <p className="text-sm text-silver mb-3 flex items-center justify-center">
                   MC Controls
                 </p>
-                <button
+                
+                {/* Action Error for end voting countdown */}
+                <ActionError 
+                  error={getError('startEndVotingCountdown')} 
+                  onDismiss={() => clearError('startEndVotingCountdown')}
+                  className="mb-4"
+                />
+                
+                <ActionButton
                   onClick={handleEndVotingWithCountdown}
-                  disabled={isStartingCountdown || game.countdown?.isActive}
-                  className="btn-electric disabled:opacity-50"
+                  isLoading={isPending('startEndVotingCountdown') || game.countdown?.isActive}
+                  loadingText="Starting Countdown..."
+                  className="btn-electric"
+                  disabled={game.countdown?.isActive}
                 >
-                  {isStartingCountdown ? (
-                    <>
-                      <div className="relative inline-block mr-2">
-                        <VinylRecord 
-                          className="w-5 h-5"
-                          animationClass="animate-vinyl-spin"
-                        />
-                      </div>
-                      Starting Countdown...
-                    </>
-                  ) : game.countdown?.isActive ? (
-                    'Countdown Active'
-                  ) : (
-                    <>
-                      END VOTING PHASE
-                    </>
-                  )}
-                </button>
+                  {game.countdown?.isActive ? 'Countdown Active' : 'END VOTING PHASE'}
+                </ActionButton>
                 <p className="text-xs text-silver mt-2">
                   Force the show to continue
                 </p>
-                {countdownError && (
-                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                    {countdownError}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -411,6 +372,17 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
         </div>
         
         <div className="p-6">
+          
+          {/* Action Errors */}
+          <ActionError 
+            error={getError('voteForSong') || getError('startEndVotingCountdown')} 
+            onDismiss={() => {
+              clearError('voteForSong');
+              clearError('startEndVotingCountdown');
+            }}
+            className="mb-6"
+          />
+          
           <div className="text-center mb-8">
             <div className="bg-gradient-to-r from-vinyl-black to-stage-dark rounded-lg p-6 border-l-4 border-neon-pink">
               <div className="flex items-center justify-center mb-2">
@@ -524,37 +496,26 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                       <p className="text-sm text-silver mb-3 flex items-center justify-center">
                         MC Controls
                       </p>
-                      <button
+                      
+                      {/* Action Error for end voting countdown */}
+                      <ActionError 
+                        error={getError('startEndVotingCountdown')} 
+                        onDismiss={() => clearError('startEndVotingCountdown')}
+                        className="mb-4"
+                      />
+                      
+                      <ActionButton
                         onClick={handleEndVotingWithCountdown}
-                        disabled={isStartingCountdown || game.countdown?.isActive}
-                        className="btn-electric disabled:opacity-50"
+                        isLoading={isPending('startEndVotingCountdown') || game.countdown?.isActive}
+                        loadingText="Starting Countdown..."
+                        className="btn-electric"
+                        disabled={game.countdown?.isActive}
                       >
-                        {isStartingCountdown ? (
-                          <>
-                            <div className="relative inline-block mr-2">
-                              <VinylRecord 
-                                className="w-5 h-5"
-                                animationClass="animate-vinyl-spin"
-                              />
-                            </div>
-                            Starting Countdown...
-                          </>
-                        ) : game.countdown?.isActive ? (
-                          'Countdown Active'
-                        ) : (
-                          <>
-                            END VOTING PHASE
-                          </>
-                        )}
-                      </button>
+                        {game.countdown?.isActive ? 'Countdown Active' : 'END VOTING PHASE'}
+                      </ActionButton>
                       <p className="text-xs text-silver mt-2">
                         Force all non-voted players to abstain
                       </p>
-                      {countdownError && (
-                        <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                          {countdownError}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -683,7 +644,7 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                         </div>
                       </div>
                       
-                      {/* REMOVED: Individual vote buttons - replaced with click handler */}
+                      {/* Click instruction for voting */}
                       {!hasVoted && (isSmallGame || !isOwnSubmission) && (
                         <div className="text-center mt-4">
                           <div className="bg-gradient-to-r from-electric-purple/20 to-neon-pink/20 rounded-lg p-3 border border-electric-purple/30">
@@ -740,8 +701,6 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
             )}
           </div>
           
-          {/* REMOVED: Bottom voting controls - replaced with floating modal */}
-          
           {/* Host Controls Section */}
           {isHost && (
             <div className="bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-6 border border-electric-purple/40">
@@ -749,38 +708,26 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 MC CONTROLS
               </h3>
               
+              {/* Action Error for end voting countdown */}
+              <ActionError 
+                error={getError('startEndVotingCountdown')} 
+                onDismiss={() => clearError('startEndVotingCountdown')}
+                className="mb-4"
+              />
+              
               <div className="text-center">
-                <button
+                <ActionButton
                   onClick={handleEndVotingWithCountdown}
-                  disabled={isStartingCountdown || game.countdown?.isActive}
-                  className="btn-electric disabled:opacity-50"
+                  isLoading={isPending('startEndVotingCountdown') || game.countdown?.isActive}
+                  loadingText="Starting Countdown..."
+                  className="btn-electric"
+                  disabled={game.countdown?.isActive}
                 >
-                  {isStartingCountdown ? (
-                    <>
-                      <div className="relative inline-block mr-2">
-                        <VinylRecord 
-                          className="w-5 h-5"
-                          animationClass="animate-vinyl-spin"
-                        />
-                      </div>
-                      Starting Countdown...
-                    </>
-                  ) : game.countdown?.isActive ? (
-                    'Countdown Active'
-                  ) : (
-                    <>
-                      END VOTING PHASE
-                    </>
-                  )}
-                </button>
+                  {game.countdown?.isActive ? 'Countdown Active' : 'END VOTING PHASE'}
+                </ActionButton>
                 <p className="text-xs text-silver mt-2">
                   Force all non-voted players to abstain
                 </p>
-                {countdownError && (
-                  <div className="mt-2 p-2 bg-red-900/50 text-red-200 rounded text-sm">
-                    {countdownError}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -830,6 +777,13 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 <p className="text-neon-pink font-bold text-lg">"{game.currentQuestion.text}"</p>
               </div>
               
+              {/* Action Error in modal */}
+              <ActionError 
+                error={getError('voteForSong')} 
+                onDismiss={() => clearError('voteForSong')}
+                className="mb-4"
+              />
+              
               {/* Vote Buttons */}
               <div className="flex gap-4">
                 <button
@@ -838,42 +792,15 @@ const VotingScreen = ({ game, currentUser, accessToken }) => {
                 >
                   CANCEL
                 </button>
-                <button
+                <ActionButton
                   onClick={handleVote}
-                  disabled={isVoting}
-                  className="flex-1 btn-gold py-3 disabled:opacity-50 group relative overflow-hidden"
+                  isLoading={isPending('voteForSong')}
+                  loadingText="VOTING..."
+                  className="flex-1 btn-gold py-3 group relative overflow-hidden"
                 >
-                  <span className="relative z-10 flex items-center justify-center">
-                    {isVoting ? (
-                      <>
-                        <div className="relative inline-block mr-2">
-                          <VinylRecord 
-                            className="w-5 h-5"
-                            animationClass="animate-vinyl-spin"
-                          />
-                        </div>
-                        VOTING...
-                      </>
-                    ) : (
-                      <>
-                        VOTE FOR THIS SONG
-                      </>
-                    )}
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                </button>
+                  VOTE FOR THIS SONG
+                </ActionButton>
               </div>
-              
-              {error && (
-                <div className="mt-4 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3">
-                  <div className="flex items-center text-stage-red text-sm">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-medium">{error}</span>
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* Modal Footer */}

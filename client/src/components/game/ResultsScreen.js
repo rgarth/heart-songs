@@ -1,7 +1,10 @@
-// client/src/components/game/ResultsScreen.js - Redesigned for conciseness
+// client/src/components/game/ResultsScreen.js - Updated with Action Management
 import React, { useState } from 'react';
+import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
 import QuestionSelector from './QuestionSelector';
+import ActionButton from '../ActionButton';
+import ActionError from '../ActionError';
 
 const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQuestionSelection, getWinnerInfo }) => {
   // Separate passed and non-passed submissions
@@ -34,15 +37,24 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
   // Leaderboard state - compact by default, expandable
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   
+  // Use the game state actions hook
+  const { actions, isPending, getError, clearError } = useGameStateActions(game._id);
+  
   // Handle showing the question selector
   const handleShowQuestionSelector = () => {
     setShowQuestionSelector(true);
   };
   
-  // Handle question selection from QuestionSelector component
-  const handleQuestionSelected = (question) => {
-    setShowQuestionSelector(false);
-    onNextRound(question);
+  // Handle question selection from QuestionSelector component - with action management
+  const handleQuestionSelected = async (question) => {
+    try {
+      setShowQuestionSelector(false);
+      await actions.startNewRound(question);
+      // Game state will be updated via polling in Game.js
+    } catch (error) {
+      console.error('Failed to start new round:', error);
+      // Error is handled by the action system
+    }
   };
 
   // Handle going back from question selector
@@ -50,11 +62,28 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
     setShowQuestionSelector(false);
   };
   
-  // End game functions
+  // Handle move to question selection - with action management
+  const handleMoveToQuestionSelection = async () => {
+    try {
+      await actions.moveToQuestionSelection();
+      // Game state will be updated via polling in Game.js
+    } catch (error) {
+      console.error('Failed to move to question selection:', error);
+      // Error is handled by the action system
+    }
+  };
+  
+  // End game functions - with action management
   const handleShowEndGameConfirmation = () => setShowEndGameConfirmation(true);
-  const handleConfirmEndGame = () => {
-    onEndGame();
-    setShowEndGameConfirmation(false);
+  const handleConfirmEndGame = async () => {
+    try {
+      await actions.endGame();
+      setShowEndGameConfirmation(false);
+      // Game state will be updated via polling in Game.js
+    } catch (error) {
+      console.error('Failed to end game:', error);
+      // Error is handled by the action system
+    }
   };
   const handleCancelEndGame = () => setShowEndGameConfirmation(false);
 
@@ -111,6 +140,17 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
 
         <div className="p-6">
           
+          {/* Action Errors */}
+          <ActionError 
+            error={getError('startNewRound') || getError('endGame') || getError('moveToQuestionSelection')} 
+            onDismiss={() => {
+              clearError('startNewRound');
+              clearError('endGame');
+              clearError('moveToQuestionSelection');
+            }}
+            className="mb-6"
+          />
+          
           {/* PRIORITY 2: MC Controls (Always Visible for Host) */}
           {isHost && (
             <div className="mb-6 bg-gradient-to-r from-deep-space/60 to-stage-dark/60 rounded-lg p-4 border border-gold-record/40">
@@ -119,28 +159,30 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
               {!showQuestionSelector ? (
                 /* Main Controls - More compact */
                 <div className="flex flex-wrap justify-center gap-3">
-                  <button
+                  <ActionButton
                     onClick={handleShowQuestionSelector}
+                    isLoading={isPending('startNewRound')}
                     className="btn-electric px-6 py-2"
                   >
                     START NEXT ROUND
-                  </button>
+                  </ActionButton>
 
                   {showWinnerChooseButton && (
-                    <button
-                      onClick={onMoveToQuestionSelection}
+                    <ActionButton
+                      onClick={handleMoveToQuestionSelection}
+                      isLoading={isPending('moveToQuestionSelection')}
                       className="btn-gold px-4 py-2"
                     >
                       WINNER CHOOSES
-                    </button>
+                    </ActionButton>
                   )}
 
-                  <button
+                  <ActionButton
                     onClick={handleShowEndGameConfirmation}
                     className="btn-stage px-4 py-2"
                   >
                     END GAME
-                  </button>
+                  </ActionButton>
                 </div>
               ) : (
                 /* Question Selection */
@@ -382,6 +424,14 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
               <p className="text-silver mb-6">
                 This will finish the game and show final results to all players.
               </p>
+              
+              {/* Action Error in confirmation dialog */}
+              <ActionError 
+                error={getError('endGame')} 
+                onDismiss={() => clearError('endGame')}
+                className="mb-4"
+              />
+              
               <div className="flex gap-4 justify-center">
                 <button 
                   onClick={handleCancelEndGame}
@@ -389,12 +439,14 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                 >
                   Keep Playing
                 </button>
-                <button 
+                <ActionButton 
                   onClick={handleConfirmEndGame}
+                  isLoading={isPending('endGame')}
+                  loadingText="Ending..."
                   className="btn-electric px-6 bg-gradient-to-r from-stage-red to-red-600"
                 >
                   End Game
-                </button>
+                </ActionButton>
               </div>
             </div>
           </div>
