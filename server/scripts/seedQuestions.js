@@ -417,6 +417,382 @@ const questions = [
   {
     text: "What song best represents human creativity?",
     category: "culture"
+  },
+  {
+    text: "What song would play during your most embarrassing moment?",
+    category: "embarrassing"
+  },
+  {
+    text: "What song would you never admit you know all the words to?",
+    category: "embarrassing"
+  },
+  {
+    text: "What song best describes your dating life?",
+    category: "embarrassing"
+  },
+  {
+    text: "What song would play when you're trying to look cool but failing?",
+    category: "embarrassing"
+  },
+  {
+    text: "What song would you sing in the shower if no one could hear?",
+    category: "embarrassing"
+  },
+  {
+    text: "What song describes your cooking skills?",
+    category: "embarrassing"
+  },
+  // Everyday Life/Relatable
+  {
+    text: "What song plays when you're procrastinating?",
+    category: "daily"
+  },
+  {
+    text: "What song describes Monday mornings?",
+    category: "daily"
+  },
+  {
+    text: "What song represents waiting in line at the grocery store?",
+    category: "daily"
+  },
+  {
+    text: "What song would play during a really awkward elevator ride?",
+    category: "daily"
+  },
+  {
+    text: "What song describes your relationship with your alarm clock?",
+    category: "daily"
+  },
+  {
+    text: "What song would play while you're stuck in traffic?",
+    category: "daily"
+  },
+  // Creative/Imaginative Scenarios
+  {
+    text: "What song would make the perfect ringtone for your pet?",
+    category: "creative"
+  },
+  {
+    text: "What song would dinosaurs have listened to?",
+    category: "creative"
+  },
+  // Food/Drink Related
+  {
+    text: "What song would you play while making breakfast?",
+    category: "food"
+  },
+  {
+    text: "What song describes your relationship with coffee?",
+    category: "food"
+  },
+  {
+    text: "What song goes with ice cream?",
+    category: "food"
+  },
+  // Technology/Modern Life
+  {
+    text: "What song represents your phone dying at 1%?",
+    category: "tech"
+  },
+  {
+    text: "What song would you play while deleting old photos?",
+    category: "tech"
+  },
+  // Friendship/Social
+  {
+    text: "What song would you dedicate to your weirdest friend?",
+    category: "friendship"
+  },
+  {
+    text: "What song would you play to apologize to a friend?",
+    category: "friendship"
+  },
+  {
+    text: "What song describes your friend group?",
+    category: "friendship"
+  },
+  {
+    text: "What song describes your family?",
+    category: "family"
+  },
+  {
+    text: "What song would you sing at a sleepover?",
+    category: "friendship"
+  },
+  // Dreams/Sleep
+  {
+    text: "What song would wake you up gently?",
+    category: "dreams"
+  },
+  {
+    text: "What song would cure insomnia?",
+    category: "dreams"
+  },
+  // Weird/Random
+  {
+    text: "What song represents stepping on a LEGO?",
+    category: "weird"
+  },
+
+  // Childhood/Nostalgia
+  {
+    text: "What song represents your inner child?",
+    category: "childhood"
+  },
+  {
+    text: "What song would you play on a playground",
+    category: "childhood"
+  },
+  {
+    text: "What song reminds you of being in trouble as a kid?",
+    category: "childhood"
+  },
+  // Travel/Adventure
+  {
+    text: "What song would you play while lost?",
+    category: "travel"
+  },
+  // more
+  {
+    text: "What is the most annoying song?",
+    category: "music"
+  },
+  {
+    text: "Name a truly terrible song",
+    category: "music"
+  },
+  // Best/Greatest Songs
+  {
+    text: "What's the catchiest song ever made?",
+    category: "best"
+  },
+  {
+    text: "What's the best opening line in any song?",
+    category: "best"
+  },
+  {
+    text: "What's the most addictive song you can't stop playing?",
+    category: "best"
+  },
+  {
+    text: "What's the best song to sing along to in the car?",
+    category: "best"
+  },
+  {
+    text: "What's the most beautiful song ever written?",
+    category: "best"
+  },
+  {
+    text: "What's the best duet of all time?",
+    category: "best"
+  },
+  // Love & Romance
+  {
+    text: "What's your favorite love song?",
+    category: "love"
+  },
+  {
+    text: "What song makes you believe in love?",
+    category: "love"
+  },
+  {
+    text: "What's the cheesiest love song that you secretly love?",
+    category: "love"
+  },
+
+  // Breakups & Heartbreak
+  {
+    text: "What's the best breakup song?",
+    category: "breakup"
+  },
+  {
+    text: "What's the saddest breakup song?",
+    category: "breakup"
+  },
+  {
+    text: "What song helps you get over someone?",
+    category: "breakup"
+  },
+  {
+    text: "What's the angriest breakup song?",
+    category: "breakup"
+  },
+  {
+    text: "What song would you dedicate to your ex?",
+    category: "breakup"
+  },
+  {
+    text: "What's the best revenge song?",
+    category: "breakup"
+  },
+  // Emotions & Moods
+  {
+    text: "What song makes you feel fearless?",
+    category: "emotion"
+  },
+  {
+    text: "What song captures pure joy?",
+    category: "emotion"
+  },
+  {
+    text: "What's the most haunting song you know?",
+    category: "emotion"
+  },
+
+  // Personal Connection
+  {
+    text: "What song defines your teenage years?",
+    category: "personal"
+  },
+  {
+    text: "What song always reminds you of someone special?",
+    category: "personal"
+  },
+  {
+    text: "What song did you overplay until you ruined it?",
+    category: "personal"
+  },
+  {
+    text: "What song makes you think of your best friend?",
+    category: "personal"
+  },
+  {
+    text: "What song reminds you of the best night of your life?",
+    category: "personal"
+  },
+  // Musical Elements
+  {
+    text: "What song has the best bass line?",
+    category: "musical"
+  },
+  {
+    text: "What song has the most incredible vocals?",
+    category: "musical"
+  },
+  {
+    text: "What song has the best guitar riff?",
+    category: "musical"
+  },
+  {
+    text: "What song has the most memorable hook?",
+    category: "musical"
+  },
+  {
+    text: "What song has lyrics that hit differently?",
+    category: "musical"
+  },
+  {
+    text: "What song has the best beat drop?",
+    category: "musical"
+  },
+  // Guilty Pleasures & Secrets
+  {
+    text: "What's your biggest musical guilty pleasure?",
+    category: "guilty"
+  },
+  {
+    text: "What song do you love that everyone else hates?",
+    category: "guilty"
+  },
+  {
+    text: "What song are you embarrassed to admit you know every word to?",
+    category: "guilty"
+  },
+  {
+    text: "What's your favorite song that's completely outside your usual taste?",
+    category: "guilty"
+  },
+  // Life Moments
+  {
+    text: "What song takes you back to your first concert?",
+    category: "memory"
+  },
+  {
+    text: "What song makes you think of late night conversations?",
+    category: "memory"
+  },
+  {
+    text: "What song reminds you of your first job?",
+    category: "memory"
+  },
+
+  // Party & Social
+  {
+    text: "What's the ultimate party anthem?",
+    category: "party"
+  },
+  {
+    text: "What song gets everyone singing along?",
+    category: "party"
+  },
+  {
+    text: "What song clears the dance floor?",
+    category: "party"
+  },
+  {
+    text: "What's your go-to karaoke showstopper?",
+    category: "party"
+  },
+
+  // Specific Scenarios (but music-relevant)
+  {
+    text: "What song do you play when you need confidence?",
+    category: "scenario"
+  },
+  {
+    text: "What song do you play when you're alone and no one's watching?",
+    category: "scenario"
+  },
+  {
+    text: "What song makes housework bearable?",
+    category: "scenario"
+  },
+  {
+    text: "What's your ultimate shower song?",
+    category: "scenario"
+  },
+  // Artist/Band Specific (but still personal choice)
+  {
+    text: "What's the most underrated song by a famous artist?",
+    category: "artist"
+  },
+  {
+    text: "What artist (pick your favorite song) do you wish you could see live?",
+    category: "artist"
+  },
+  {
+    text: "What song completely changed your music taste?",
+    category: "artist"
+  },
+  // Generational/Era
+  {
+    text: "What 90s song still slaps today?",
+    category: "era"
+  },
+  {
+    text: "What's the best song from the 80s?",
+    category: "era"
+  },
+  {
+    text: "What modern song will be a classic in 20 years?",
+    category: "era"
+  },
+  // Deep Cuts
+  {
+    text: "What song do you wish more people knew about?",
+    category: "discovery"
+  },
+  {
+    text: "What song changed your life?",
+    category: "discovery"
+  },
+  {
+    text: "What song introduced you to a whole new genre?",
+    category: "discovery"
+  },
+  {
+    text: "What's a song you discovered by accident but now love?",
+    category: "discovery"
   }
 ];
 
