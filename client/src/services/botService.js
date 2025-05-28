@@ -1,4 +1,5 @@
 // client/src/services/botService.js
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5050/api';
 
 class BotService {
@@ -154,5 +155,8 @@ class BotService {
   }
 }
 
+// Create singleton instance
+const botService = new BotService();
+
 // Export singleton instance
-export default new BotService();
+export default botService;
