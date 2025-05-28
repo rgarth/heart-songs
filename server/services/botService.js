@@ -3,7 +3,11 @@ const axios = require('axios');
 
 class BotService {
   constructor() {
-    this.botApiUrl = process.env.BOT_SERVICE_URL || 'https://api.heartsongs.com/bot';
+    this.botApiUrl = process.env.BOT_SERVICE_URL;
+    
+    if (!this.botApiUrl) {
+      console.warn('BOT_SERVICE_URL not set - bot features will be disabled');
+    }
   }
 
   /**
@@ -15,6 +19,10 @@ class BotService {
    * @returns {Promise<Object>} Bot spawn result
    */
   async spawnBot({ gameCode, gameId, personality = 'eclectic' }) {
+    if (!this.botApiUrl) {
+      throw new Error('Bot service is not configured - please set BOT_SERVICE_URL environment variable');
+    }
+
     try {
       console.log(`Spawning bot for game ${gameCode} with personality: ${personality}`);
       
@@ -23,14 +31,26 @@ class BotService {
         gameId,
         personality
       }, {
-        timeout: 30000 // 30 second timeout
+        timeout: 30000, // 30 second timeout
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       console.log('Bot spawn response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Bot spawn failed:', error.response?.data || error.message);
-      throw new Error(`Failed to spawn bot: ${error.message}`);
+      
+      if (error.code === 'ECONNREFUSED') {
+        throw new Error('Bot service is unreachable - check BOT_SERVICE_URL');
+      } else if (error.response?.status === 404) {
+        throw new Error('Bot service endpoint not found - check your Lambda deployment');
+      } else if (error.response?.status >= 500) {
+        throw new Error('Bot service internal error - check Lambda logs');
+      } else {
+        throw new Error(`Failed to spawn bot: ${error.message}`);
+      }
     }
   }
 
@@ -50,7 +70,7 @@ class BotService {
         id: 'mainstream',
         name: 'Chart Topper',
         description: 'Knows all the hits and crowd favorites',
-        icon: '📻'
+        icon: '📈'
       },
       {
         id: 'indie',
@@ -85,7 +105,7 @@ class BotService {
   /**
    * Get bot info from display name
    * @param {string} displayName - Bot's display name
-   * @returns {Object} Bot information
+   * @returns {Object|null} Bot information or null if not a bot
    */
   getBotInfo(displayName) {
     if (!this.isBot(displayName)) {
@@ -109,215 +129,27 @@ class BotService {
       emoji: '🤖'
     };
   }
+
+  /**
+   * Check if bot service is available
+   * @returns {boolean} True if bot service is configured
+   */
+  isAvailable() {
+    return !!this.botApiUrl;
+  }
+
+  /**
+   * Get bot service status
+   * @returns {Object} Status information
+   */
+  getStatus() {
+    return {
+      available: this.isAvailable(),
+      url: this.botApiUrl ? 'configured' : 'not set',
+      personalities: this.getAvailablePersonalities().length
+    };
+  }
 }
 
+// Export singleton instance
 module.exports = new BotService();
-
-// server/routes/bot.js
-const express = require('express');
-const router = express.Router();
-const mongoose = require('mongoose');
-const Game = require('../models/Game');
-const botService = require('../services/botService');
-const { authenticateUser } = require('../middleware/auth');
-
-// Apply authentication middleware to all bot routes
-router.use(authenticateUser);
-
-// Get available bot personalities
-router.get('/personalities', async (req, res) => {
-  try {
-    const personalities = botService.getAvailablePersonalities();
-    res.json({
-      personalities
-    });
-  } catch (error) {
-    console.error('Error getting bot personalities:', error);
-    res.status(500).json({ error: 'Failed to get bot personalities' });
-  }
-});
-
-// Add bot to game
-router.post('/add-to-game', async (req, res) => {
-  try {
-    const { gameId, personality = 'eclectic' } = req.body;
-    const user = req.user;
-
-    if (!gameId) {
-      return res.status(400).json({ error: 'Game ID is required' });
-    }
-
-    // Find game by _id or code
-    let game = null;
-    if (mongoose.Types.ObjectId.isValid(gameId)) {
-      game = await Game.findById(gameId);
-    }
-    
-    if (!game) {
-      game = await Game.findOne({ code: gameId });
-    }
-    
-    if (!game) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
-
-    // Check if user is the host
-    if (game.host.toString() !== user._id.toString()) {
-      return res.status(403).json({ error: 'Only the host can add bots' });
-    }
-
-    // Check if game is in waiting state
-    if (game.status !== 'waiting') {
-      return res.status(400).json({ error: 'Can only add bots to games in lobby' });
-    }
-
-    // Check if there's room for more players (assuming max 6)
-    if (game.players.length >= 6) {
-      return res.status(400).json({ error: 'Game is full' });
-    }
-
-    // Check if personality is valid
-    const availablePersonalities = botService.getAvailablePersonalities();
-    const personalityExists = availablePersonalities.some(p => p.id === personality);
-    
-    if (!personalityExists) {
-      return res.status(400).json({ error: 'Invalid bot personality' });
-    }
-
-    try {
-      // Spawn the bot
-      const botResult = await botService.spawnBot({
-        gameCode: game.code,
-        gameId: game._id.toString(),
-        personality
-      });
-
-      console.log('Bot added successfully:', botResult);
-
-      res.json({
-        success: true,
-        botId: botResult.botId,
-        botName: botResult.botName,
-        personality: botResult.personality,
-        message: botResult.message || 'Bot is joining the game...'
-      });
-
-    } catch (botError) {
-      console.error('Bot service error:', botError);
-      
-      // Return user-friendly error
-      return res.status(500).json({ 
-        error: 'Failed to add bot to game',
-        details: 'The bot service is temporarily unavailable. Please try again.'
-      });
-    }
-
-  } catch (error) {
-    console.error('Error adding bot to game:', error);
-    res.status(500).json({ error: 'Failed to add bot to game' });
-  }
-});
-
-// Remove bot from game (if needed)
-router.post('/remove-from-game', async (req, res) => {
-  try {
-    const { gameId, botId } = req.body;
-    const user = req.user;
-
-    if (!gameId || !botId) {
-      return res.status(400).json({ error: 'Game ID and Bot ID are required' });
-    }
-
-    // Find game
-    let game = null;
-    if (mongoose.Types.ObjectId.isValid(gameId)) {
-      game = await Game.findById(gameId);
-    }
-    
-    if (!game) {
-      game = await Game.findOne({ code: gameId });
-    }
-    
-    if (!game) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
-
-    // Check if user is the host
-    if (game.host.toString() !== user._id.toString()) {
-      return res.status(403).json({ error: 'Only the host can remove bots' });
-    }
-
-    // Find the bot player
-    const botPlayerIndex = game.players.findIndex(p => p.user.toString() === botId);
-    
-    if (botPlayerIndex === -1) {
-      return res.status(404).json({ error: 'Bot not found in this game' });
-    }
-
-    // Remove the bot player
-    game.players.splice(botPlayerIndex, 1);
-    await game.save();
-
-    // Populate the updated game data
-    await game.populate('players.user', 'displayName');
-
-    res.json({
-      success: true,
-      message: 'Bot removed from game',
-      players: game.players
-    });
-
-  } catch (error) {
-    console.error('Error removing bot from game:', error);
-    res.status(500).json({ error: 'Failed to remove bot from game' });
-  }
-});
-
-// Get bot statistics (for future analytics)
-router.get('/stats', async (req, res) => {
-  try {
-    // This could be expanded to show bot performance metrics
-    res.json({
-      message: 'Bot statistics not yet implemented',
-      availablePersonalities: botService.getAvailablePersonalities().length
-    });
-  } catch (error) {
-    console.error('Error getting bot stats:', error);
-    res.status(500).json({ error: 'Failed to get bot statistics' });
-  }
-});
-
-module.exports = router;
-
-// server/index.js - ADD THIS TO YOUR EXISTING ROUTES
-// Add this line with your other route imports:
-const botRoutes = require('./routes/bot');
-
-// Add this line with your other route uses:
-app.use('/api/bot', botRoutes);
-
-// server/models/Game.js - ADD BOT HELPER METHODS
-// Add these methods to your existing Game schema:
-
-// Helper method to check if a player is a bot
-GameSchema.methods.isPlayerBot = function(playerId) {
-  const player = this.players.find(p => p.user.toString() === playerId.toString());
-  if (!player) return false;
-  
-  // This would need the populated user data
-  return player.user.displayName && player.user.displayName.includes('_bot_');
-};
-
-// Helper method to get all bot players
-GameSchema.methods.getBotPlayers = function() {
-  return this.players.filter(player => {
-    return player.user.displayName && player.user.displayName.includes('_bot_');
-  });
-};
-
-// Helper method to get human players only
-GameSchema.methods.getHumanPlayers = function() {
-  return this.players.filter(player => {
-    return !player.user.displayName || !player.user.displayName.includes('_bot_');
-  });
-};

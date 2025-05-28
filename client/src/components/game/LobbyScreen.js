@@ -1,4 +1,4 @@
-// client/src/components/game/LobbyScreen.js - Updated with Action Management
+// client/src/components/game/LobbyScreen.js - Updated with Bot Integration
 import React, { useState } from 'react';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
@@ -6,6 +6,9 @@ import HowToPlay from '../HowToPlay';
 import QuestionSelector from './QuestionSelector';
 import ActionButton from '../ActionButton';
 import ActionError from '../ActionError';
+
+// Import bot components
+import { AddBotButton, BotPlayerDisplay, botService } from '../bot';
 
 const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -140,6 +143,20 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
     setShowConfirmation(false);
     setSelectedQuestion(null);
   };
+
+  // Handle adding a bot to the game
+  const handleAddBot = (result) => {
+    console.log('Bot added to game:', result);
+    // The game state will be updated via polling in Game.js
+    // You could also show a success message here if desired
+  };
+
+  // Handle removing a bot from the game
+  const handleRemoveBot = async (botId) => {
+    console.log('Removing bot:', botId);
+    // The actual removal is handled by BotPlayerDisplay component
+    // Game state will be updated via polling in Game.js
+  };
   
   return (
     <div className="max-w-4xl mx-auto">
@@ -167,59 +184,77 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
             className="mb-6"
           />
           
-          {/* Band lineup - Vinyl record style */}
+          {/* Band lineup - Vinyl record style with bot support */}
           <div className="mb-8">
             <div className="grid gap-4">
               {game.players.map(player => {
-                return (
-                  <div
-                    key={player.user._id}
-                    className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border transition-all ${player.isReady
-                        ? 'border-lime-green shadow-lg shadow-lime-green/20'
-                        : 'border-electric-purple/30'}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="relative mr-4">
-                          <VinylRecord
-                            className="w-12 h-12 relative z-10"
-                            animationClass="animate-vinyl-spin group-hover:animate-vinyl-spin" />
+                const isBot = botService.isBot(player.user.displayName);
+                
+                if (isBot) {
+                  return (
+                    <BotPlayerDisplay
+                      key={player.user._id}
+                      player={player}
+                      onRemoveBot={handleRemoveBot}
+                      canRemove={isHost}
+                      gameId={game._id}
+                    />
+                  );
+                } else {
+                  // Regular human player display
+                  return (
+                    <div
+                      key={player.user._id}
+                      className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border transition-all ${player.isReady
+                          ? 'border-lime-green shadow-lg shadow-lime-green/20'
+                          : 'border-electric-purple/30'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="relative mr-4">
+                            <VinylRecord
+                              className="w-12 h-12 relative z-10"
+                              animationClass="animate-vinyl-spin group-hover:animate-vinyl-spin" />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center">
+                              <p className="font-semibold text-white font-concert text-lg">
+                                {player.user.displayName || player.user.username}
+                                {player.user._id === currentUser.id && (
+                                  <span className="ml-2 text-neon-pink">(YOU)</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <div className="flex items-center">
-                            <p className="font-semibold text-white font-concert text-lg">
-                              {player.user.displayName || player.user.username}
-                            </p>
-                          </div>
+                        {/* Status indicator */}
+                        <div className="text-right">
+                          {player.user._id === game.host._id ? (
+                            <div className="flex items-center text-gold-record font-medium">
+                              <span>MC</span>
+                            </div>
+                          ) : player.isReady ? (
+                            <div className="flex items-center text-lime-green font-medium animate-pulse">
+                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>READY TO ROCK</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-stage-red">
+                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              <span>TUNING UP</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-
-                      {/* Status indicator */}
-                      <div className="text-right">
-                        {player.user._id === game.host._id ? (
-                          <div className="flex items-center text-gold-record font-medium">
-                            <span>MC</span>
-                          </div>
-                        ) : player.isReady ? (
-                          <div className="flex items-center text-lime-green font-medium animate-pulse">
-                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>READY TO ROCK</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center text-stage-red">
-                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            <span>TUNING UP</span>
-                          </div>
-                        )}
                       </div>
                     </div>
-                  </div>
-                );
+                  );
+                }
               })}
             </div>
           </div>
@@ -313,6 +348,16 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                       </button>
                     )}
+                    
+                    {/* Add Bot Button */}
+                    <div className="flex justify-center">
+                      <AddBotButton
+                        onAddBot={handleAddBot}
+                        gameId={game._id}
+                        maxPlayers={6}
+                        currentPlayerCount={game.players.length}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (
