@@ -43,15 +43,14 @@ const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) =>
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           {/* OPTION 1: Just robot emoji, same size as vinyl */}
-          {/*
           <div className="relative mr-4">
             <div className="w-12 h-12 flex items-center justify-center text-2xl">
               🤖
             </div>
           </div>
-          */}
 
           {/* OPTION 2: Robot emoji inside spinning vinyl (uncomment to use instead) */}
+          {/* 
           <div className="relative mr-4">
             <VinylRecord
               className="w-12 h-12"
@@ -61,6 +60,7 @@ const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) =>
               🤖
             </div>
           </div>
+          */}
 
           <div>
             <div className="flex items-center">
@@ -99,21 +99,18 @@ const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) =>
             </div>
           )}
 
-          {/* FIXED Remove Button - Back to simple X */}
+          {/* FIXED Remove Button - Keep "Remove" text but fix functionality */}
           {canRemove && (
             <button
               onClick={handleRemove}
               disabled={isRemoving}
-              className="text-neon-pink hover:text-stage-red transition-colors disabled:opacity-50 p-1 rounded hover:bg-stage-red/10"
-              title="Remove bot from game"
+              className="px-3 py-1 bg-gradient-to-r from-stage-red/20 to-red-600/20 text-stage-red border border-stage-red/40 rounded-lg hover:bg-stage-red/30 transition-all disabled:opacity-50 text-sm"
+              title="Remove AI player"
             >
               {isRemoving ? (
-                <div className="w-5 h-5 border-2 border-stage-red border-t-transparent rounded-full animate-spin"></div>
+                <VinylRecord className="w-4 h-4 animate-spin" />
               ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                'Remove'
               )}
             </button>
           )}

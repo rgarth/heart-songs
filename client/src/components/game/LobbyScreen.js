@@ -194,7 +194,15 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
 
   // Handle removing a bot from the game
   const handleRemoveBot = async (botId) => {
-    console.log('Removing bot:', botId);
+    console.log('🗑️ Attempting to remove bot:', botId); // Add this debug log
+    try {
+      // Check if you have this API method
+      await botService.removeBotFromGame(game._id, botId);
+      console.log('✅ Bot removal API call succeeded');
+    } catch (error) {
+      console.error('❌ Bot removal failed:', error);
+    }
+
     // The actual removal is handled by BotPlayerDisplay component
     // Game state will be updated via polling in Game.js
   };
