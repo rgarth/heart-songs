@@ -41,13 +41,6 @@ const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) =>
   return (
     <div className="bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border border-electric-purple/30 relative">
       
-      {/* Bot Badge */}
-      <div className="absolute top-2 right-2">
-        <span className="bg-gradient-to-r from-electric-purple to-neon-pink text-white text-xs px-2 py-1 rounded-full font-medium">
-          🤖 AI
-        </span>
-      </div>
-
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           {/* Bot Avatar */}
@@ -103,19 +96,20 @@ const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) =>
             </div>
           )}
 
-          {/* Remove Button */}
+          {/* Remove Button with Neon X */}
           {canRemove && (
             <button
               onClick={handleRemove}
               disabled={isRemoving}
-              className="text-stage-red hover:text-red-400 transition-colors disabled:opacity-50 p-1 rounded hover:bg-stage-red/10"
+              className="text-neon-pink hover:text-electric-purple transition-colors disabled:opacity-50 p-1 rounded hover:bg-stage-red/10"
               title="Remove bot from game"
             >
               {isRemoving ? (
                 <div className="w-5 h-5 border-2 border-stage-red border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               )}
             </button>
