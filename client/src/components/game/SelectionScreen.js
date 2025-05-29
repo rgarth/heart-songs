@@ -86,11 +86,11 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     setSelectedSong(track);
   };
   
-  // Handle song submission
+  // Handle song submission - UPDATED with better duplicate error handling
   const handleSubmit = async () => {
     if (!selectedSong) return;
     
-    // Double-check for duplicate before submitting
+    // Double-check for duplicate before submitting (client-side prevention)
     if (isSongAlreadySelected(selectedSong.id)) {
       setDuplicateError(`"${selectedSong.name}" has already been selected by another player. Please choose a different song.`);
       setSelectedSong(null);
@@ -99,6 +99,8 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
     
     try {
       setIsSubmitting(true);
+      setError(null); // Clear any previous errors
+      setDuplicateError(null); // Clear duplicate error
       
       // Format the song data without YouTube ID (will be fetched during voting)
       const formattedSong = {
@@ -120,7 +122,19 @@ const SelectionScreen = ({ game, currentUser, accessToken }) => {
       }
     } catch (error) {
       console.error('Error submitting song:', error);
-      setError('Failed to submit your song. Please try again.');
+      
+      // Handle specific duplicate song error from backend
+      if (error.response?.status === 409 && error.response?.data?.errorCode === 'DUPLICATE_SONG') {
+        const duplicateInfo = error.response.data;
+        setDuplicateError(duplicateInfo.message || `"${selectedSong.name}" has already been selected by another player.`);
+        setSelectedSong(null); // Clear the selected song so user can pick another
+        
+        // Show a more detailed error message
+        console.log('Duplicate song details:', duplicateInfo.duplicateTrack);
+      } else {
+        // Handle other errors
+        setError('Failed to submit your song. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
