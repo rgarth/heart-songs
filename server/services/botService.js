@@ -15,21 +15,21 @@ class BotService {
    * @param {Object} options - Bot configuration
    * @param {string} options.gameCode - Game code to join
    * @param {string} options.gameId - Game ID
-   * @param {string} options.personality - Bot personality type
+   * @param {string} options.personality - Bot personality type (defaults to analytical)
    * @returns {Promise<Object>} Bot spawn result
    */
-  async spawnBot({ gameCode, gameId, personality = 'eclectic' }) {
+  async spawnBot({ gameCode, gameId, personality = 'analytical' }) {
     if (!this.botApiUrl) {
       throw new Error('Bot service is not configured - please set BOT_SERVICE_URL environment variable');
     }
 
     try {
-      console.log(`Spawning bot for game ${gameCode} with personality: ${personality}`);
+      console.log(`Spawning Music Scholar bot for game ${gameCode}`);
       
       const response = await axios.post(`${this.botApiUrl}/spawn-bot`, {
         gameCode,
         gameId,
-        personality
+        personality: 'analytical' // Always use analytical (Music Scholar)
       }, {
         timeout: 30000, // 30 second timeout
         headers: {
@@ -55,40 +55,16 @@ class BotService {
   }
 
   /**
-   * Get available bot personalities
+   * Get available bot personalities - now only returns Music Scholar
    * @returns {Array} List of available bot personalities
    */
   getAvailablePersonalities() {
     return [
       {
-        id: 'eclectic',
-        name: 'Eclectic Explorer',
-        description: 'Loves discovering hidden gems across all genres',
-        icon: '🌟'
-      },
-      {
-        id: 'mainstream',
-        name: 'Chart Topper',
-        description: 'Knows all the hits and crowd favorites',
-        icon: '📈'
-      },
-      {
-        id: 'indie',
-        name: 'Indie Insider',
-        description: 'Champions underground and alternative artists',
-        icon: '🎸'
-      },
-      {
-        id: 'vintage',
-        name: 'Time Traveler',
-        description: 'Expert in classic tracks from decades past',
-        icon: '📻'
-      },
-      {
         id: 'analytical',
         name: 'Music Scholar',
         description: 'Makes decisions based on musical theory and lyrics',
-        icon: '🎓'
+        //icon: '🎓'
       }
     ];
   }
@@ -112,13 +88,15 @@ class BotService {
       return null;
     }
 
+    // For simplicity, all bots are now Music Scholars
     const parts = displayName.split('_');
     if (parts.length >= 3 && parts[1] === 'bot') {
       return {
         type: parts[0],
         id: parts[2],
         isBot: true,
-        emoji: '🤖'
+        personality: 'Music Scholar',
+        //emoji: '🎓'
       };
     }
 
@@ -126,7 +104,8 @@ class BotService {
       type: 'unknown',
       id: 'unknown',
       isBot: true,
-      emoji: '🤖'
+      personality: 'Music Scholar',
+      //emoji: '🎓'
     };
   }
 
@@ -146,7 +125,7 @@ class BotService {
     return {
       available: this.isAvailable(),
       url: this.botApiUrl ? 'configured' : 'not set',
-      personalities: this.getAvailablePersonalities().length
+      defaultPersonality: 'Music Scholar'
     };
   }
 }
