@@ -59,15 +59,39 @@ class BotService {
    * @returns {Array} List of available bot personalities
    */
   getAvailablePersonalities() {
-    return [
-      {
-        id: 'analytical',
-        name: 'Music Scholar',
-        description: 'Makes decisions based on musical theory and lyrics',
-        //icon: '🎓'
-      }
-    ];
-  }
+  return [
+    {
+      id: 'eclectic',
+      name: 'Eclectic Explorer',
+      description: 'Loves discovering hidden gems across all genres'
+      // REMOVED: icon: '🌟'
+    },
+    {
+      id: 'mainstream',
+      name: 'Chart Topper',
+      description: 'Knows all the hits and crowd favorites'
+      // REMOVED: icon: '📈'
+    },
+    {
+      id: 'indie',
+      name: 'Indie Insider',
+      description: 'Champions underground and alternative artists'
+      // REMOVED: icon: '🎸'
+    },
+    {
+      id: 'vintage',
+      name: 'Time Traveler',
+      description: 'Expert in classic tracks from decades past'
+      // REMOVED: icon: '📻'  
+    },
+    {
+      id: 'analytical',
+      name: 'Music Scholar',
+      description: 'Makes decisions based on musical theory and lyrics'
+      // REMOVED: icon: '🎓'
+    }
+  ];
+}
 
   /**
    * Check if a user is a bot based on display name

@@ -1,60 +1,51 @@
-// client/src/components/bot/BotPlayerDisplay.js
 import React, { useState } from 'react';
-import botService from '../../services/botService';
 import VinylRecord from '../VinylRecord';
+import { botService } from './index';
 
-const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) => {
+const BotPlayerDisplay = ({ player, onRemoveBot, canRemove, gameId }) => {
   const [isRemoving, setIsRemoving] = useState(false);
-  const [removeError, setRemoveError] = useState(null);
   
   const botInfo = botService.getBotInfo(player.user.displayName);
-
+  
   const handleRemove = async () => {
     if (!canRemove || isRemoving) return;
     
     try {
       setIsRemoving(true);
-      setRemoveError(null);
-      
-      await botService.removeBotFromGame(gameId, player.user._id);
-      
-      // Call the parent callback to update the UI
-      if (onRemoveBot) {
-        onRemoveBot(player.user._id);
-      }
+      await onRemoveBot(player.user._id);
     } catch (error) {
       console.error('Failed to remove bot:', error);
-      setRemoveError('Failed to remove bot');
     } finally {
       setIsRemoving(false);
     }
   };
 
-  if (!botInfo) {
-    return null; // Not a bot, shouldn't render
-  }
-
-  const getBotTypeEmoji = () => {
-    return botService.getBotEmoji(botInfo.type);
-  };
-
   return (
-    <div className="bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border border-electric-purple/30 relative">
-      
+    <div className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border transition-all ${
+      player.isReady
+        ? 'border-lime-green shadow-lg shadow-lime-green/20'
+        : 'border-electric-purple/30'
+    }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          {/* Bot Avatar */}
           <div className="relative mr-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-electric-purple to-neon-pink rounded-full flex items-center justify-center">
-              <span className="text-2xl">{getBotTypeEmoji()}</span>
+            {/* Option 1: Just robot emoji, same size as vinyl */}
+            <div className="w-12 h-12 flex items-center justify-center text-2xl">
+              🤖
             </div>
             
-            {/* Status Indicator */}
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-turquoise rounded-full flex items-center justify-center">
-              <div className={`w-3 h-3 rounded-full ${
-                player.isReady ? 'bg-lime-green animate-pulse' : 'bg-stage-red'
-              }`}></div>
+            {/* Option 2: Robot emoji inside spinning vinyl (uncomment to use) */}
+            {/* 
+            <div className="relative">
+              <VinylRecord
+                className="w-12 h-12"
+                animationClass="animate-vinyl-spin" 
+              />
+              <div className="absolute inset-0 flex items-center justify-center text-lg">
+                🤖
+              </div>
             </div>
+            */}
           </div>
 
           <div>
@@ -62,67 +53,52 @@ const BotPlayerDisplay = ({ player, onRemoveBot, canRemove = false, gameId }) =>
               <p className="font-semibold text-white font-concert text-lg">
                 {player.user.displayName}
               </p>
+              <span className="ml-2 text-neon-pink text-sm">(AI PLAYER)</span>
             </div>
-            <p className="text-turquoise text-sm capitalize">
-              {botInfo.type.replace(/[_-]/g, ' ')} Bot • AI Player
+            <p className="text-silver text-sm">
+              {botInfo?.type || 'AI'} personality
             </p>
-            {player.score > 0 && (
-              <p className="text-gold-record text-sm font-medium">
-                {player.score} points
-              </p>
-            )}
           </div>
         </div>
 
-        {/* Status & Remove Button */}
+        {/* Status and Remove Button */}
         <div className="flex items-center gap-3">
-          {/* Ready Status */}
-          {player.isReady ? (
-            <div className="flex items-center text-lime-green font-medium animate-pulse">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>READY TO ROCK</span>
-            </div>
-          ) : (
-            <div className="flex items-center text-stage-red">
-              <div className="mr-2">
-                <VinylRecord 
-                  className="w-5 h-5" 
-                  animationClass="animate-spin"
-                />
+          {/* Status indicator */}
+          <div className="text-right">
+            {player.isReady ? (
+              <div className="flex items-center text-lime-green font-medium animate-pulse">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>READY TO ROCK</span>
               </div>
-              <span>TUNING UP</span>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center text-stage-red">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>TUNING UP</span>
+              </div>
+            )}
+          </div>
 
-          {/* Remove Button with Neon X */}
+          {/* Remove button for host */}
           {canRemove && (
             <button
               onClick={handleRemove}
               disabled={isRemoving}
-              className="text-neon-pink hover:text-electric-purple transition-colors disabled:opacity-50 p-1 rounded hover:bg-stage-red/10"
-              title="Remove bot from game"
+              className="px-3 py-1 bg-gradient-to-r from-stage-red/20 to-red-600/20 text-stage-red border border-stage-red/40 rounded-lg hover:bg-stage-red/30 transition-all disabled:opacity-50 text-sm"
+              title="Remove AI player"
             >
               {isRemoving ? (
-                <div className="w-5 h-5 border-2 border-stage-red border-t-transparent rounded-full animate-spin"></div>
+                <VinylRecord className="w-4 h-4 animate-spin" />
               ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                'Remove'
               )}
             </button>
           )}
         </div>
       </div>
-
-      {/* Remove Error */}
-      {removeError && (
-        <div className="mt-3 text-stage-red text-sm">
-          {removeError}
-        </div>
-      )}
     </div>
   );
 };

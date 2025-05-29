@@ -385,7 +385,7 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
                         
                         return (
                           <option key={personality.id} value={personality.id}>
-                            {personality.icon} {getPersonalityDescription(personality)}
+                            {getPersonalityDescription(personality)}
                           </option>
                         );
                       })}
