@@ -1520,7 +1520,7 @@ router.post('/set-winner-question', async (req, res) => {
     }
     
     if (game.status !== 'question-selection') {
-      return res.status(400).json({ error: 'Game is not in question selection phase' });
+      return res.status(400).json({ error: 'Game is not in question selection phase. Phase: ' + game.status });
     }
     
     // Determine who the winner is (should match frontend logic)
@@ -1593,7 +1593,7 @@ router.post('/host-override-question', async (req, res) => {
     }
     
     if (game.status !== 'question-selection') {
-      return res.status(400).json({ error: 'Game is not in question selection phase' });
+      return res.status(400).json({ error: 'Game is not in question selection phase: ' + game.status });
     }
     
     // Clear winner selected question and move back to results

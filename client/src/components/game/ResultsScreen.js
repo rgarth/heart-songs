@@ -1,4 +1,4 @@
-// client/src/components/game/ResultsScreen.js - Updated with Speed Bonus Display
+// client/src/components/game/ResultsScreen.js - Fixed with Speed Bonus Display
 import React, { useState } from 'react';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
@@ -256,9 +256,6 @@ const ResultsScreen = ({ game, currentUser, onNextRound, onEndGame, onMoveToQues
                           
                           {/* Song info - More compact */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-white truncate">{submission.songName}</p>
-                            </div>
                             <p className="text-silver text-sm truncate">{submission.artist}</p>
                             <p className="text-turquoise text-xs">
                               by {submission.player?.displayName || 'Unknown'}
