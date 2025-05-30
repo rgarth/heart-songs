@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
 const musicRoutes = require('./routes/music');
 const cacheRoutes = require('./routes/cache'); // Add cache management routes
+const botRoutes = require('./routes/bot');
 
 // Load environment variables
 dotenv.config();
@@ -28,6 +29,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/music', musicRoutes);
 app.use('/api/cache', cacheRoutes); // Add cache management routes
+app.use('/api/bot', botRoutes);
+
 
 // Basic health check route
 app.get('/health', (req, res) => {
@@ -51,4 +54,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('YouTube cache system enabled');
+  console.log('Bot service integration enabled');
 });

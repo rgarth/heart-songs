@@ -1,5 +1,5 @@
-// client/src/components/game/LobbyScreen.js - Updated with Action Management
-import React, { useState } from 'react';
+// client/src/components/game/LobbyScreen.js - Simplified Bot Integration
+import React, { useState, useEffect } from 'react';
 import { useGameStateActions } from '../../hooks/useGameStateActions';
 import VinylRecord from '../VinylRecord';
 import HowToPlay from '../HowToPlay';
@@ -7,12 +7,21 @@ import QuestionSelector from './QuestionSelector';
 import ActionButton from '../ActionButton';
 import ActionError from '../ActionError';
 
+// Import only what we need from bot components
+import { BotPlayerDisplay, botService } from '../bot';
+
 const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showQuestionControls, setShowQuestionControls] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [leavingGame, setLeavingGame] = useState(false);
+
+  // Bot-related state - simplified
+  const [botPersonalities, setBotPersonalities] = useState([]);
+  const [selectedPersonality, setSelectedPersonality] = useState('eclectic');
+  const [isAddingBot, setIsAddingBot] = useState(false);
+  const [botError, setBotError] = useState(null);
 
   // Use the game state actions hook
   const { actions, isPending, getError, clearError } = useGameStateActions(game._id);
@@ -28,6 +37,28 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
   
   // Check if there are at least 2 players
   const hasEnoughPlayers = game.players.length >= 2;
+
+  // Check if there's already a bot in the game
+  const hasBot = game.players.some(p => botService.isBot(p.user.displayName));
+
+  // Load bot personalities on mount
+  useEffect(() => {
+    const loadPersonalities = async () => {
+      try {
+        const personalities = await botService.getPersonalities();
+        setBotPersonalities(personalities);
+        if (personalities.length > 0) {
+          setSelectedPersonality(personalities[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load bot personalities:', error);
+      }
+    };
+
+    if (isHost) {
+      loadPersonalities();
+    }
+  }, [isHost]);
   
   // Handle leaving the game - properly remove from server
   const handleLeaveGame = async () => {
@@ -140,6 +171,41 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
     setShowConfirmation(false);
     setSelectedQuestion(null);
   };
+
+  // Handle adding a bot - simplified
+  const handleAddBot = async () => {
+    if (hasBot || isAddingBot) return;
+
+    try {
+      setIsAddingBot(true);
+      setBotError(null);
+      
+      const result = await botService.addBotToGame(game._id, selectedPersonality);
+      console.log('Bot added to game:', result);
+      // The game state will be updated via polling in Game.js
+      
+    } catch (error) {
+      console.error('Failed to add bot:', error);
+      setBotError(error.message || 'Failed to add AI player');
+    } finally {
+      setIsAddingBot(false);
+    }
+  };
+
+  // Handle removing a bot from the game
+  const handleRemoveBot = async (botId) => {
+    console.log('🗑️ Attempting to remove bot:', botId); // Add this debug log
+    try {
+      // Check if you have this API method
+      await botService.removeBotFromGame(game._id, botId);
+      console.log('✅ Bot removal API call succeeded');
+    } catch (error) {
+      console.error('❌ Bot removal failed:', error);
+    }
+
+    // The actual removal is handled by BotPlayerDisplay component
+    // Game state will be updated via polling in Game.js
+  };
   
   return (
     <div className="max-w-4xl mx-auto">
@@ -167,59 +233,77 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
             className="mb-6"
           />
           
-          {/* Band lineup - Vinyl record style */}
+          {/* Band lineup - with bot support */}
           <div className="mb-8">
             <div className="grid gap-4">
               {game.players.map(player => {
-                return (
-                  <div
-                    key={player.user._id}
-                    className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border transition-all ${player.isReady
-                        ? 'border-lime-green shadow-lg shadow-lime-green/20'
-                        : 'border-electric-purple/30'}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="relative mr-4">
-                          <VinylRecord
-                            className="w-12 h-12 relative z-10"
-                            animationClass="animate-vinyl-spin group-hover:animate-vinyl-spin" />
+                const isBot = botService.isBot(player.user.displayName);
+                
+                if (isBot) {
+                  return (
+                    <BotPlayerDisplay
+                      key={player.user._id}
+                      player={player}
+                      onRemoveBot={handleRemoveBot}
+                      canRemove={isHost}
+                      gameId={game._id}
+                    />
+                  );
+                } else {
+                  // Regular human player display
+                  return (
+                    <div
+                      key={player.user._id}
+                      className={`bg-gradient-to-r from-stage-dark to-vinyl-black rounded-lg p-4 border transition-all ${player.isReady
+                          ? 'border-lime-green shadow-lg shadow-lime-green/20'
+                          : 'border-electric-purple/30'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="relative mr-4">
+                            <VinylRecord
+                              className="w-12 h-12 relative z-10"
+                              animationClass="animate-vinyl-spin group-hover:animate-vinyl-spin" />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center">
+                              <p className="font-semibold text-white font-concert text-lg">
+                                {player.user.displayName || player.user.username}
+                                {player.user._id === currentUser.id && (
+                                  <span className="ml-2 text-neon-pink">(YOU)</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <div className="flex items-center">
-                            <p className="font-semibold text-white font-concert text-lg">
-                              {player.user.displayName || player.user.username}
-                            </p>
-                          </div>
+                        {/* Status indicator */}
+                        <div className="text-right">
+                          {player.user._id === game.host._id ? (
+                            <div className="flex items-center text-gold-record font-medium">
+                              <span>MC</span>
+                            </div>
+                          ) : player.isReady ? (
+                            <div className="flex items-center text-lime-green font-medium animate-pulse">
+                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>READY TO ROCK</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-stage-red">
+                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              <span>TUNING UP</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-
-                      {/* Status indicator */}
-                      <div className="text-right">
-                        {player.user._id === game.host._id ? (
-                          <div className="flex items-center text-gold-record font-medium">
-                            <span>MC</span>
-                          </div>
-                        ) : player.isReady ? (
-                          <div className="flex items-center text-lime-green font-medium animate-pulse">
-                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>READY TO ROCK</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center text-stage-red">
-                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            <span>TUNING UP</span>
-                          </div>
-                        )}
                       </div>
                     </div>
-                  </div>
-                );
+                  );
+                }
               })}
             </div>
           </div>
@@ -268,6 +352,85 @@ const LobbyScreen = ({ game, currentUser, onStartGame, onToggleReady }) => {
               </div>
             </div>
           </div>
+
+          {/* Neon-themed AI Player Section - Only for Host */}
+          {isHost && !hasBot && game.players.length < 6 && (
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-deep-space/50 to-stage-dark/50 rounded-lg p-6 border border-electric-purple/30">
+                <div className="text-center">
+                  <h3 className="text-lg font-rock text-neon-pink mb-3 flex items-center justify-center">
+                    <span className="text-2xl mr-2">🤖</span>
+                    ADD AI BAND MEMBER
+                  </h3>
+                  <p className="text-silver text-sm mb-4">Need an extra player? Add an AI with different music tastes</p>
+                  
+                  <div className="flex items-center justify-center gap-3">
+                    {/* Neon-themed Personality Dropdown */}
+                    <select
+                      value={selectedPersonality}
+                      onChange={(e) => setSelectedPersonality(e.target.value)}
+                      className="bg-gradient-to-r from-vinyl-black to-stage-dark text-white rounded-lg px-4 py-2 border-2 border-electric-purple/40 focus:border-neon-pink focus:outline-none focus:shadow-neon-purple/50 focus:shadow-lg transition-all font-concert text-sm min-w-[200px]"
+                      disabled={isAddingBot}
+                    >
+                      {botPersonalities.map(personality => {
+                        // Create more descriptive text based on personality
+                        const getPersonalityDescription = (p) => {
+                          switch(p.id) {
+                            case 'eclectic':
+                              return 'Eclectic Bot - Loves everything';
+                            case 'mainstream':
+                              return 'Chart Topper - Only the hits';
+                            case 'indie':
+                              return 'Indie Insider - Underground gems';
+                            case 'vintage':
+                              return 'Time Traveler - Classic tracks';
+                            case 'analytical':
+                              return 'Music Scholar - Deep knowledge';
+                            default:
+                              return `${p.name} - ${p.description.split(' ').slice(0, 3).join(' ')}`;
+                          }
+                        };
+                        
+                        return (
+                          <option key={personality.id} value={personality.id}>
+                            {getPersonalityDescription(personality)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    
+                    {/* Neon Add Button */}
+                    <button
+                      onClick={handleAddBot}
+                      disabled={isAddingBot || hasBot}
+                      className="px-6 py-2 bg-gradient-to-r from-electric-purple to-neon-pink text-white rounded-lg font-rock hover:shadow-lg hover:shadow-neon-pink/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-electric-purple/30 hover:border-neon-pink/60 text-sm font-bold tracking-wide"
+                    >
+                      {isAddingBot ? (
+                        <>
+                          <VinylRecord className="w-4 h-4 animate-spin mr-2 inline-block" />
+                          ADDING...
+                        </>
+                      ) : (
+                        'ADD BOT'
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* Bot Error */}
+                  {botError && (
+                    <div className="mt-4 bg-gradient-to-r from-stage-red/20 to-red-600/20 border border-stage-red/40 rounded-lg p-3">
+                      <div className="flex items-center justify-center text-stage-red text-sm">
+                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        {botError}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Player controls - Leave game button for non-host */}
           {currentPlayer && !isHost && (

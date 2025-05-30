@@ -335,7 +335,7 @@ router.post('/ready', async (req, res) => {
   }
 });
 
-// UPDATED: Submit route with pass support
+// server/routes/game.js - UPDATED submit route with duplicate prevention
 router.post('/submit', async (req, res) => {
   try {
     const { gameId, userId, songId, songName, artist, albumCover, hasPassed } = req.body;
@@ -381,6 +381,37 @@ router.post('/submit', async (req, res) => {
     
     // Check if user already submitted
     const existingSubmission = game.submissions.find(s => s.player && s.player.toString() === userId);
+    
+    // NEW: Check for duplicate songs (only for actual song submissions, not passes)
+    if (!hasPassed && songId && songId !== 'PASS') {
+      const duplicateSubmission = game.submissions.find(s => 
+        s.songId === songId && 
+        s.player.toString() !== userId && 
+        !s.hasPassed
+      );
+      
+      if (duplicateSubmission) {
+        // Get the player name who already submitted this song
+        const duplicatePlayer = game.players.find(p => 
+          p.user.toString() === duplicateSubmission.player.toString()
+        );
+        
+        const playerName = duplicatePlayer ? 
+          (duplicatePlayer.user.displayName || duplicatePlayer.user.username || 'Another player') : 
+          'Another player';
+        
+        return res.status(409).json({ 
+          error: 'Song already selected',
+          message: `"${songName}" by ${artist} has already been selected by ${playerName}`,
+          duplicateTrack: {
+            songName,
+            artist,
+            selectedBy: playerName
+          },
+          errorCode: 'DUPLICATE_SONG'
+        });
+      }
+    }
     
     // Check if this is the first submission (fastest player) - only for actual song submissions
     const isFirstSubmission = game.submissions.length === 0 && !hasPassed;
