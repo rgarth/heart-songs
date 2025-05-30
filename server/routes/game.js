@@ -1592,7 +1592,7 @@ router.post('/host-override-question', async (req, res) => {
       return res.status(403).json({ error: 'Only the host can override question selection' });
     }
     
-    if (game.status !== 'question-selection') {
+    if (game.status !== 'question-selection' && game.status !== 'selecting' && game.status !== 'results' && game.status !== 'question-selection') {
       return res.status(400).json({ error: 'Game is not in question selection phase: ' + game.status });
     }
     
