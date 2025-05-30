@@ -15,21 +15,21 @@ class BotService {
    * @param {Object} options - Bot configuration
    * @param {string} options.gameCode - Game code to join
    * @param {string} options.gameId - Game ID
-   * @param {string} options.personality - Bot personality type (defaults to analytical)
+   * @param {string} options.personality - Bot personality type (defaults to eclectic)
    * @returns {Promise<Object>} Bot spawn result
    */
-  async spawnBot({ gameCode, gameId, personality = 'analytical' }) {
+  async spawnBot({ gameCode, gameId, personality = 'eclectic' }) {
     if (!this.botApiUrl) {
       throw new Error('Bot service is not configured - please set BOT_SERVICE_URL environment variable');
     }
 
     try {
-      console.log(`Spawning Music Scholar bot for game ${gameCode}`);
+      console.log(`Spawning ${personality} bot for game ${gameCode}`);
       
       const response = await axios.post(`${this.botApiUrl}/spawn-bot`, {
         gameCode,
         gameId,
-        personality: 'analytical' // Always use analytical (Music Scholar)
+        personality: personality // FIXED: Use the actual personality parameter
       }, {
         timeout: 30000, // 30 second timeout
         headers: {
@@ -55,43 +55,38 @@ class BotService {
   }
 
   /**
-   * Get available bot personalities - now only returns Music Scholar
+   * Get available bot personalities
    * @returns {Array} List of available bot personalities
    */
   getAvailablePersonalities() {
-  return [
-    {
-      id: 'eclectic',
-      name: 'Eclectic Explorer',
-      description: 'Loves discovering hidden gems across all genres'
-      // REMOVED: icon: '🌟'
-    },
-    {
-      id: 'mainstream',
-      name: 'Chart Topper',
-      description: 'Knows all the hits and crowd favorites'
-      // REMOVED: icon: '📈'
-    },
-    {
-      id: 'indie',
-      name: 'Indie Insider',
-      description: 'Champions underground and alternative artists'
-      // REMOVED: icon: '🎸'
-    },
-    {
-      id: 'vintage',
-      name: 'Time Traveler',
-      description: 'Expert in classic tracks from decades past'
-      // REMOVED: icon: '📻'  
-    },
-    {
-      id: 'analytical',
-      name: 'Music Scholar',
-      description: 'Makes decisions based on musical theory and lyrics'
-      // REMOVED: icon: '🎓'
-    }
-  ];
-}
+    return [
+      {
+        id: 'eclectic',
+        name: 'Eclectic Explorer',
+        description: 'Loves discovering hidden gems across all genres'
+      },
+      {
+        id: 'mainstream',
+        name: 'Chart Topper',
+        description: 'Knows all the hits and crowd favorites'
+      },
+      {
+        id: 'indie',
+        name: 'Indie Insider',
+        description: 'Champions underground and alternative artists'
+      },
+      {
+        id: 'vintage',
+        name: 'Time Traveler',
+        description: 'Expert in classic tracks from decades past'
+      },
+      {
+        id: 'analytical',
+        name: 'Music Scholar',
+        description: 'Makes decisions based on musical theory and lyrics'
+      }
+    ];
+  }
 
   /**
    * Check if a user is a bot based on display name
@@ -112,15 +107,25 @@ class BotService {
       return null;
     }
 
-    // For simplicity, all bots are now Music Scholars
+    // Extract bot type from display name (first part before _bot_)
     const parts = displayName.split('_');
     if (parts.length >= 3 && parts[1] === 'bot') {
+      const botType = parts[0];
+      
+      // Map bot name prefixes to personalities
+      const personalityMap = {
+        'eclectic': 'Eclectic Explorer',
+        'pop': 'Chart Topper',
+        'indie': 'Indie Insider', 
+        'classic': 'Time Traveler',
+        'maestro': 'Music Scholar'
+      };
+      
       return {
-        type: parts[0],
+        type: botType,
         id: parts[2],
         isBot: true,
-        personality: 'Music Scholar',
-        //emoji: '🎓'
+        personality: personalityMap[botType] || 'Music Bot'
       };
     }
 
@@ -128,8 +133,7 @@ class BotService {
       type: 'unknown',
       id: 'unknown',
       isBot: true,
-      personality: 'Music Scholar',
-      //emoji: '🎓'
+      personality: 'Music Bot'
     };
   }
 
@@ -149,7 +153,7 @@ class BotService {
     return {
       available: this.isAvailable(),
       url: this.botApiUrl ? 'configured' : 'not set',
-      defaultPersonality: 'Music Scholar'
+      personalities: this.getAvailablePersonalities().map(p => p.name)
     };
   }
 }
