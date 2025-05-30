@@ -26,7 +26,7 @@ const HowToPlay = ({ className = "" }) => {
             </div>
           </div>
           <h3 className="text-lg font-semibold text-electric-purple mb-2">Find Some Friends</h3>
-          <p className="text-sm text-silver">Heartsongs is a multiplayer game. Invite some friends along to start the party</p>
+          <p className="text-sm text-silver">Heartsongs is a multiplayer game. Invite some friends along to start the party, or play against an AI</p>
         </div>
 
         {/* Step 2 */}
