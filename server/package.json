@@ -13,7 +13,11 @@
         "cache:cleanup:light": "node server/scripts/cleanupCache.js --light",
         "cache:monitor": "node server/scripts/monitorCache.js",
         "cache:monitor:continuous": "node server/scripts/monitorCache.js --continuous --interval=30",
-	"migrate:youtube": "node server/scripts/migrateYoutubeToCache.js"
+        "migrate:youtube": "node server/scripts/migrateYoutubeToCache.js",
+        "cleanup:stats": "node server/scripts/emergencyCleanup.js stats",
+        "cleanup:zombies": "node server/scripts/emergencyCleanup.js cleanup",
+        "cleanup:nuke": "node server/scripts/emergencyCleanup.js nuke",
+        "cleanup:nuke:confirm": "node server/scripts/emergencyCleanup.js nuke --confirm-nuke"
     },
     "keywords": [
         "lastfm",

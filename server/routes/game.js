@@ -626,7 +626,7 @@ router.post('/vote', async (req, res) => {
   }
 });
 
-// Start a new round - UPDATED to track question usage
+// Start a new round - UPDATED with round limit check
 router.post('/next-round', async (req, res) => {
   try {
     const { gameId, questionText, questionCategory } = req.body;
@@ -645,10 +645,37 @@ router.post('/next-round', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    
     if (game.status !== 'results' && game.status !== 'question-selection' && game.status !== 'selecting') {
       return res.status(400).json({ error: 'Game is not in results phase' });
     }
+    
+    // NEW: Check round limit before starting new round
+    const currentRoundNumber = (game.previousRounds?.length || 0) + 1;
+    const maxRounds = game.maxRounds || 30;
+    
+    if (currentRoundNumber > maxRounds) {
+      console.log(`Game ${game.code} reached maximum rounds (${maxRounds}), auto-ending game`);
+      
+      // Auto-end the game instead of starting a new round
+      game.status = 'ended';
+      game.endedAt = new Date();
+      game.lastActivity = new Date();
+      game.autoEndedReason = 'max_rounds';
+      game.autoEndedAt = new Date();
+      
+      await game.save();
+      
+      return res.status(400).json({ 
+        error: 'Maximum rounds reached',
+        message: `Game has reached the maximum of ${maxRounds} rounds and has been ended`,
+        maxRounds: maxRounds,
+        roundsPlayed: currentRoundNumber - 1,
+        gameStatus: 'ended'
+      });
+    }
+    
+    // Log round progress
+    console.log(`Game ${game.code}: Starting round ${currentRoundNumber}/${maxRounds}`);
     
     // Save current round data to previous rounds before clearing
     const currentRoundData = {
@@ -720,11 +747,17 @@ router.post('/next-round', async (req, res) => {
       gameId: game._id,
       status: game.status,
       currentQuestion: game.currentQuestion,
-      activePlayers: []
+      activePlayers: [],
+      roundInfo: {
+        currentRound: currentRoundNumber,
+        maxRounds: maxRounds,
+        roundsRemaining: maxRounds - currentRoundNumber
+      }
     };
     
     res.json(response);
   } catch (error) {
+    console.error('Error starting new round:', error);
     res.status(500).json({ error: 'Failed to start new round' });
   }
 });
