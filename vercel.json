@@ -1,4 +1,5 @@
 {
-  "buildCommand": "cd client && yarn install && yarn build",
+  "installCommand": "cd client && yarn install",
+  "buildCommand": "cd client && yarn build",
   "outputDirectory": "client/build"
 }
