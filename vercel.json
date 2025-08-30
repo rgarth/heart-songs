@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd client && yarn install && yarn build",
+  "installCommand": "cd client && yarn install"
+}
