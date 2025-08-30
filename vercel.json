@@ -1,4 +1,11 @@
 {
-  "buildCommand": "cd client && yarn install && yarn build",
-  "installCommand": "cd client && yarn install"
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/build"
+      }
+    }
+  ]
 }
