@@ -30,7 +30,7 @@ const TermsOfService = ({ onAccept }) => {
             <p>Last Updated: May 19, 2025</p>
             
             <h2>1. Introduction</h2>
-            <p>Welcome to Heart Songs ("Service"). These Terms of Service ("Terms") govern your use of the Heart Songs application and website available at https://heart-songs.vercel.app.</p>
+            <p>Welcome to Heart Songs ("Service"). These Terms of Service ("Terms") govern your use of the Heart Songs application and website available at https://heartsongsgame.app.</p>
             <p>By accessing or using Heart Songs, you agree to be bound by these Terms. If you do not agree to these Terms, you may not access or use the Service.</p>
             
             <h2>2. Acceptance of YouTube Terms</h2>

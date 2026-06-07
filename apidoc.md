@@ -8,7 +8,7 @@ Heart Songs integrates YouTube Data API v3 to provide music playback during mult
 - **Backend Service** [`server/services/youtubeService.js`](https://github.com/rgarth/heart-songs/blob/main/server/services/youtubeService.js): Handles API communication
 - **Cache Service** [`server/services/youtubeCacheService.js`](https://github.com/rgarth/heart-songs/blob/main/server/services/youtubeCacheService.js): Manages result storage
 - **Frontend Integration** [`client/src/services/musicService.js`](https://github.com/rgarth/heart-songs/blob/main/client/src/services/musicService.js): Coordinates UI interactions
-- **Homepage:** [https://heart-songs.vercel.app](https://heart-songs.vercel.app)
+- **Homepage:** [https://heartsongsgame.app](https://heartsongsgame.app)
 - **Source code:** [https://github.com/rgarth/heart-songs](https://github.com/rgarth/heart-songs)
 
 ### 2. API Access Configuration

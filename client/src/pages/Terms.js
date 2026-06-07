@@ -13,7 +13,7 @@ const Terms = () => {
       <section className="mb-8">
         <h2 className="text-xl font-bold text-turquoise mb-3">1. Introduction</h2>
         <p className="mb-3">
-          Welcome to Heart Songs ("Service"). These Terms of Service ("Terms") govern your use of the Heart Songs application and website available at https://heartsongs.app.
+          Welcome to Heart Songs ("Service"). These Terms of Service ("Terms") govern your use of the Heart Songs application and website available at https://heartsongsgame.app.
         </p>
         <p className="mb-3">
           By accessing or using Heart Songs, you agree to be bound by these Terms. If you do not agree to these Terms, you may not access or use the Service.
